@@ -73,7 +73,30 @@ export function clearAuthCookie(response: import('next/server').NextResponse) {
 }
 
 export async function loginUser(email: string, password: string) {
-  const db = getDb()
+  // ── Super admin via variables d'environnement (fonctionne sur Vercel et en local) ──
+  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@schoolmanager.cm'
+  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || 'Admin2026!'
+
+  if (email === superAdminEmail && password === superAdminPassword) {
+    const payload: AuthUser = {
+      id: 'super-admin',
+      role: 'super_admin',
+      ecole_id: null,
+      ecole_slug: null,
+      nom: 'Super Admin',
+    }
+    const token = await signToken(payload)
+    return { token, user: payload }
+  }
+
+  // ── Auth SQLite pour les autres utilisateurs (Electron local uniquement) ──
+  let db: ReturnType<typeof getDb>
+  try {
+    db = getDb()
+  } catch {
+    return { error: 'Email introuvable' as const }
+  }
+
   const user = db.prepare(`
     SELECT u.*, e.slug as ecole_slug
     FROM users u
