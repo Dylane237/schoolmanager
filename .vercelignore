@@ -1,0 +1,13 @@
+# Electron - pas nécessaire sur le serveur
+electron/
+scripts/
+dist/
+
+# Données locales
+*.db
+uploads/
+backups/
+exports/
+
+# Env local
+.env.local

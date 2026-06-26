@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getUserFromRequest } from '../../../../lib/auth'
+import { getDb } from '../../../../lib/db-server'
+import { getEleveSituation } from '../../../../lib/paiements-utils'
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {  const user = await getUserFromRequest(request)
+  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const { id } = await params
+  const db = getDb()
+
+  const eleve = db.prepare(`
+    SELECT e.*, c.nom as classe_nom, c.section as classe_section
+    FROM eleves e
+    LEFT JOIN classes c ON c.id = e.classe_id
+    WHERE e.id = ? AND e.ecole_id = ?
+  `).get(id, user.ecole_id)
+
+  if (!eleve) return NextResponse.json({ error: 'Élève introuvable' }, { status: 404 })
+
+  const parents   = db.prepare('SELECT * FROM parents WHERE eleve_id = ?').all(id)
+  const paiements = db.prepare('SELECT * FROM paiements WHERE eleve_id = ? ORDER BY date_paiement DESC').all(id)
+  const notes     = db.prepare(`
+    SELECT n.*, m.nom as matiere_nom, m.coefficient, e.section
+    FROM notes n
+    LEFT JOIN matieres m ON m.id = n.matiere_id
+    LEFT JOIN eleves e ON e.id = n.eleve_id
+    WHERE n.eleve_id = ? ORDER BY n.periode, m.nom
+  `).all(id)
+  const presences = db.prepare(
+    'SELECT * FROM presences WHERE eleve_id = ? ORDER BY date DESC LIMIT 60'
+  ).all(id)
+
+  const situation = getEleveSituation(db, user.ecole_id, id)
+
+  const classes = db.prepare(`
+    SELECT id, nom, section, niveau FROM classes
+    WHERE ecole_id = ? ORDER BY section, nom
+  `).all(user.ecole_id)
+
+  const ecole = db.prepare('SELECT nom FROM ecoles WHERE id = ?').get(user.ecole_id) as { nom: string } | undefined
+
+  return NextResponse.json({ eleve, parents, paiements, notes, presences, situation, classes, ecoleNom: ecole?.nom })
+}
+
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getUserFromRequest(request)
+  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const { id } = await params
+  const body = await request.json()
+  const db = getDb()
+
+  let section = body.section
+  if (body.classe_id) {
+    const classe = db.prepare(
+      'SELECT section FROM classes WHERE id = ? AND ecole_id = ?'
+    ).get(body.classe_id, user.ecole_id) as { section: string } | undefined
+    if (classe) section = classe.section
+  }
+
+  db.prepare(`
+    UPDATE eleves SET
+      nom = ?, prenom = ?, date_naissance = ?,
+      lieu_naissance = ?, sexe = ?, classe_id = ?,
+      section = ?, statut = ?, statut_annuel = ?,
+      photo_url = COALESCE(?, photo_url)
+    WHERE id = ? AND ecole_id = ?
+  `).run(
+    body.nom, body.prenom, body.date_naissance,
+    body.lieu_naissance, body.sexe, body.classe_id,
+    section, body.statut, body.statut_annuel,
+    body.photo_url ?? null,
+    id, user.ecole_id
+  )
+
+  return NextResponse.json({ success: true })
+}

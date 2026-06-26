@@ -1,0 +1,80 @@
+{
+  "name": "schoolmanager",
+  "version": "1.0.0",
+  "description": "Plateforme de gestion scolaire — Cameroun",
+  "author": "TCHASSEM Dylane",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "electron:dev": "concurrently \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:prepare": "node scripts/prepare-electron.js",
+    "electron:build": "next build && node scripts/prepare-electron.js && node scripts/rebuild-electron-native.js && electron-builder",
+    "rebuild:native": "npm rebuild better-sqlite3",
+    "rebuild:electron": "node scripts/rebuild-electron-native.js",
+    "postinstall": "npm rebuild better-sqlite3"
+  },
+  "build": {
+    "appId": "cm.schoolmanager.app",
+    "productName": "SchoolManager",
+    "icon": "electron/icon.ico",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "electron/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": false,
+      "shortcutName": "SchoolManager",
+      "language": "1036",
+      "include": "build/installer.nsh"
+    },
+    "files": [
+  "electron/**/*",
+  ".next/standalone/**/*",
+  "!.next/standalone/.next/node_modules/bcryptjs*",
+  "package.json"
+],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**",
+      "**/node_modules/bindings/**",
+      "**/node_modules/file-uri-to-path/**",
+      ".next/standalone/**"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.js"
+    }
+  },
+  "dependencies": {
+    "@types/node": "^26.0.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.11.1",
+    "concurrently": "^10.0.3",
+    "date-fns": "^4.4.0",
+    "jose": "^6.2.3",
+    "lucide-react": "^1.21.0",
+    "next": "^16.2.9",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-hot-toast": "^2.6.0",
+    "typescript": "^6.0.3",
+    "wait-on": "^9.0.10"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
+    "@tailwindcss/postcss": "^4.3.1",
+    "@types/bcryptjs": "^2.4.6",
+    "electron": "^42.5.0",
+    "electron-builder": "^26.15.3",
+    "@types/better-sqlite3": "^7.6.13",
+    "autoprefixer": "^10.5.2",
+    "tailwindcss": "^4.3.1"
+  }
+}

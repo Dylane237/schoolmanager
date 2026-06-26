@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Electron build output
+dist/
+
+# Base de données locale
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Fichiers sensibles
+.env.local
+.env*.local
+*.pem
+*.key
+
+# Uploads et données utilisateur
+uploads/
+backups/
+exports/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Cache
+.turbo/
+.cache/
