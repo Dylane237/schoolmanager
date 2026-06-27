@@ -169,6 +169,7 @@ function startNextServer() {
         HOSTNAME: '127.0.0.1',
         SM_USER_DATA: userDataPath,
         ELECTRON_RUN_AS_NODE: '1',
+        LICENCE_SERVER_URL: 'https://schoolmanager-eosin.vercel.app',
         ...(jwtSecret ? { SM_JWT_SECRET: jwtSecret } : {}),
       },
       cwd: serverDir,

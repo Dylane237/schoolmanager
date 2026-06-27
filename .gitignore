@@ -19,6 +19,7 @@ dist/
 .env*.local
 *.pem
 *.key
+src/app/api/auth/verify-licence/route.ts
 
 # Uploads et données utilisateur
 uploads/

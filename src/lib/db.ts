@@ -242,6 +242,22 @@ function initSchema(db: InstanceType<typeof Database>) {
       valeur TEXT NOT NULL DEFAULT '[]'
     );
 
+    CREATE TABLE IF NOT EXISTS licence_cache (
+      cle TEXT PRIMARY KEY,
+      plan TEXT NOT NULL,
+      date_fin TEXT NOT NULL,
+      last_verified TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS licence_cache (
+  cle TEXT PRIMARY KEY,
+  plan TEXT NOT NULL,
+  date_fin TEXT NOT NULL,
+  last_verified TEXT NOT NULL,
+  is_active INTEGER DEFAULT 1
+  );
+
     CREATE INDEX IF NOT EXISTS idx_eleves_ecole ON eleves(ecole_id);
     CREATE INDEX IF NOT EXISTS idx_eleves_classe ON eleves(ecole_id, classe_id);
     CREATE INDEX IF NOT EXISTS idx_paiements_ecole ON paiements(ecole_id);
@@ -307,6 +323,17 @@ function runMigrations(db: InstanceType<typeof Database>) {
   if (!licenceCols.find(c => c.name === 'machine_fingerprint')) {
     db.exec(`ALTER TABLE licences ADD COLUMN machine_fingerprint TEXT`)
   }
+
+  // Migration : ajout table licence_cache si elle n'existe pas
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS licence_cache (
+      cle TEXT PRIMARY KEY,
+      plan TEXT NOT NULL,
+      date_fin TEXT NOT NULL,
+      last_verified TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1
+    );
+  `)
 }
 
 function seedInitialData(db: InstanceType<typeof Database>) {
