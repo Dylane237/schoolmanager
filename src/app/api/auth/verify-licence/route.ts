@@ -3,21 +3,22 @@ import { NextRequest, NextResponse } from 'next/server'
 const LICENCE_SERVER_URL = 'https://schoolmanager-eosin.vercel.app'
 
 function getDb() {
+  // Sur Vercel, pas de SQLite
+  if (process.env.VERCEL) return null
+
   try {
     const Database = require('better-sqlite3')
     const path = require('path')
-    const fs = require('fs')
-    
-    const userDataPath = process.env.SM_USER_DATA || 
+
+    const userDataPath = process.env.SM_USER_DATA ||
       path.join(require('os').homedir(), 'Documents', 'SchoolManager')
-    
+
     const dbPath = path.join(userDataPath, 'schoolmanager.db')
-    
+
     const db = new Database(dbPath)
     db.pragma('journal_mode = WAL')
     db.pragma('foreign_keys = ON')
-    
-    // Créer table cache si elle n'existe pas
+
     db.exec(`
       CREATE TABLE IF NOT EXISTS licence_cache (
         cle TEXT PRIMARY KEY,
@@ -27,11 +28,45 @@ function getDb() {
         is_active INTEGER DEFAULT 1
       );
     `)
-    
+
     return db
   } catch (e) {
     console.error('[verify] getDb error:', e)
     return null
+  }
+}
+
+// Sur Vercel : vérification directe via Supabase
+async function verifyOnVercel(cle: string) {
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const { data: licence } = await supabase
+      .from('licences')
+      .select('cle_licence, type, date_fin, is_active, ecole_id')
+      .eq('cle_licence', cle)
+      .single()
+
+    if (!licence) return NextResponse.json({ valid: false, error: 'Clé invalide' })
+    if (!licence.is_active) return NextResponse.json({ valid: false, error: 'Licence révoquée' })
+    if (licence.ecole_id) return NextResponse.json({ valid: false, error: 'Clé déjà utilisée' })
+
+    const today = new Date().toISOString().split('T')[0]
+    if (licence.date_fin < today) return NextResponse.json({ valid: false, error: 'Licence expirée' })
+
+    return NextResponse.json({
+      valid: true,
+      plan: licence.type,
+      date_fin: licence.date_fin,
+      message: `Licence ${licence.type} valide jusqu'au ${licence.date_fin}`,
+    })
+  } catch (e) {
+    console.error('[verify] supabase error:', e)
+    return NextResponse.json({ valid: false, error: 'Erreur serveur' }, { status: 500 })
   }
 }
 
@@ -43,27 +78,32 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ valid: false, error: 'Clé requise' })
   }
 
-  const today = new Date().toISOString().split('T')[0]
-  const db = getDb()  //
+  // Si on est sur Vercel, vérifier directement via Supabase
+  if (process.env.VERCEL) {
+    return verifyOnVercel(cle)
+  }
 
-  // 2. Vérification serveur Vercel
+  // En local (Electron) : appel Vercel + cache SQLite
+  const today = new Date().toISOString().split('T')[0]
+  const db = getDb()
+
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 8000)
 
     const res = await fetch(
-      `${LICENCE_SERVER_URL}/api/licences/verify?cle=${encodeURIComponent(cle)}`,
-      { signal: controller.signal,
-    headers: {
-      'User-Agent': 'SchoolManager-Desktop/1.0',
-      'Accept': 'application/json',
-      }
+      `${LICENCE_SERVER_URL}/api/auth/verify-licence?cle=${encodeURIComponent(cle)}`,
+      {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'SchoolManager-Desktop/1.0',
+          'Accept': 'application/json',
+        }
       }
     )
     clearTimeout(timeout)
 
-    const text = await res.text()
-    const data = JSON.parse(text)
+    const data = await res.json()
 
     if (data.valid && db) {
       try {
@@ -99,7 +139,7 @@ export async function GET(request: NextRequest) {
     console.error('[verify] serveur inaccessible:', err?.message)
   }
 
-  // 3. Cache offline
+  // Fallback cache offline
   if (db) {
     try {
       const cached = db.prepare('SELECT * FROM licence_cache WHERE cle = ?').get(cle) as any
