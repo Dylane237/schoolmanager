@@ -137,7 +137,8 @@ export default function AdminLicencesPage() {
     btnPrimary: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: '#10b981', color: '#fff', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
     card: { background: '#1e293b', borderRadius: 12, border: '1px solid #334155', overflow: 'hidden' },
     filterRow: { display: 'flex', gap: 6, marginBottom: 16 },
-    filterBtn: (active: boolean): React.CSSProperties => ({ padding: '5px 14px', borderRadius: 999, fontSize: 13, fontWeight: 500, border: '1px solid', cursor: 'pointer', background: active ? '#334155' : 'transparent', color: active ? '#e2e8f0' : '#64748b', borderColor: active ? '#475569' : '#334155' }),
+    filterBtnActive: { padding: '5px 14px', borderRadius: 999, fontSize: 13, fontWeight: 500, border: '1px solid', cursor: 'pointer', background: '#334155', color: '#e2e8f0', borderColor: '#475569' } as React.CSSProperties,
+    filterBtnInactive: { padding: '5px 14px', borderRadius: 999, fontSize: 13, fontWeight: 500, border: '1px solid', cursor: 'pointer', background: 'transparent', color: '#64748b', borderColor: '#334155' } as React.CSSProperties,
     table: { width: '100%', borderCollapse: 'collapse' as const },
     th: { padding: '12px 16px', textAlign: 'left' as const, fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.05em', borderBottom: '1px solid #334155', background: '#0f172a44' },
     td: { padding: '13px 16px', fontSize: 13, color: '#cbd5e1', borderBottom: '1px solid #1e293b' },
@@ -222,7 +223,7 @@ export default function AdminLicencesPage() {
           <div style={{ padding: '14px 16px', borderBottom: '1px solid #334155' }}>
             <div style={s.filterRow}>
               {(['toutes', 'disponibles', 'attribuees'] as const).map(f => (
-                <button key={f} style={s.filterBtn(filter === f)} onClick={() => setFilter(f)}>
+                <button key={f} style={filter === f ? s.filterBtnActive : s.filterBtnInactive} onClick={() => setFilter(f)}>
                   {f === 'toutes' ? 'Toutes' : f === 'disponibles' ? 'Disponibles' : 'Attribuées'}
                 </button>
               ))}
