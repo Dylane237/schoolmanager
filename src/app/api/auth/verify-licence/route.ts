@@ -53,7 +53,12 @@ export async function GET(request: NextRequest) {
 
     const res = await fetch(
       `${LICENCE_SERVER_URL}/api/licences/verify?cle=${encodeURIComponent(cle)}`,
-      { signal: controller.signal }
+      { signal: controller.signal,
+    headers: {
+      'User-Agent': 'SchoolManager-Desktop/1.0',
+      'Accept': 'application/json',
+      }
+      }
     )
     clearTimeout(timeout)
 
