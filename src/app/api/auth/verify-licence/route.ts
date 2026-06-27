@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     const timeout = setTimeout(() => controller.abort(), 8000)
 
     const res = await fetch(
-      `${LICENCE_SERVER_URL}/api/licences/verify?cle=${encodeURIComponent(cle)}`,
+      `${LICENCE_SERVER_URL}/api/licences/verify-licence?cle=${encodeURIComponent(cle)}`,
       { signal: controller.signal }
     )
     clearTimeout(timeout)
