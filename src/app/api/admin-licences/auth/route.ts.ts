@@ -9,12 +9,18 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ ok: true })
-  response.cookies.set('admin_licences_token', process.env.SUPER_ADMIN_PASSWORD!, {
+  response.cookies.set('admin_licences_token', expected, {
     httpOnly: true,
     secure: true,
     sameSite: 'lax',
     maxAge: 60 * 60 * 8,
     path: '/',
   })
+  return response
+}
+
+export async function DELETE() {
+  const response = NextResponse.json({ ok: true })
+  response.cookies.delete('admin_licences_token')
   return response
 }
