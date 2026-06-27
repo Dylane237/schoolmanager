@@ -20,6 +20,7 @@ export async function proxy(request: NextRequest) {
     '/api/auth',
     '/api/licences',
     '/admin-licences',  // ← ajoute ça
+    '/api/admin-licences',  // ← ajoute ça
   ]
 
   if (publicPaths.some(p => pathname.startsWith(p))) {
