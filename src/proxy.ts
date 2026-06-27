@@ -13,7 +13,14 @@ async function getSecretKey(): Promise<Uint8Array> {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const publicPaths = ['/login', '/register', '/licence-expiree', '/api/auth']
+  const publicPaths = [
+    '/login',
+    '/register',
+    '/licence-expiree',
+    '/api/auth',
+    '/api/licences',
+  ]
+
   if (publicPaths.some(p => pathname.startsWith(p))) {
     return NextResponse.next()
   }
