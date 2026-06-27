@@ -9,10 +9,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ valid: false, error: 'Clé requise' }, { status: 400 })
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ valid: false, error: 'Configuration manquante' }, { status: 503 })
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey)
 
   const { data: licence } = await supabase
     .from('licences')
