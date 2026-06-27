@@ -46,7 +46,6 @@ export async function GET(request: NextRequest) {
   const today = new Date().toISOString().split('T')[0]
   const db = getDb()  //
 
-
   // 2. Vérification serveur Vercel
   try {
     const controller = new AbortController()
