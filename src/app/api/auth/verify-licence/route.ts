@@ -44,31 +44,8 @@ export async function GET(request: NextRequest) {
   }
 
   const today = new Date().toISOString().split('T')[0]
+  const db = getDb()  //
 
-  // 1. Vérification locale SQLite
-  const db = getDb()
-  if (db) {
-    try {
-      const localLicence = db.prepare(`
-        SELECT l.*, e.slug as ecole_slug
-        FROM licences l
-        LEFT JOIN ecoles e ON e.id = l.ecole_id
-        WHERE l.cle_licence = ? AND l.is_active = 1 AND l.date_fin >= ?
-      `).get(cle, today) as any
-
-      if (localLicence) {
-        return NextResponse.json({
-          valid: true,
-          plan: localLicence.type,
-          date_fin: localLicence.date_fin,
-          message: `Licence ${localLicence.type} valide jusqu'au ${localLicence.date_fin}`,
-          source: 'local'
-        })
-      }
-    } catch (e) {
-      console.error('[verify] local check error:', e)
-    }
-  }
 
   // 2. Vérification serveur Vercel
   try {
