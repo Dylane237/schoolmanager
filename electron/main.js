@@ -170,6 +170,8 @@ function startNextServer() {
         SM_USER_DATA: userDataPath,
         ELECTRON_RUN_AS_NODE: '1',
         LICENCE_SERVER_URL: 'https://schoolmanager-eosin.vercel.app',
+        NEXT_PUBLIC_SUPABASE_URL: 'https://lwfylrnmpwtemzbogppt.supabase.co',
+        SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_Lvh8K6K8NMMwegPPYJBn0w_Ef-gtX8N',
         ...(jwtSecret ? { SM_JWT_SECRET: jwtSecret } : {}),
       },
       cwd: serverDir,

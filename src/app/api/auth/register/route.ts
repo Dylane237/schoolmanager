@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '../../../../lib/db-server'
 import { hashPassword, signToken, setAuthCookie } from '../../../../lib/auth'
 import { slugify } from '../../../../lib/utils/slug'
-import { getMachineFingerprint } from '../../../../lib/paths'
+
+const LICENCE_SERVER_URL = 'https://schoolmanager-eosin.vercel.app'
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,39 +34,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cet email est déjà enregistré' }, { status: 409 })
     }
 
-    const licence = db.prepare(`
-      SELECT * FROM licences WHERE UPPER(cle_licence) = ? AND is_active = 1
-    `).get(cle_licence.trim().toUpperCase()) as {
-      id: string; ecole_id: string | null; date_fin: string
-    } | undefined
+    // 1. Vérifier la licence sur Vercel
+    const verifyRes = await fetch(
+      `${LICENCE_SERVER_URL}/api/auth/verify-licence?cle=${encodeURIComponent(cle_licence.trim().toUpperCase())}`,
+      {
+        headers: { 'User-Agent': 'SchoolManager-Desktop/1.0' },
+        signal: AbortSignal.timeout(8000),
+      }
+    )
+    const verifyData = await verifyRes.json()
 
-    if (!licence) {
-      return NextResponse.json({ error: 'Clé de licence invalide' }, { status: 400 })
+    if (!verifyData.valid) {
+      return NextResponse.json({ error: verifyData.error || 'Clé de licence invalide' }, { status: 400 })
     }
 
-    if (licence.ecole_id) {
-      return NextResponse.json({ error: 'Cette clé de licence est déjà utilisée' }, { status: 400 })
-    }
-
-    if (licence.date_fin < new Date().toISOString().split('T')[0]) {
-      return NextResponse.json({ error: 'Cette clé de licence a expiré' }, { status: 400 })
-    }
-
-    const sectionsJson = JSON.stringify(sections || ['francophone'])
-
+    // 2. Créer l'école localement
     db.prepare(`
       INSERT INTO ecoles (nom, slug, telephone, directeur_nom, sections, email)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(nom_ecole, finalSlug, telephone || null, directeur_nom, sectionsJson, email)
+    `).run(nom_ecole, finalSlug, telephone || null, directeur_nom, JSON.stringify(sections || ['francophone']), email)
 
     const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(finalSlug) as { id: string }
 
-    const fingerprint = getMachineFingerprint()
-    db.prepare(`
-      UPDATE licences SET ecole_id = ?, machine_fingerprint = ?
-      WHERE id = ?
-    `).run(ecole.id, fingerprint, licence.id)
+    // 3. Marquer la licence comme utilisée sur Vercel (Supabase)
+    try {
+      await fetch(`${LICENCE_SERVER_URL}/api/auth/use-licence`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'SchoolManager-Desktop/1.0',
+        },
+        body: JSON.stringify({
+          cle: cle_licence.trim().toUpperCase(),
+          ecole_slug: finalSlug,
+          ecole_nom: nom_ecole,
+        }),
+        signal: AbortSignal.timeout(8000),
+      })
+    } catch (e) {
+      console.warn('[register] use-licence failed (non bloquant):', e)
+      // Non bloquant : l'inscription continue même si ça échoue
+    }
 
+    // 4. Année scolaire
     const year = new Date().getFullYear()
     const month = new Date().getMonth()
     const startYear = month >= 8 ? year : year - 1
@@ -76,6 +87,7 @@ export async function POST(request: NextRequest) {
       VALUES (?, ?, ?, ?, 1)
     `).run(ecole.id, anneeLabel, `${startYear}-09-01`, `${startYear + 1}-07-31`)
 
+    // 5. Créer l'utilisateur admin
     const passwordHash = await hashPassword(password)
     db.prepare(`
       INSERT INTO users (email, password_hash, nom, role, ecole_id)
@@ -99,6 +111,7 @@ export async function POST(request: NextRequest) {
     })
     setAuthCookie(response, token)
     return response
+
   } catch (err) {
     console.error('Register error:', err)
     return NextResponse.json({ error: 'Erreur lors de la création du compte' }, { status: 500 })

@@ -10,7 +10,7 @@
     "start": "next start",
     "electron:dev": "concurrently \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:prepare": "node scripts/prepare-electron.js",
-    "electron:build": "next build && node scripts/prepare-electron.js && node scripts/rebuild-electron-native.js && electron-builder",
+    "electron:build": "cross-env TURBOPACK=0 next build && node scripts/prepare-electron.js && node scripts/rebuild-electron-native.js && electron-builder",
     "rebuild:native": "npm rebuild better-sqlite3",
     "rebuild:electron": "node scripts/rebuild-electron-native.js",
     "postinstall": "npm rebuild better-sqlite3"
@@ -74,6 +74,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "autoprefixer": "^10.5.2",
+    "cross-env": "^10.1.0",
     "electron": "^42.5.0",
     "electron-builder": "^26.15.3",
     "tailwindcss": "^4.3.1"

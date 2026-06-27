@@ -3,22 +3,17 @@ import { NextRequest, NextResponse } from 'next/server'
 const LICENCE_SERVER_URL = 'https://schoolmanager-eosin.vercel.app'
 
 function getDb() {
-  // Sur Vercel, pas de SQLite
   if (process.env.VERCEL) return null
 
   try {
     const Database = require('better-sqlite3')
     const path = require('path')
-
     const userDataPath = process.env.SM_USER_DATA ||
       path.join(require('os').homedir(), 'Documents', 'SchoolManager')
-
     const dbPath = path.join(userDataPath, 'schoolmanager.db')
-
     const db = new Database(dbPath)
     db.pragma('journal_mode = WAL')
     db.pragma('foreign_keys = ON')
-
     db.exec(`
       CREATE TABLE IF NOT EXISTS licence_cache (
         cle TEXT PRIMARY KEY,
@@ -28,7 +23,6 @@ function getDb() {
         is_active INTEGER DEFAULT 1
       );
     `)
-
     return db
   } catch (e) {
     console.error('[verify] getDb error:', e)
@@ -36,7 +30,6 @@ function getDb() {
   }
 }
 
-// Sur Vercel : vérification directe via Supabase
 async function verifyOnVercel(cle: string) {
   try {
     const { createClient } = await import('@supabase/supabase-js')
@@ -78,7 +71,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ valid: false, error: 'Clé requise' })
   }
 
-  // Si on est sur Vercel, vérifier directement via Supabase
   if (process.env.VERCEL) {
     return verifyOnVercel(cle)
   }
@@ -88,36 +80,35 @@ export async function GET(request: NextRequest) {
   const db = getDb()
 
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8000)
-
     const res = await fetch(
       `${LICENCE_SERVER_URL}/api/auth/verify-licence?cle=${encodeURIComponent(cle)}`,
       {
-        signal: controller.signal,
         headers: {
           'User-Agent': 'SchoolManager-Desktop/1.0',
           'Accept': 'application/json',
-        }
+        },
+        signal: AbortSignal.timeout(8000),
       }
     )
-    clearTimeout(timeout)
 
     const data = await res.json()
+    console.log('[verify] réponse Vercel:', JSON.stringify(data))
 
-    if (data.valid && db) {
-      try {
-        db.prepare(`
-          INSERT INTO licence_cache (cle, plan, date_fin, last_verified, is_active)
-          VALUES (?, ?, ?, ?, 1)
-          ON CONFLICT(cle) DO UPDATE SET
-            plan = excluded.plan,
-            date_fin = excluded.date_fin,
-            last_verified = excluded.last_verified,
-            is_active = 1
-        `).run(cle, data.plan, data.date_fin, new Date().toISOString())
-      } catch (e) {
-        console.error('[verify] cache save error:', e)
+    if (data.valid) {
+      if (db) {
+        try {
+          db.prepare(`
+            INSERT INTO licence_cache (cle, plan, date_fin, last_verified, is_active)
+            VALUES (?, ?, ?, ?, 1)
+            ON CONFLICT(cle) DO UPDATE SET
+              plan = excluded.plan,
+              date_fin = excluded.date_fin,
+              last_verified = excluded.last_verified,
+              is_active = 1
+          `).run(cle, data.plan, data.date_fin, new Date().toISOString())
+        } catch (e) {
+          console.error('[verify] cache save error:', e)
+        }
       }
 
       return NextResponse.json({
@@ -125,14 +116,14 @@ export async function GET(request: NextRequest) {
         plan: data.plan,
         date_fin: data.date_fin,
         message: data.message,
-        source: 'online'
+        source: 'online',
       })
     }
 
     return NextResponse.json({
       valid: false,
       error: data.error || 'Clé invalide',
-      source: 'online'
+      source: 'online',
     })
 
   } catch (err: any) {
@@ -148,7 +139,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           valid: false,
           error: 'Connexion internet requise pour la première activation',
-          source: 'offline'
+          source: 'offline',
         })
       }
 
@@ -165,7 +156,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           valid: false,
           error: `Connexion requise (dernière vérif. il y a ${Math.floor(daysSince)} jours)`,
-          source: 'offline'
+          source: 'offline',
         })
       }
 
@@ -174,7 +165,7 @@ export async function GET(request: NextRequest) {
         plan: cached.plan,
         date_fin: cached.date_fin,
         message: `Licence ${cached.plan} valide (mode offline)`,
-        source: 'offline'
+        source: 'offline',
       })
     } catch (e) {
       console.error('[verify] cache read error:', e)
@@ -184,6 +175,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     valid: false,
     error: 'Erreur de vérification — réessayez',
-    source: 'error'
+    source: 'error',
   })
 }
