@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
-    const { cle, ecole_slug, ecole_nom } = await request.json()
+    const { cle } = await request.json()
 
-    if (!cle || !ecole_slug) {
+    if (!cle) {
       return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
     }
 
@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Vérifier que la licence existe, est active et non utilisée
     const { data: licence, error } = await supabase
       .from('licences')
       .select('id, ecole_id, is_active, date_fin')
@@ -38,24 +37,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Licence expirée' }, { status: 400 })
     }
 
-    // Créer l'école dans Supabase pour avoir un ecole_id
-    const { data: ecole, error: ecoleError } = await supabase
-      .from('ecoles')
-      .insert({ nom: ecole_nom, slug: ecole_slug })
-      .select('id')
-      .single()
-
-    if (ecoleError || !ecole) {
-      return NextResponse.json({ error: 'Erreur création école' }, { status: 500 })
-    }
-
-    // Lier la licence à l'école
+    // Marquer la licence comme utilisée avec un UUID fictif
     await supabase
       .from('licences')
-      .update({ ecole_id: ecole.id })
+      .update({ ecole_id: crypto.randomUUID() })
       .eq('id', licence.id)
 
-    return NextResponse.json({ success: true, ecole_id: ecole.id })
+    return NextResponse.json({ success: true })
 
   } catch (err) {
     console.error('[use-licence] error:', err)

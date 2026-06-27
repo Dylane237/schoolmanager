@@ -39,15 +39,55 @@ export default async function SlugLayout({
 
   if (!ecole) redirect('/login')
 
-  const licence = db.prepare(`
-    SELECT type, date_fin FROM licences
-    WHERE ecole_id = ? AND is_active = 1 AND date_fin >= date('now')
-    ORDER BY date_fin DESC LIMIT 1
-  `).get(ecole.id) as { type: string; date_fin: string } | undefined
+  // Vérifier la licence via le cache SQLite local d'abord
+const licenceLocal = db.prepare(`
+  SELECT plan, date_fin FROM licence_cache
+  WHERE date_fin >= date('now') AND is_active = 1
+  LIMIT 1
+`).get() as { plan: string; date_fin: string } | undefined
 
-  if (!licence && payload.role !== 'super_admin') {
-    redirect('/licence-expiree')
+let licence: { type: string; date_fin: string } | undefined = licenceLocal
+  ? { type: licenceLocal.plan, date_fin: licenceLocal.date_fin }
+  : undefined
+
+// Si pas en cache, vérifier en ligne
+if (!licence && payload.role !== 'super_admin') {
+  try {
+    const licenceDb = db.prepare(`
+      SELECT cle_licence FROM licences WHERE ecole_id = ?
+    `).get(ecole.id) as { cle_licence: string } | undefined
+
+    if (licenceDb?.cle_licence) {
+      const res = await fetch(
+        `https://schoolmanager-eosin.vercel.app/api/auth/verify-licence?cle=${encodeURIComponent(licenceDb.cle_licence)}`,
+        {
+          headers: { 'User-Agent': 'SchoolManager-Desktop/1.0' },
+          signal: AbortSignal.timeout(5000),
+        }
+      )
+      const data = await res.json()
+      if (data.valid) {
+        licence = { type: data.plan, date_fin: data.date_fin }
+        // Mettre en cache
+        db.prepare(`
+          INSERT INTO licence_cache (cle, plan, date_fin, last_verified, is_active)
+          VALUES (?, ?, ?, ?, 1)
+          ON CONFLICT(cle) DO UPDATE SET
+            plan = excluded.plan,
+            date_fin = excluded.date_fin,
+            last_verified = excluded.last_verified,
+            is_active = 1
+        `).run(licenceDb.cle_licence, data.plan, data.date_fin, new Date().toISOString())
+      }
+    }
+  } catch (e) {
+    console.warn('[layout] vérification licence en ligne échouée:', e)
   }
+}
+
+if (!licence && payload.role !== 'super_admin') {
+  redirect('/licence-expiree')
+}
 
   const anneeScolaire = getActiveAnneeScolaire(db, ecole.id)
   const nom = (payload.nom as string) || 'Admin'

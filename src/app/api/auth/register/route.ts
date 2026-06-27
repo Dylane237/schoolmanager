@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '../../../../lib/db-server'
 import { hashPassword, signToken, setAuthCookie } from '../../../../lib/auth'
 import { slugify } from '../../../../lib/utils/slug'
+import { getMachineFingerprint } from '../../../../lib/paths'
 
 const LICENCE_SERVER_URL = 'https://schoolmanager-eosin.vercel.app'
 
@@ -56,7 +57,30 @@ export async function POST(request: NextRequest) {
 
     const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(finalSlug) as { id: string }
 
-    // 3. Marquer la licence comme utilisée sur Vercel (Supabase)
+    // 3. Insérer la licence en local SQLite avec fingerprint
+    const fingerprint = getMachineFingerprint()
+    db.prepare(`
+      INSERT OR IGNORE INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence, machine_fingerprint)
+      VALUES (?, ?, date('now'), ?, 1, ?, ?)
+    `).run(ecole.id, verifyData.plan, verifyData.date_fin, cle_licence.trim().toUpperCase(), fingerprint)
+
+    // 4. Mettre en cache licence_cache
+    db.prepare(`
+      INSERT INTO licence_cache (cle, plan, date_fin, last_verified, is_active)
+      VALUES (?, ?, ?, ?, 1)
+      ON CONFLICT(cle) DO UPDATE SET
+        plan = excluded.plan,
+        date_fin = excluded.date_fin,
+        last_verified = excluded.last_verified,
+        is_active = 1
+    `).run(
+      cle_licence.trim().toUpperCase(),
+      verifyData.plan,
+      verifyData.date_fin,
+      new Date().toISOString()
+    )
+
+    // 5. Marquer la licence comme utilisée sur Vercel (Supabase)
     try {
       await fetch(`${LICENCE_SERVER_URL}/api/auth/use-licence`, {
         method: 'POST',
@@ -73,10 +97,9 @@ export async function POST(request: NextRequest) {
       })
     } catch (e) {
       console.warn('[register] use-licence failed (non bloquant):', e)
-      // Non bloquant : l'inscription continue même si ça échoue
     }
 
-    // 4. Année scolaire
+    // 6. Année scolaire
     const year = new Date().getFullYear()
     const month = new Date().getMonth()
     const startYear = month >= 8 ? year : year - 1
@@ -87,7 +110,7 @@ export async function POST(request: NextRequest) {
       VALUES (?, ?, ?, ?, 1)
     `).run(ecole.id, anneeLabel, `${startYear}-09-01`, `${startYear + 1}-07-31`)
 
-    // 5. Créer l'utilisateur admin
+    // 7. Créer l'utilisateur admin
     const passwordHash = await hashPassword(password)
     db.prepare(`
       INSERT INTO users (email, password_hash, nom, role, ecole_id)
