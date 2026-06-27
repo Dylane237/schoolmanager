@@ -19,6 +19,7 @@ export async function proxy(request: NextRequest) {
     '/licence-expiree',
     '/api/auth',
     '/api/licences',
+    '/admin-licences',  // ← ajoute ça
   ]
 
   if (publicPaths.some(p => pathname.startsWith(p))) {
