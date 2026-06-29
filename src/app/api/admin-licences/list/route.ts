@@ -18,9 +18,25 @@ export async function GET(request: NextRequest) {
 
   const { data: licences, error } = await supabase
     .from('licences')
-    .select('*, ecoles(nom)')
+    .select('*')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ licences })
+
+  const ecoleIds = (licences || [])
+    .map(l => l.ecole_id)
+    .filter(Boolean)
+
+  const { data: ecoles } = ecoleIds.length > 0
+    ? await supabase.from('ecoles').select('id, nom').in('id', ecoleIds)
+    : { data: [] }
+
+  const ecolesMap = Object.fromEntries((ecoles || []).map(e => [e.id, e]))
+
+  const licencesWithEcoles = (licences || []).map(l => ({
+    ...l,
+    ecoles: l.ecole_id ? (ecolesMap[l.ecole_id] ?? null) : null
+  }))
+
+  return NextResponse.json({ licences: licencesWithEcoles })
 }
