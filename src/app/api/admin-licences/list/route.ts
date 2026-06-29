@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   const { data: licences, error } = await supabase
     .from('licences')
-    .select('*')
+    .select('*, ecoles(nom)')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
