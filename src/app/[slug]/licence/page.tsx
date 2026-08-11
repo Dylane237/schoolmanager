@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Shield, Key, Users, Calendar, AlertTriangle, CheckCircle2,
   ArrowUpCircle, RefreshCw, Sparkles, Crown, Zap,
@@ -69,6 +70,7 @@ function DaysRing({ daysLeft, totalDays = 365 }: { daysLeft: number; totalDays?:
 }
 
 export default function LicencePage() {
+  const router = useRouter()
   const { userRole } = useSchool()
   const { status, loading, refresh } = useLicenceStatus()
   const [renewKey, setRenewKey] = useState('')
@@ -99,7 +101,8 @@ export default function LicencePage() {
       toast.success('Licence renouvelée avec succès')
       setRenewKey('')
       setShowRenew(false)
-      refresh()
+      await refresh()
+      router.refresh()
     } catch {
       toast.error('Erreur réseau — réessayez')
     } finally {

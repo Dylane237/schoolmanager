@@ -2,6 +2,7 @@
 
 import { useSchool } from './SchoolProvider'
 import SchoolLogoMark from './SchoolLogoMark'
+import { useLicenceStatus } from '@/hooks/useLicenceStatus'
 
 interface PageShellProps {
   title: string
@@ -27,6 +28,11 @@ export default function PageShell({
   fullWidth = false,
 }: PageShellProps) {
   const { slug, anneeScolaire, licenceType, userInitials } = useSchool()
+  const { status } = useLicenceStatus()
+  const plan = (status?.plan ?? licenceType) as string | null
+  const planLabel = plan
+    ? (status?.planLabel?.split('—')[0]?.trim() || plan)
+    : null
 
   return (
     <div className="min-h-full bg-slate-50 flex flex-col">
@@ -43,9 +49,9 @@ export default function PageShell({
           <span className="hidden sm:inline text-sm text-slate-600 bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5">
             {anneeScolaire}
           </span>
-          {licenceType && (
-            <span className={`hidden md:inline text-xs font-semibold rounded-lg px-3 py-1.5 capitalize ${LICENCE_STYLES[licenceType] ?? 'bg-slate-700 text-slate-200'}`}>
-              {licenceType}
+          {planLabel && (
+            <span className={`hidden md:inline text-xs font-semibold rounded-lg px-3 py-1.5 capitalize ${LICENCE_STYLES[plan ?? ''] ?? 'bg-slate-700 text-slate-200'}`}>
+              {planLabel}
             </span>
           )}
           <div className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">

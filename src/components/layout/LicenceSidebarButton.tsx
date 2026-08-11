@@ -27,20 +27,16 @@ function formatDate(d: string | null) {
 }
 
 export default function LicenceSidebarButton() {
-  const { slug, licenceType, licenceFin } = useSchool()
+  const { slug } = useSchool()
   const pathname = usePathname()
   const router = useRouter()
-  const { status } = useLicenceStatus()
+  const { status, loading } = useLicenceStatus()
   const [hover, setHover] = useState(false)
 
   const href = `/${slug}/licence`
   const active = pathname.startsWith(href)
-  const plan = (status?.plan || licenceType) as LicencePlan | null
-  const daysLeft = status?.daysLeft ?? (
-    licenceFin
-      ? Math.ceil((new Date(licenceFin).getTime() - Date.now()) / 86400000)
-      : null
-  )
+  const plan = status?.plan ?? null
+  const daysLeft = status?.daysLeft ?? null
 
   const expired = daysLeft !== null && daysLeft < 0
   const urgent = daysLeft !== null && daysLeft <= 30 && !expired
@@ -48,13 +44,15 @@ export default function LicenceSidebarButton() {
 
   const ringClass = plan ? (PLAN_RING[plan] ?? PLAN_RING.starter) : PLAN_RING.starter
 
-  const timeLabel = expired
-    ? 'Expirée'
-    : daysLeft !== null
-      ? daysLeft === 0
-        ? "Expire aujourd'hui"
-        : `${daysLeft}j restants`
-      : '—'
+  const timeLabel = loading
+    ? '…'
+    : expired
+      ? 'Expirée'
+      : daysLeft !== null
+        ? daysLeft === 0
+          ? "Expire aujourd'hui"
+          : `${daysLeft}j restants`
+        : '—'
 
   return (
     <div
@@ -87,7 +85,7 @@ export default function LicenceSidebarButton() {
           <p className={`text-xs truncate ${
             active ? 'text-white/75' : expired ? 'text-red-400' : urgent ? 'text-amber-400/90' : 'text-slate-500'
           }`}>
-            {planLabel}{daysLeft !== null ? ` · ${timeLabel}` : ''}
+            {planLabel}{!loading && daysLeft !== null ? ` · ${timeLabel}` : loading ? ` · ${timeLabel}` : ''}
           </p>
         </div>
         <ChevronRight className={`w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${
@@ -107,7 +105,7 @@ export default function LicenceSidebarButton() {
             <div className="space-y-1.5 text-xs text-slate-400">
               <p className="flex items-center gap-2">
                 <Calendar className="w-3 h-3 shrink-0 text-slate-500" />
-                Expire le {formatDate(status?.dateFin ?? licenceFin ?? null)}
+                Expire le {formatDate(status?.dateFin ?? null)}
               </p>
               {status && (
                 <p className="flex items-center gap-2">

@@ -40,18 +40,19 @@ export default async function SlugLayout({
 
   if (!ecole) redirect('/login')
 
-  // Vérifier la licence via le cache SQLite local d'abord
-const licenceLocal = db.prepare(`
-  SELECT plan, date_fin FROM licence_cache
-  WHERE date_fin >= date('now') AND is_active = 1
-  LIMIT 1
-`).get() as { plan: string; date_fin: string } | undefined
+  // Licence active de l'établissement (source fiable — pas le cache global)
+  const licenceRow = db.prepare(`
+    SELECT type, date_fin FROM licences
+    WHERE ecole_id = ? AND is_active = 1 AND date_fin >= date('now')
+    ORDER BY date_fin DESC
+    LIMIT 1
+  `).get(ecole.id) as { type: string; date_fin: string } | undefined
 
-let licence: { type: string; date_fin: string } | undefined = licenceLocal
-  ? { type: licenceLocal.plan, date_fin: licenceLocal.date_fin }
-  : undefined
+  let licence: { type: string; date_fin: string } | undefined = licenceRow
+    ? { type: licenceRow.type, date_fin: licenceRow.date_fin }
+    : undefined
 
-// Si pas en cache, vérifier en ligne
+// Si pas de licence locale active, tenter verify en ligne
 if (!licence && payload.role !== 'super_admin') {
   try {
     const licenceDb = db.prepare(`

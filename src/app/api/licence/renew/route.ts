@@ -67,6 +67,11 @@ export async function POST(request: NextRequest) {
   `).run(ecole.id)
 
   db.prepare(`
+    UPDATE licence_cache SET is_active = 0
+    WHERE cle IN (SELECT cle_licence FROM licences WHERE ecole_id = ?)
+  `).run(ecole.id)
+
+  db.prepare(`
     INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence, machine_fingerprint)
     VALUES (?, ?, date('now'), ?, 1, ?, ?)
   `).run(ecole.id, verifyData.plan, verifyData.date_fin, cle, fingerprint)
