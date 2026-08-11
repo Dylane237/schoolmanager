@@ -8,7 +8,50 @@ import {
   PLAN_STUDENT_LIMITS,
   type LicencePlan,
 } from '@/lib/licence-constants'
-import { maskLicenceKey } from '@/lib/licence-server'
+import { maskLicenceKey, LICENCE_SERVER_URL } from '@/lib/licence-server'
+import { getMachineFingerprint } from '@/lib/paths'
+
+function pushLicenceMetaToCloud(ecoleId: string) {
+  if (process.env.VERCEL) return
+
+  try {
+    const db = getDb()
+    const ecole = db.prepare(
+      'SELECT nom, slug, telephone, directeur_nom FROM ecoles WHERE id = ?',
+    ).get(ecoleId) as {
+      nom: string
+      slug: string
+      telephone: string | null
+      directeur_nom: string | null
+    } | undefined
+
+    const licence = db.prepare(`
+      SELECT cle_licence, machine_fingerprint FROM licences
+      WHERE ecole_id = ? AND is_active = 1 ORDER BY date_fin DESC LIMIT 1
+    `).get(ecoleId) as { cle_licence: string; machine_fingerprint: string | null } | undefined
+
+    if (!ecole?.nom || !ecole.slug || !licence?.cle_licence) return
+
+    fetch(`${LICENCE_SERVER_URL}/api/auth/sync-licence-meta`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'SchoolManager-Desktop/1.0',
+      },
+      body: JSON.stringify({
+        cle: licence.cle_licence,
+        ecole_nom: ecole.nom,
+        ecole_slug: ecole.slug,
+        machine_fingerprint: licence.machine_fingerprint || getMachineFingerprint(),
+        directeur_nom: ecole.directeur_nom,
+        telephone: ecole.telephone,
+      }),
+      signal: AbortSignal.timeout(6000),
+    }).catch(() => {})
+  } catch {
+    // non bloquant
+  }
+}
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
@@ -66,6 +109,8 @@ export async function GET(request: NextRequest) {
   const usagePercent = limit
     ? Math.min(100, Math.round((studentCount / limit) * 100))
     : null
+
+  pushLicenceMetaToCloud(user.ecole_id)
 
   return NextResponse.json({
     active: !isExpired,

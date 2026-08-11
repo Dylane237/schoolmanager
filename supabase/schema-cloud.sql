@@ -8,6 +8,19 @@ ALTER TABLE licences ADD COLUMN IF NOT EXISTS parrain_code TEXT;
 ALTER TABLE licences ADD COLUMN IF NOT EXISTS machine_fingerprint TEXT;
 ALTER TABLE licences ADD COLUMN IF NOT EXISTS activated_at TIMESTAMPTZ;
 
+-- Registre cloud des établissements (miroir des inscriptions desktop)
+CREATE TABLE IF NOT EXISTS ecoles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT UNIQUE NOT NULL,
+  nom TEXT NOT NULL,
+  directeur_nom TEXT,
+  telephone TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS ecoles_slug_idx ON ecoles (slug);
+
 -- Parrainages centralisés (vue éditeur)
 CREATE TABLE IF NOT EXISTS parrainages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

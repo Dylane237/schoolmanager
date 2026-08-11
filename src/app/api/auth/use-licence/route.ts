@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-admin'
+import { upsertEcoleCloud } from '@/lib/licence-cloud-sync'
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,6 +57,13 @@ export async function POST(request: NextRequest) {
         activated_at: new Date().toISOString(),
       })
       .eq('id', licence.id)
+
+    if (ecole_slug && ecole_nom) {
+      await upsertEcoleCloud({
+        slug: ecole_slug,
+        nom: ecole_nom,
+      })
+    }
 
     if (parrain_code?.startsWith('SM-') && ecole_slug && ecole_nom) {
       await supabase
