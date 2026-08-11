@@ -58,7 +58,8 @@ if (!fs.existsSync(path.join(standalone, 'server.js'))) {
 console.log('📦 Préparation Electron...')
 copyRecursive(staticSrc, staticDest)
 copyRecursive(publicSrc, publicDest)
-console.log('✅  static + public copiés dans .next/standalone')
+copyRecursive(path.join(root, 'migrations'), path.join(standalone, 'migrations'))
+console.log('✅  static + public + migrations copiés dans .next/standalone')
 
 const standaloneNextNodeModules = path.join(standalone, '.next', 'node_modules')
 

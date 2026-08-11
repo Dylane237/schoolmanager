@@ -33,12 +33,14 @@ export interface SyncLeadPayload {
 
 /** Sync lead vers le serveur cloud (Vercel). Non bloquant si hors ligne. */
 export async function syncLeadToCloud(payload: SyncLeadPayload): Promise<{ cloud_id?: string; error?: string }> {
+  const secret = process.env.LICENCE_SERVER_SECRET
   try {
     const res = await fetch(`${LICENCE_SERVER_URL}/api/referral/leads`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'SchoolManager-Desktop/1.0',
+        ...(secret ? { 'x-server-secret': secret } : {}),
       },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(8000),

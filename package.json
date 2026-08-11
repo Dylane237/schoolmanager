@@ -8,6 +8,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "electron:dev": "concurrently \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:prepare": "node scripts/prepare-electron.js",
     "electron:build": "cross-env TURBOPACK=0 next build && node scripts/prepare-electron.js && node scripts/rebuild-electron-native.js && electron-builder",
@@ -85,6 +88,9 @@
     "cross-env": "^10.1.0",
     "electron": "^42.5.0",
     "electron-builder": "^26.15.3",
-    "tailwindcss": "^4.3.1"
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.0",
+    "tailwindcss": "^4.3.1",
+    "vitest": "^3.2.7"
   }
 }

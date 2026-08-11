@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import { getDbPath, ensureUserDataDir } from './paths'
 import { getDefaultAnneeScolaireLabel, getDefaultAnneeScolaireBounds, getLegacyAnneeScolaireLabel } from './school-year'
 import { ensureSuperAdminCredentials } from './super-admin-credentials'
+import { runVersionedMigrations } from './migrations/runner'
 
 let _db: InstanceType<typeof Database> | null = null
 
@@ -13,6 +14,7 @@ export function getDb() {
   _db.pragma('foreign_keys = ON')
   initSchema(_db)
   runMigrations(_db)
+  runVersionedMigrations(_db)
   seedInitialData(_db)
   return _db
 }

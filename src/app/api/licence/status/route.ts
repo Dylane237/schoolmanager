@@ -37,6 +37,9 @@ function pushLicenceMetaToCloud(ecoleId: string) {
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'SchoolManager-Desktop/1.0',
+        ...(process.env.LICENCE_SERVER_SECRET
+          ? { 'x-server-secret': process.env.LICENCE_SERVER_SECRET }
+          : {}),
       },
       body: JSON.stringify({
         cle: licence.cle_licence,

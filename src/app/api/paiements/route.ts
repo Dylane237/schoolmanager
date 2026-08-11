@@ -3,6 +3,7 @@ import { getUserFromRequest } from '../../../lib/auth'
 import { getDb } from '../../../lib/db-server'
 import { countImpayes, getElevesSituation } from '../../../lib/paiements-utils'
 import { requireModule } from '../../../lib/rbac.server'
+import { logAudit } from '../../../lib/audit-log'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
@@ -197,6 +198,16 @@ export async function POST(request: NextRequest) {
     const inserted = db.prepare('SELECT id FROM paiements WHERE recu_numero = ?')
       .get(recu_numero) as { id: string }
 
+    logAudit(db, {
+      ecoleId: user.ecole_id,
+      userId: user.id,
+      userEmail: null,
+      action: 'create',
+      module: 'paiements',
+      entityId: inserted.id,
+      details: { montant: body.montant, eleve_id: body.eleve_id, frais_annexe_id: fraisAnnexeId, recu_numero },
+    })
+
     const ecole = db.prepare('SELECT nom, directeur_nom, entete_url FROM ecoles WHERE id = ?')
       .get(user.ecole_id) as { nom: string; directeur_nom: string; entete_url: string | null }
 
@@ -240,6 +251,15 @@ export async function POST(request: NextRequest) {
   // causait l'erreur "Paiement introuvable" juste après l'enregistrement.
   const inserted = db.prepare('SELECT id FROM paiements WHERE recu_numero = ?')
     .get(recu_numero) as { id: string }
+
+  logAudit(db, {
+    ecoleId: user.ecole_id,
+    userId: user.id,
+    action: 'create',
+    module: 'paiements',
+    entityId: inserted.id,
+    details: { montant: body.montant, eleve_id: body.eleve_id, tranche: body.tranche_numero, recu_numero },
+  })
 
   const ecole = db.prepare('SELECT nom, directeur_nom, entete_url FROM ecoles WHERE id = ?')
     .get(user.ecole_id) as { nom: string; directeur_nom: string; entete_url: string | null }
@@ -302,6 +322,15 @@ export async function PUT(request: NextRequest) {
     user.ecole_id
   )
 
+  logAudit(db, {
+    ecoleId: user.ecole_id,
+    userId: user.id,
+    action: 'update',
+    module: 'paiements',
+    entityId: body.id,
+    details: { montant: body.montant, tranche: body.tranche_numero },
+  })
+
   return NextResponse.json({ success: true })
 }
 
@@ -327,6 +356,14 @@ export async function DELETE(request: NextRequest) {
   }
 
   db.prepare('DELETE FROM paiements WHERE id = ? AND ecole_id = ?').run(id, user.ecole_id)
+
+  logAudit(db, {
+    ecoleId: user.ecole_id,
+    userId: user.id,
+    action: 'delete',
+    module: 'paiements',
+    entityId: id,
+  })
 
   return NextResponse.json({ success: true })
 }

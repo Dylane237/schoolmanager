@@ -19,3 +19,15 @@ export const PLAN_STUDENT_LIMITS: Record<LicencePlan, number | null> = {
   standard: 400,
   premium: null,
 }
+
+export function isPoolLicenceKey(cle: string): boolean {
+  return cle.toUpperCase().includes('-POOL-')
+}
+
+export function licenceDaysLeft(dateFin: string): number {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const end = new Date(dateFin)
+  end.setHours(0, 0, 0, 0)
+  return Math.ceil((end.getTime() - today.getTime()) / 86_400_000)
+}

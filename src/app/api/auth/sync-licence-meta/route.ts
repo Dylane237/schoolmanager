@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { syncLicenceMetaToCloud } from '@/lib/licence-cloud-sync'
+import { checkRateLimit, rateLimitResponse, verifyServerSecret } from '@/lib/rate-limit'
 
 /** Synchronise le nom / slug école depuis le desktop vers Supabase (backfill + maintenance). */
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const rl = checkRateLimit(`sync-meta:${ip}`, 60, 60_000)
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfterSec ?? 60)
+
+  if (!verifyServerSecret(request)) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
     const result = await syncLicenceMetaToCloud({

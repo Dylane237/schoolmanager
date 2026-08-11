@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSuperAdmin } from '../../../../lib/auth'
 import { getDb } from '../../../../lib/db-server'
-import { generatePoolLicenceKey, generateLicenceKey, PLAN_PRICES } from '../../../../lib/licence'
+import { PLAN_PRICES } from '../../../../lib/licence-constants'
 
+const CLOUD_ADMIN_MSG =
+  'La création et révocation de clés pool se fait sur https://schoolmanager-eosin.vercel.app/admin-licences'
+
+/** Lecture seule — licences activées localement sur cette installation. */
 export async function GET(request: NextRequest) {
   if (!await requireSuperAdmin(request)) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
@@ -19,78 +23,29 @@ export async function GET(request: NextRequest) {
   const stats = {
     pool: (licences as { ecole_id: string | null; is_active: number }[]).filter(l => !l.ecole_id && l.is_active).length,
     actives: (licences as { is_active: number; date_fin: string }[]).filter(
-      l => l.is_active && l.date_fin >= new Date().toISOString().split('T')[0]
+      l => l.is_active && l.date_fin >= new Date().toISOString().split('T')[0],
     ).length,
   }
 
-  return NextResponse.json({ licences, stats, plans: PLAN_PRICES })
+  return NextResponse.json({
+    licences,
+    stats,
+    plans: PLAN_PRICES,
+    cloud_admin: 'https://schoolmanager-eosin.vercel.app/admin-licences',
+    read_only: true,
+  })
 }
 
-export async function POST(request: NextRequest) {
-  if (!await requireSuperAdmin(request)) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-  }
-
-  const body = await request.json()
-  const db = getDb()
-  const mode = body.mode || 'activation'
-
-  if (mode === 'activation') {
-    const cle = generatePoolLicenceKey(body.type, body.date_debut, body.date_fin)
-
-    db.prepare(`
-      INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence)
-      VALUES (NULL, ?, ?, ?, 1, ?)
-    `).run(body.type, body.date_debut, body.date_fin, cle)
-
-    return NextResponse.json({ success: true, cle_licence: cle, mode: 'activation' })
-  }
-
-  if (mode === 'renewal') {
-    if (!body.ecole_id) {
-      return NextResponse.json({ error: 'École requise pour un renouvellement' }, { status: 400 })
-    }
-
-    const ecole = db.prepare('SELECT * FROM ecoles WHERE id = ?').get(body.ecole_id) as { slug: string } | undefined
-    if (!ecole) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
-
-    const existing = db.prepare(`
-      SELECT id FROM licences WHERE ecole_id = ? AND is_active = 1
-      ORDER BY date_fin DESC LIMIT 1
-    `).get(body.ecole_id) as { id: string } | undefined
-
-    if (existing) {
-      db.prepare(`
-        UPDATE licences SET date_fin = ?, type = ?, is_active = 1 WHERE id = ?
-      `).run(body.date_fin, body.type, existing.id)
-
-      return NextResponse.json({ success: true, mode: 'renewal', extended: true })
-    }
-
-    const cle = generateLicenceKey(ecole.slug, body.type, body.date_debut)
-    db.prepare(`
-      INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence)
-      VALUES (?, ?, ?, ?, 1, ?)
-    `).run(body.ecole_id, body.type, body.date_debut, body.date_fin, cle)
-
-    return NextResponse.json({ success: true, cle_licence: cle, mode: 'renewal' })
-  }
-
-  return NextResponse.json({ error: 'Mode inconnu' }, { status: 400 })
+export async function POST() {
+  return NextResponse.json(
+    { error: CLOUD_ADMIN_MSG, cloud_admin: 'https://schoolmanager-eosin.vercel.app/admin-licences' },
+    { status: 410 },
+  )
 }
 
-export async function PUT(request: NextRequest) {
-  if (!await requireSuperAdmin(request)) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-  }
-
-  const body = await request.json()
-  const db = getDb()
-
-  db.prepare(`
-    UPDATE licences SET is_active = ?, date_fin = ?
-    WHERE id = ?
-  `).run(body.is_active ? 1 : 0, body.date_fin, body.id)
-
-  return NextResponse.json({ success: true })
+export async function PUT() {
+  return NextResponse.json(
+    { error: CLOUD_ADMIN_MSG, cloud_admin: 'https://schoolmanager-eosin.vercel.app/admin-licences' },
+    { status: 410 },
+  )
 }

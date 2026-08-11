@@ -1,8 +1,9 @@
 import type Database from 'better-sqlite3'
 import { getActiveAnneeScolaire } from './db-server'
+import { trancheStatut, eleveStatut, countImpayes, type TrancheStatut, type SituationStatut } from './paiements-calc'
 
-export type TrancheStatut = 'paye' | 'partiel' | 'impaye'
-export type SituationStatut = TrancheStatut | 'non_configure'
+export type { TrancheStatut, SituationStatut }
+export { countImpayes }
 
 export interface PaiementHistorique {
   id: string
@@ -49,23 +50,6 @@ export interface EleveSituation {
   statut: SituationStatut
   tranches: TrancheSituation[]
   frais_examen: FraisExamenLine | null
-}
-
-function trancheStatut(attendu: number, paye: number): TrancheStatut {
-  if (paye <= 0) return 'impaye'
-  if (paye >= attendu) return 'paye'
-  return 'partiel'
-}
-
-function eleveStatut(tranches: TrancheSituation[], fraisExamen: FraisExamenLine | null): SituationStatut {
-  const parts: TrancheStatut[] = tranches.map(t => t.statut)
-  if (fraisExamen && fraisExamen.montant_attendu > 0) {
-    parts.push(fraisExamen.statut)
-  }
-  if (parts.length === 0) return 'non_configure'
-  if (parts.every(s => s === 'paye')) return 'paye'
-  if (parts.every(s => s === 'impaye')) return 'impaye'
-  return 'partiel'
 }
 
 export function getElevesSituation(
@@ -232,12 +216,6 @@ export function getElevesSituation(
   }
 
   return { situations, annee_scolaire: annee }
-}
-
-export function countImpayes(situations: EleveSituation[]): number {
-  return situations.filter(s =>
-    s.statut === 'impaye' || s.statut === 'partiel'
-  ).length
 }
 
 export function getEleveSituation(

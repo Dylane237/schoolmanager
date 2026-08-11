@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-admin'
 import { COMMISSION_PCT } from '@/lib/referral-utils'
+import { checkRateLimit, rateLimitResponse, verifyServerSecret } from '@/lib/rate-limit'
 
 /** Cloud only — réception d'un lead parrainage depuis une installation desktop. */
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const rl = checkRateLimit(`referral-leads:${ip}`, 30, 60_000)
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfterSec ?? 60)
+
+  if (!verifyServerSecret(request)) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: 'Supabase non configuré' }, { status: 503 })
   }

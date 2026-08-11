@@ -3,6 +3,7 @@ import { getUserFromRequest } from '../../../lib/auth'
 import { getDb } from '../../../lib/db-server'
 import { validateNote } from '../../../lib/notes-utils'
 import { requireModule } from '../../../lib/rbac.server'
+import { logAudit } from '../../../lib/audit-log'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
   const existing = db.prepare(`
     SELECT id FROM notes
     WHERE eleve_id = ? AND matiere_id = ? AND periode = ?
-  `).get(body.eleve_id, body.matiere_id, body.periode)
+  `).get(body.eleve_id, body.matiere_id, body.periode) as { id: string } | undefined
 
   if (existing) {
     db.prepare(`
@@ -84,12 +85,34 @@ export async function POST(request: NextRequest) {
       WHERE eleve_id = ? AND matiere_id = ? AND periode = ?
     `).run(body.note, body.appreciation || null, user.id,
        body.eleve_id, body.matiere_id, body.periode)
+
+    logAudit(db, {
+      ecoleId: user.ecole_id,
+      userId: user.id,
+      action: 'update',
+      module: 'notes',
+      entityId: existing.id,
+      details: { eleve_id: body.eleve_id, matiere_id: body.matiere_id, periode: body.periode, note: body.note },
+    })
   } else {
     db.prepare(`
       INSERT INTO notes (ecole_id, eleve_id, matiere_id, periode, note, appreciation, saisie_par)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(user.ecole_id, body.eleve_id, body.matiere_id,
        body.periode, body.note, body.appreciation || null, user.id)
+
+    const created = db.prepare(`
+      SELECT id FROM notes WHERE eleve_id = ? AND matiere_id = ? AND periode = ?
+    `).get(body.eleve_id, body.matiere_id, body.periode) as { id: string }
+
+    logAudit(db, {
+      ecoleId: user.ecole_id,
+      userId: user.id,
+      action: 'create',
+      module: 'notes',
+      entityId: created?.id,
+      details: { eleve_id: body.eleve_id, matiere_id: body.matiere_id, periode: body.periode, note: body.note },
+    })
   }
 
   return NextResponse.json({ success: true })

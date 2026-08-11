@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import PageShell from '@/components/layout/PageShell'
 import AppUpdates from '@/components/parametres/AppUpdates'
+import SupportTools from '@/components/parametres/SupportTools'
 import ReferralProgram from '@/components/licence/ReferralProgram'
 import { WhatsAppSupportLink } from '@/components/support/whatsapp-support-link'
 import { useSchool } from '@/components/layout/SchoolProvider'
@@ -364,6 +365,8 @@ export default function LicencePage() {
         </div>
 
         <ReferralProgram />
+
+        <SupportTools />
 
         <AppUpdates />
       </div>

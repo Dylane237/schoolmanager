@@ -50,3 +50,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS parrainages_local_dedup
 
 CREATE INDEX IF NOT EXISTS parrainages_parrain_code_idx ON parrainages (parrain_code);
 CREATE INDEX IF NOT EXISTS parrainages_statut_idx ON parrainages (statut);
+
+-- RLS : accès direct anon/authenticated interdit (API Vercel = service_role)
+ALTER TABLE licences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ecoles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE parrainages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS licences_service_only ON licences;
+CREATE POLICY licences_service_only ON licences FOR ALL USING (false);
+
+DROP POLICY IF EXISTS ecoles_service_only ON ecoles;
+CREATE POLICY ecoles_service_only ON ecoles FOR ALL USING (false);
+
+DROP POLICY IF EXISTS parrainages_service_only ON parrainages;
+CREATE POLICY parrainages_service_only ON parrainages FOR ALL USING (false);

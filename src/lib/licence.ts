@@ -48,6 +48,4 @@ export function generateLicenceKey(
   return `${plan.toUpperCase()}-${slug4}-${year}-${hash}`
 }
 
-export function isPoolLicenceKey(cle: string): boolean {
-  return cle.toUpperCase().includes('-POOL-')
-}
+export { isPoolLicenceKey } from './licence-constants'

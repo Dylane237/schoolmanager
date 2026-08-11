@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest, hashPassword } from '../../../lib/auth'
 import { getDb } from '../../../lib/db-server'
 import { requireModule } from '../../../lib/rbac.server'
+import { logAudit } from '../../../lib/audit-log'
 import type { Role } from '@/types'
 
 const CREATION_ROLES: Role[] = ['secretaire', 'comptable', 'enseignant']
@@ -62,7 +63,16 @@ export async function POST(request: NextRequest) {
 
   const created = db.prepare(`
     SELECT id, email, nom, prenom, role, telephone, created_at FROM users WHERE email = ?
-  `).get(email)
+  `).get(email) as { id: string; email: string; role: string }
+
+  logAudit(db, {
+    ecoleId: user.ecole_id,
+    userId: user.id,
+    action: 'create',
+    module: 'users',
+    entityId: created.id,
+    details: { email: created.email, role: created.role },
+  })
 
   return NextResponse.json({ success: true, user: created })
 }
@@ -94,5 +104,15 @@ export async function DELETE(request: NextRequest) {
   }
 
   db.prepare('DELETE FROM users WHERE id = ?').run(id)
+
+  logAudit(db, {
+    ecoleId: user.ecole_id,
+    userId: user.id,
+    action: 'delete',
+    module: 'users',
+    entityId: id,
+    details: { role: target.role },
+  })
+
   return NextResponse.json({ success: true })
 }
