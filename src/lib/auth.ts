@@ -73,11 +73,14 @@ export function clearAuthCookie(response: import('next/server').NextResponse) {
 }
 
 export async function loginUser(email: string, password: string) {
-  // ── Super admin via variables d'environnement (fonctionne sur Vercel et en local) ──
-  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@schoolmanager.cm'
-  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || 'Admin2026!'
+  const normalizedEmail = email.trim().toLowerCase()
 
-  if (email === superAdminEmail && password === superAdminPassword) {
+  // ── Super admin : env ou fichier credentials local (Electron) ──
+  const { getSuperAdminEmail, getSuperAdminPassword } = await import('./super-admin-credentials')
+  const superAdminEmail = getSuperAdminEmail()
+  const superAdminPassword = getSuperAdminPassword()
+
+  if (superAdminPassword && normalizedEmail === superAdminEmail && password === superAdminPassword) {
     const payload: AuthUser = {
       id: 'super-admin',
       role: 'super_admin',
@@ -102,7 +105,7 @@ export async function loginUser(email: string, password: string) {
     FROM users u
     LEFT JOIN ecoles e ON e.id = u.ecole_id
     WHERE u.email = ?
-  `).get(email) as Record<string, unknown> | undefined
+  `).get(normalizedEmail) as Record<string, unknown> | undefined
 
   if (!user) {
     return { error: 'Email introuvable' as const }

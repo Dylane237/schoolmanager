@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Suspense, useState, useEffect, useMemo, useCallback } from 'react'
+import { Plus, Trash2, UserCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
-import { UserCheck } from 'lucide-react'
+import SmartFilterBar from '@/components/filters/SmartFilterBar'
+import { useSmartFilters } from '@/hooks/useSmartFilters'
 
 interface Staff {
   id: string
@@ -38,11 +39,38 @@ const CONTRATS = [
 ]
 
 export default function PersonnelPage() {
+  return (
+    <Suspense fallback={<PageShell title="Personnel" breadcrumb="Personnel"><div className="card p-12 text-center text-slate-400">Chargement...</div></PageShell>}>
+      <PersonnelPageContent />
+    </Suspense>
+  )
+}
+
+function PersonnelPageContent() {
   const [personnel, setPersonnel] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [filtreType, setFiltreType] = useState('')
+
+  const filterFields = useMemo(() => [
+    { key: 'q', type: 'search' as const, placeholder: 'Rechercher nom, téléphone, email...', debounce: true },
+    {
+      key: 'type',
+      type: 'pills' as const,
+      label: 'Type',
+      options: [{ value: '', label: 'Tous' }, ...TYPES.map(t => ({ value: t.value, label: t.label }))],
+      defaultValue: '',
+    },
+    {
+      key: 'contrat',
+      type: 'select' as const,
+      label: 'Contrat',
+      options: [{ value: '', label: 'Tous les contrats' }, ...CONTRATS.map(c => ({ value: c.value, label: c.label }))],
+      defaultValue: '',
+    },
+  ], [])
+
+  const { values, debouncedValues, setFilter, reset, activeFilters } = useSmartFilters(filterFields)
 
   const [form, setForm] = useState({
     nom: '', prenom: '', telephone: '', email: '',
@@ -52,16 +80,19 @@ export default function PersonnelPage() {
 
   const up = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
 
-  const fetchPersonnel = async () => {
+  const fetchPersonnel = useCallback(async () => {
     setLoading(true)
-    const url = filtreType ? `/api/personnel?type=${filtreType}` : '/api/personnel'
-    const res = await fetch(url)
+    const params = new URLSearchParams()
+    if (debouncedValues.q) params.set('search', debouncedValues.q)
+    if (debouncedValues.type) params.set('type', debouncedValues.type)
+    if (debouncedValues.contrat) params.set('contrat', debouncedValues.contrat)
+    const res = await fetch(`/api/personnel?${params}`)
     const data = await res.json()
     setPersonnel(data.personnel || [])
     setLoading(false)
-  }
+  }, [debouncedValues])
 
-  useEffect(() => { fetchPersonnel() }, [filtreType])
+  useEffect(() => { fetchPersonnel() }, [fetchPersonnel])
 
   const handleCreate = async () => {
     if (!form.nom || !form.type) return
@@ -111,18 +142,17 @@ export default function PersonnelPage() {
         </button>
       }
     >
-      <div className="card p-4 mb-6 flex flex-wrap gap-2">
-        <button onClick={() => setFiltreType('')}
-          className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${!filtreType ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-          Tous
-        </button>
-        {TYPES.map(t => (
-          <button key={t.value} onClick={() => setFiltreType(t.value)}
-            className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${filtreType === t.value ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <SmartFilterBar
+        fields={filterFields}
+        values={values}
+        onChange={setFilter}
+        onReset={reset}
+        activeFilters={activeFilters}
+        resultCount={personnel.length}
+        resultLabel="membre(s)"
+        loading={loading}
+        className="mb-6"
+      />
 
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Nouveau membre" size="lg">
             <div className="space-y-4">

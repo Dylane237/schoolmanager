@@ -154,9 +154,3 @@ if (fs.existsSync(rootNodeModules)) {
   const removed = cleanBrokenSymlinks(rootNodeModules)
   console.log(`✅  ${removed} entrée(s) cassée(s) supprimée(s)`)
 }
-
-const sqliteInNextModules = path.join(standaloneNextNodeModules, 'better-sqlite3')
-if (fs.existsSync(sqliteInNextModules)) {
-  fs.rmSync(sqliteInNextModules, { recursive: true, force: true })
-  console.log('✅ better-sqlite3 supprimé de .next/node_modules')
-}

@@ -14,6 +14,17 @@ type Licence = {
   created_at: string
   ecole_id: string | null
   ecoles: { nom: string } | null
+  ecole_slug?: string | null
+  ecole_nom?: string | null
+  parrain_code?: string | null
+}
+
+function isAssigned(l: Licence) {
+  return !!(l.ecole_id || l.ecoles || l.ecole_nom || l.ecole_slug)
+}
+
+function ecoleLabel(l: Licence) {
+  return l.ecole_nom || l.ecoles?.nom || l.ecole_slug || null
 }
 
 const PLANS = ['starter', 'standard', 'premium']
@@ -40,6 +51,7 @@ function Header({ onLogout }: { onLogout: () => void }) {
   const navItems = [
     { label: 'Tableau de bord', href: '/admin-licences' },
     { label: 'Licences', href: '/admin-licences/licences' },
+    { label: 'Parrainages', href: '/admin-licences/parrainages' },
   ]
   return (
     <header style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 32px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
@@ -153,11 +165,11 @@ export default function LicencesPage() {
 
   const today = new Date().toISOString().split('T')[0]
   const actives = licences.filter(l => l.is_active && l.date_fin >= today).length
-  const disponibles = licences.filter(l => !l.ecoles && l.is_active && l.date_fin >= today).length
+  const disponibles = licences.filter(l => !isAssigned(l) && l.is_active && l.date_fin >= today).length
 
   const filtered = licences.filter(l => {
-    if (filter === 'disponibles' && l.ecoles) return false
-    if (filter === 'attribuees' && !l.ecoles) return false
+    if (filter === 'disponibles' && isAssigned(l)) return false
+    if (filter === 'attribuees' && !isAssigned(l)) return false
     if (search && !l.cle_licence.toLowerCase().includes(search.toLowerCase()) && !l.type.includes(search.toLowerCase())) return false
     return true
   })
@@ -208,7 +220,7 @@ export default function LicencesPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #334155', background: '#0f172a44' }}>
-                  {['École', 'Clé', 'Plan', 'Statut', 'Début', 'Expiration', 'Actions'].map(h => (
+                  {['École', 'Parrain', 'Clé', 'Plan', 'Statut', 'Expiration', 'Actions'].map(h => (
                     <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                   ))}
                 </tr>
@@ -222,10 +234,19 @@ export default function LicencesPage() {
                   return (
                     <tr key={l.id} style={{ borderBottom: '1px solid #1e293b', background: rowBg }}>
                       <td style={{ padding: '13px 16px', fontSize: 13 }}>
-                        {l.ecoles
-                          ? <span style={{ color: '#e2e8f0', fontWeight: 500 }}>{l.ecoles.nom}</span>
-                          : <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500, background: '#7c3aed22', color: '#a78bfa', border: '1px solid #7c3aed44' }}>En attente</span>
-                        }
+                        {ecoleLabel(l) ? (
+                          <div>
+                            <p style={{ margin: 0, color: '#e2e8f0', fontWeight: 500 }}>{ecoleLabel(l)}</p>
+                            {l.ecole_slug && l.ecole_slug !== ecoleLabel(l) && (
+                              <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: 11 }}>{l.ecole_slug}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500, background: '#7c3aed22', color: '#a78bfa', border: '1px solid #7c3aed44' }}>En attente</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '13px 16px', fontSize: 12, fontFamily: 'monospace', color: l.parrain_code ? '#a78bfa' : '#475569' }}>
+                        {l.parrain_code || '—'}
                       </td>
                       <td style={{ padding: '13px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -240,7 +261,6 @@ export default function LicencesPage() {
                         <Badge color={PLAN_COLOR[l.type] || '#64748b'}>{l.type.charAt(0).toUpperCase() + l.type.slice(1)}</Badge>
                       </td>
                       <td style={{ padding: '13px 16px' }}><StatusBadge l={l} /></td>
-                      <td style={{ padding: '13px 16px', fontSize: 13, color: '#64748b' }}>{l.date_debut}</td>
                       <td style={{ padding: '13px 16px', fontSize: 13, color: days <= 30 && !!l.is_active ? '#f59e0b' : '#94a3b8', fontWeight: days <= 30 && !!l.is_active ? 600 : 400 }}>{l.date_fin}</td>
                       <td style={{ padding: '13px 16px' }}>
                         {!!l.is_active && (

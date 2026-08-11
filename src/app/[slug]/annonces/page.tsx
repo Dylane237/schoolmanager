@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, useMemo } from 'react'
 import { Plus, Megaphone, Trash2, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
+import SmartFilterBar from '@/components/filters/SmartFilterBar'
+import { useSmartFilters } from '@/hooks/useSmartFilters'
 
 interface Annonce {
   id: string
@@ -34,10 +36,86 @@ const PRIORITE_VARIANT: Record<string, 'default' | 'warning' | 'danger'> = {
 }
 
 export default function AnnoncesPage() {
+  return (
+    <Suspense fallback={<PageShell title="Annonces" breadcrumb="Annonces"><div className="card p-12 text-center text-slate-400">Chargement...</div></PageShell>}>
+      <AnnoncesPageContent />
+    </Suspense>
+  )
+}
+
+function AnnoncesPageContent() {
   const [annonces, setAnnonces] = useState<Annonce[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const filterFields = useMemo(() => [
+    { key: 'q', type: 'search' as const, placeholder: 'Rechercher une annonce...', debounce: true },
+    {
+      key: 'cible',
+      type: 'pills' as const,
+      label: 'Destinataires',
+      options: [
+        { value: 'tous', label: 'Tous' },
+        { value: 'personnel', label: 'Personnel' },
+        { value: 'parents', label: 'Parents' },
+        { value: 'enseignants', label: 'Enseignants' },
+      ],
+      defaultValue: 'tous',
+    },
+    {
+      key: 'priorite',
+      type: 'pills' as const,
+      label: 'Priorité',
+      options: [
+        { value: 'tous', label: 'Toutes' },
+        { value: 'urgente', label: 'Urgente' },
+        { value: 'importante', label: 'Importante' },
+        { value: 'normale', label: 'Normale' },
+      ],
+      defaultValue: 'tous',
+    },
+    {
+      key: 'etat',
+      type: 'select' as const,
+      label: 'État',
+      options: [
+        { value: 'tous', label: 'Toutes' },
+        { value: 'actives', label: 'Actives' },
+        { value: 'masquees', label: 'Masquées' },
+        { value: 'expirees', label: 'Expirées' },
+      ],
+      defaultValue: 'actives',
+    },
+  ], [])
+
+  const { values, debouncedValues, setFilter, reset, activeFilters } = useSmartFilters(filterFields)
+
+  const filteredAnnonces = useMemo(() => {
+    let list = annonces
+    const q = debouncedValues.q?.toLowerCase().trim()
+    if (q) {
+      list = list.filter(a =>
+        `${a.titre} ${a.contenu} ${a.auteur_nom}`.toLowerCase().includes(q)
+      )
+    }
+    if (debouncedValues.cible && debouncedValues.cible !== 'tous') {
+      list = list.filter(a => a.cible === debouncedValues.cible || a.cible === 'tous')
+    }
+    if (debouncedValues.priorite && debouncedValues.priorite !== 'tous') {
+      list = list.filter(a => a.priorite === debouncedValues.priorite)
+    }
+    const etat = debouncedValues.etat
+    const now = new Date()
+    if (etat === 'actives') {
+      list = list.filter(a => a.is_active && (!a.date_expiration || new Date(a.date_expiration) >= now))
+    } else if (etat === 'masquees') {
+      list = list.filter(a => !a.is_active)
+    } else if (etat === 'expirees') {
+      list = list.filter(a => a.date_expiration && new Date(a.date_expiration) < now)
+    }
+    return list
+  }, [annonces, debouncedValues])
+
   const [form, setForm] = useState({
     titre: '', contenu: '', cible: 'tous', priorite: 'normale', date_expiration: '',
   })
@@ -151,6 +229,18 @@ export default function AnnoncesPage() {
         </div>
       </Modal>
 
+      <SmartFilterBar
+        fields={filterFields}
+        values={values}
+        onChange={setFilter}
+        onReset={reset}
+        activeFilters={activeFilters}
+        resultCount={filteredAnnonces.length}
+        resultLabel="annonce(s)"
+        loading={loading}
+        className="mb-6"
+      />
+
       {loading ? (
         <div className="card p-16 text-center text-slate-400">Chargement...</div>
       ) : annonces.length === 0 ? (
@@ -164,9 +254,15 @@ export default function AnnoncesPage() {
             </button>
           }
         />
+      ) : filteredAnnonces.length === 0 ? (
+        <EmptyState
+          icon={Megaphone}
+          title="Aucune annonce correspondante"
+          description="Modifiez vos filtres pour afficher d'autres annonces."
+        />
       ) : (
         <div className="space-y-4">
-          {annonces.map(a => (
+          {filteredAnnonces.map(a => (
             <article key={a.id}
               className={`card p-6 transition-all ${!a.is_active ? 'opacity-60' : ''} ${
                 a.priorite === 'urgente' ? 'border-red-200' : a.priorite === 'importante' ? 'border-amber-200' : ''

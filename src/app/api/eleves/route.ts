@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
-import { getDb } from '../../../lib/db-server'
+import { getDb, getActiveAnneeScolaire } from '../../../lib/db-server'
+import { sqlTotalAttenduEleve } from '../../../lib/paiements-utils'
 import { checkStudentLimit } from '../../../lib/licence-limits'
 import { requireModule } from '../../../lib/rbac.server'
+import { generateMatricule } from '../../../lib/matricule'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
@@ -18,6 +20,8 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get('search')
 
   const db = getDb()
+  const annee = getActiveAnneeScolaire(db, user.ecole_id)
+  const totalAttenduSql = sqlTotalAttenduEleve('?')
 
   let query = `
     SELECT
@@ -27,15 +31,22 @@ export async function GET(request: NextRequest) {
       p.nom as parent_nom,
       p.telephone as parent_telephone,
       COALESCE((SELECT SUM(pa.montant) FROM paiements pa WHERE pa.eleve_id = e.id), 0) as total_paye,
-      COALESCE((SELECT SUM(tc.montant_attendu) FROM tranches_config tc WHERE tc.classe_id = e.classe_id), 0) as total_attendu
+      ${totalAttenduSql} as total_attendu
     FROM eleves e
     LEFT JOIN classes c ON c.id = e.classe_id
     LEFT JOIN parents p ON p.eleve_id = e.id AND p.est_principal = 1
     WHERE e.ecole_id = ?
   `
-  const params: unknown[] = [user.ecole_id]
+  const params: unknown[] = [annee, annee, user.ecole_id]
 
-  if (classe_id) { query += ' AND e.classe_id = ?'; params.push(classe_id) }
+  if (classe_id) {
+    if (classe_id === '__none__') {
+      query += ' AND (e.classe_id IS NULL OR e.classe_id = "")'
+    } else {
+      query += ' AND e.classe_id = ?'
+      params.push(classe_id)
+    }
+  }
   if (section)   { query += ' AND e.section = ?';   params.push(section)   }
   if (search) {
     query += ' AND (e.nom LIKE ? OR e.prenom LIKE ? OR e.numero_matricule LIKE ?)'
@@ -94,11 +105,28 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const year = new Date().getFullYear().toString().slice(-2)
-  const count = (db.prepare(
-    'SELECT COUNT(*) as count FROM eleves WHERE ecole_id = ?'
-  ).get(user.ecole_id) as { count: number })?.count ?? 0
-  const matricule = `ELV-${year}-${String(count + 1).padStart(4, '0')}`
+  // Génération du matricule selon le format 26FSILA001
+  const anneeArrivee = new Date().getFullYear()
+  let matricule: string
+
+  if (body.classe_id) {
+    matricule = generateMatricule(db, user.ecole_id, body.classe_id, anneeArrivee)
+  } else {
+    // Pas de classe assignée : matricule provisoire
+    const year = anneeArrivee.toString().slice(-2)
+    const last = db.prepare(`
+      SELECT numero_matricule FROM eleves
+      WHERE ecole_id = ? AND numero_matricule LIKE 'PROV-${year}-%'
+      ORDER BY numero_matricule DESC LIMIT 1
+    `).get(user.ecole_id) as { numero_matricule: string } | undefined
+
+    let nextNum = 1
+    if (last) {
+      const parts = last.numero_matricule.split('-')
+      nextNum = parseInt(parts[parts.length - 1]) + 1
+    }
+    matricule = `PROV-${year}-${String(nextNum).padStart(3, '0')}`
+  }
 
   db.prepare(`
     INSERT INTO eleves (
@@ -109,7 +137,7 @@ export async function POST(request: NextRequest) {
     user.ecole_id, body.classe_id?.trim() || null, matricule,
     body.nom, body.prenom, body.date_naissance || null,
     body.lieu_naissance || null, body.sexe, body.section,
-    new Date().getFullYear().toString(),
+    anneeArrivee.toString(),
     body.photo_url || null
   )
 

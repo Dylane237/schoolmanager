@@ -1,11 +1,19 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Search, Plus, UserX } from 'lucide-react'
+import { Plus, UserX } from 'lucide-react'
 import PageShell from '@/components/layout/PageShell'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
+import SmartFilterBar from '@/components/filters/SmartFilterBar'
+import { useSmartFilters } from '@/hooks/useSmartFilters'
+import { useClasses } from '@/hooks/useClasses'
+import {
+  ELEVE_PRESETS,
+  SECTION_OPTIONS,
+  STATUT_PAIEMENT_OPTIONS,
+} from '@/lib/filter-presets'
 
 interface Eleve {
   id: string
@@ -22,32 +30,80 @@ interface Eleve {
   total_attendu: number
 }
 
-export default function ElevesPage() {
+const FILTER_FIELDS = [
+  {
+    key: 'q',
+    type: 'search' as const,
+    placeholder: 'Rechercher par nom, prénom, matricule, parent...',
+    debounce: true,
+  },
+  {
+    key: 'section',
+    type: 'select' as const,
+    label: 'Section',
+    options: SECTION_OPTIONS,
+    defaultValue: '',
+  },
+  {
+    key: 'classe',
+    type: 'select' as const,
+    label: 'Classe',
+    options: [{ value: '', label: 'Toutes les classes' }],
+    defaultValue: '',
+  },
+  {
+    key: 'statut',
+    type: 'select' as const,
+    label: 'Paiement',
+    options: STATUT_PAIEMENT_OPTIONS,
+    defaultValue: 'tous',
+  },
+]
+
+function ElevesPageContent() {
   const { slug } = useParams()
   const router = useRouter()
+  const { classes } = useClasses()
   const [eleves, setEleves] = useState<Eleve[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filtreStatut, setFiltreStatut] = useState('tous')
-  const [filtreSection, setFiltreSection] = useState('')
+
+  const fields = useMemo(() => {
+    const classeOptions = [
+      { value: '', label: 'Toutes les classes' },
+      { value: '__none__', label: 'Sans classe' },
+      ...classes.map(c => ({ value: c.id, label: c.nom })),
+    ]
+    return FILTER_FIELDS.map(f =>
+      f.key === 'classe' ? { ...f, options: classeOptions } : f
+    )
+  }, [classes])
+
+  const {
+    values,
+    debouncedValues,
+    setFilter,
+    applyPreset,
+    reset,
+    activeFilters,
+  } = useSmartFilters(fields)
 
   const fetchEleves = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    if (filtreStatut !== 'tous') params.set('statut_paiement', filtreStatut)
-    if (filtreSection) params.set('section', filtreSection)
+    if (debouncedValues.q) params.set('search', debouncedValues.q)
+    if (debouncedValues.section) params.set('section', debouncedValues.section)
+    if (debouncedValues.classe) params.set('classe_id', debouncedValues.classe)
+    if (debouncedValues.statut && debouncedValues.statut !== 'tous') {
+      params.set('statut_paiement', debouncedValues.statut)
+    }
 
     const res = await fetch(`/api/eleves?${params}`)
     const data = await res.json()
     setEleves(data.eleves || [])
     setLoading(false)
-  }, [search, filtreStatut, filtreSection])
+  }, [debouncedValues])
 
-  useEffect(() => {
-    const timer = setTimeout(fetchEleves, 300)
-    return () => clearTimeout(timer)
-  }, [fetchEleves])
+  useEffect(() => { fetchEleves() }, [fetchEleves])
 
   const getStatutPaiement = (paye: number, attendu: number) => {
     if (attendu === 0) return { label: 'N/A', variant: 'neutral' as const }
@@ -69,30 +125,19 @@ export default function ElevesPage() {
         </button>
       }
     >
-      <div className="card p-4 mb-6 flex flex-wrap gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-[240px] border border-slate-200 rounded-xl px-4 py-2.5 bg-white">
-          <Search className="w-5 h-5 text-slate-400 shrink-0" />
-          <input
-            type="text"
-            placeholder="Rechercher par nom, prénom, matricule..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="flex-1 text-base focus:outline-none text-slate-700 placeholder-slate-400 bg-transparent"
-          />
-        </div>
-        <select value={filtreSection} onChange={e => setFiltreSection(e.target.value)} className="input-field w-auto min-w-[180px]">
-          <option value="">Toutes les sections</option>
-          <option value="francophone">Francophone</option>
-          <option value="anglophone">Anglophone</option>
-          <option value="maternelle">Maternelle</option>
-        </select>
-        <select value={filtreStatut} onChange={e => setFiltreStatut(e.target.value)} className="input-field w-auto min-w-[180px]">
-          <option value="tous">Tous les paiements</option>
-          <option value="paye">Soldé</option>
-          <option value="partiel">Partiel</option>
-          <option value="impaye">Impayé</option>
-        </select>
-      </div>
+      <SmartFilterBar
+        fields={fields}
+        values={values}
+        onChange={setFilter}
+        onReset={reset}
+        activeFilters={activeFilters}
+        presets={ELEVE_PRESETS}
+        onPreset={applyPreset}
+        resultCount={eleves.length}
+        resultLabel="élève(s)"
+        loading={loading}
+        className="mb-6"
+      />
 
       <div className="card overflow-hidden">
         {loading ? (
@@ -170,5 +215,17 @@ export default function ElevesPage() {
         )}
       </div>
     </PageShell>
+  )
+}
+
+export default function ElevesPage() {
+  return (
+    <Suspense fallback={
+      <PageShell title="Élèves" breadcrumb="Élèves">
+        <div className="card p-16 text-center text-slate-400">Chargement des filtres...</div>
+      </PageShell>
+    }>
+      <ElevesPageContent />
+    </Suspense>
   )
 }

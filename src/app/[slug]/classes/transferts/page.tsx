@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { GripVertical, ArrowRightLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
+import SmartFilterBar from '@/components/filters/SmartFilterBar'
+import { useSmartFilters } from '@/hooks/useSmartFilters'
+import { SECTION_OPTIONS } from '@/lib/filter-presets'
 import { sectionLabel } from '@/lib/cameroon-levels'
 
 interface Classe {
@@ -25,13 +28,33 @@ interface Eleve {
 }
 
 export default function ClassTransferBoard() {
+  return (
+    <Suspense fallback={<PageShell title="Répartition des élèves" breadcrumb="Transferts"><div className="card p-16 text-center text-slate-400">Chargement...</div></PageShell>}>
+      <ClassTransferBoardContent />
+    </Suspense>
+  )
+}
+
+function ClassTransferBoardContent() {
   const { slug } = useParams<{ slug: string }>()
   const [classes, setClasses] = useState<Classe[]>([])
   const [eleves, setEleves] = useState<Eleve[]>([])
   const [loading, setLoading] = useState(true)
   const [draggingId, setDraggingId] = useState<string | null>(null)
-  const [filterSection, setFilterSection] = useState('tous')
   const [transferring, setTransferring] = useState(false)
+
+  const filterFields = useMemo(() => [
+    {
+      key: 'section',
+      type: 'pills' as const,
+      label: 'Section',
+      options: [{ value: 'tous', label: 'Toutes' }, ...SECTION_OPTIONS.filter(s => s.value).map(s => ({ value: s.value, label: s.label }))],
+      defaultValue: 'tous',
+    },
+    { key: 'q', type: 'search' as const, placeholder: 'Rechercher un élève...', debounce: true },
+  ], [])
+
+  const { values, debouncedValues, setFilter, reset, activeFilters } = useSmartFilters(filterFields)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -48,12 +71,27 @@ export default function ClassTransferBoard() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const filteredClasses = filterSection === 'tous'
+  const filteredClasses = values.section === 'tous'
     ? classes
-    : classes.filter(c => c.section === filterSection)
+    : classes.filter(c => c.section === values.section)
 
-  const getElevesForClasse = (classeId: string | null) =>
-    eleves.filter(e => (classeId ? e.classe_id === classeId : !e.classe_id))
+  const searchQ = debouncedValues.q?.toLowerCase().trim() ?? ''
+
+  const getElevesForClasse = (classeId: string | null) => {
+    let list = eleves.filter(e => (classeId ? e.classe_id === classeId : !e.classe_id))
+    if (searchQ) {
+      list = list.filter(e =>
+        `${e.nom} ${e.prenom} ${e.numero_matricule}`.toLowerCase().includes(searchQ)
+      )
+    }
+    return list
+  }
+
+  const visibleEleveCount = useMemo(() => {
+    const sansClasse = getElevesForClasse(null).length
+    const inClasses = filteredClasses.reduce((s, c) => s + getElevesForClasse(c.id).length, 0)
+    return sansClasse + inClasses
+  }, [eleves, filteredClasses, searchQ])
 
   const handleDrop = async (eleveId: string, targetClasseId: string | null) => {
     const eleve = eleves.find(e => e.id === eleveId)
@@ -161,21 +199,19 @@ export default function ClassTransferBoard() {
       title="Répartition des élèves"
       subtitle="Glissez-déposez les élèves entre les classes"
       breadcrumb="Transferts"
-      actions={
-        <div className="flex items-center gap-2">
-          <select
-            value={filterSection}
-            onChange={e => setFilterSection(e.target.value)}
-            className="input-field text-sm py-2 w-auto"
-          >
-            <option value="tous">Toutes sections</option>
-            <option value="francophone">Francophone</option>
-            <option value="anglophone">Anglophone</option>
-            <option value="maternelle">Maternelle</option>
-          </select>
-        </div>
-      }
     >
+      <SmartFilterBar
+        fields={filterFields}
+        values={values}
+        onChange={setFilter}
+        onReset={reset}
+        activeFilters={activeFilters}
+        resultCount={visibleEleveCount}
+        resultLabel="élève(s) visible(s)"
+        loading={loading}
+        className="mb-6"
+      />
+
       <div className="card p-4 mb-6 flex items-start gap-3 bg-emerald-50 border-emerald-200">
         <ArrowRightLeft className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
         <div className="text-sm text-emerald-800">

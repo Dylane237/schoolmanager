@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { FormEvent, useState } from 'react'
 import Link from 'next/link'
 import { Mail, Lock } from 'lucide-react'
 import { AuthSplitLayout } from '@/components/auth/auth-split-layout'
 import { AuthInput } from '@/components/auth/auth-input'
 import { AuthButton } from '@/components/auth/auth-button'
 import { AuthError } from '@/components/auth/auth-error'
+import { WhatsAppSupportLink } from '@/components/auth/whatsapp-support-link'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -14,7 +15,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = async () => {
+  const handleLogin = async (e?: FormEvent) => {
+    e?.preventDefault()
     setLoading(true)
     setError('')
 
@@ -57,20 +59,20 @@ export default function LoginPage() {
   return (
     <AuthSplitLayout
       mode="login"
-      title="Connexion"
-      subtitle="Accédez à votre espace de gestion scolaire."
+      title="Bon retour"
+      subtitle="Connectez-vous pour gérer les tranches, les élèves et les reçus de votre école."
       footer={
         <>
           Pas encore de compte ?{' '}
-          <Link href="/register" className="font-medium text-emerald-400 transition-colors hover:text-emerald-300">
-            Créer un compte
+          <Link href="/register" className="font-medium text-emerald-600 transition-colors hover:text-emerald-700">
+            Créer mon école
           </Link>
         </>
       }
     >
       <AuthError message={error} />
 
-      <div className="space-y-5">
+      <form onSubmit={handleLogin} className="space-y-5">
         <AuthInput
           id="email"
           label="Adresse email"
@@ -81,24 +83,36 @@ export default function LoginPage() {
           placeholder="directeur@ecole.cm"
           autoComplete="email"
         />
-        <AuthInput
-          id="password"
-          label="Mot de passe"
-          icon={Lock}
-          type="password"
-          value={password}
-          onChange={setPassword}
-          placeholder="Votre mot de passe"
-          autoComplete="current-password"
-        />
+        <div>
+          <AuthInput
+            id="password"
+            label="Mot de passe"
+            icon={Lock}
+            type="password"
+            value={password}
+            onChange={setPassword}
+            placeholder="Votre mot de passe"
+            autoComplete="current-password"
+          />
+          <div className="mt-2 text-right">
+            <Link
+              href="/mot-de-passe-oublie"
+              className="text-[12px] font-medium text-emerald-600 hover:text-emerald-700"
+            >
+              Mot de passe oublié ?
+            </Link>
+          </div>
+        </div>
         <AuthButton
-          onClick={handleLogin}
+          type="submit"
           disabled={!email || !password}
           loading={loading}
         >
           Se connecter
         </AuthButton>
-      </div>
+
+        <WhatsAppSupportLink />
+      </form>
     </AuthSplitLayout>
   )
 }

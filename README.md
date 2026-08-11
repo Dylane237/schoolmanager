@@ -38,12 +38,12 @@ Sous Electron, le dossier est `userData` de l'application.
 
 ## Comptes par défaut
 
-Au premier lancement, un super-admin est créé :
+Au premier lancement, un super-admin est créé automatiquement :
 
-- Email : `admin@schoolmanager.cm`
-- Mot de passe : valeur de `SM_SUPER_ADMIN_PASSWORD` ou `Admin2026!` par défaut
+- Email : valeur de `SM_SUPER_ADMIN_EMAIL` ou `admin@schoolmanager.cm`
+- Mot de passe : valeur de `SM_SUPER_ADMIN_PASSWORD` / `SUPER_ADMIN_PASSWORD`, **ou** généré aléatoirement et enregistré dans `Documents/SchoolManager/.super-admin-credentials.json`
 
-**Changez ce mot de passe en production.**
+**Conservez ce fichier en lieu sûr et changez le mot de passe après la première connexion.**
 
 ## Variables d'environnement
 
@@ -51,6 +51,8 @@ Au premier lancement, un super-admin est créé :
 |----------|-------------|
 | `SM_JWT_SECRET` | Secret JWT (auto-généré si absent) |
 | `SM_SUPER_ADMIN_PASSWORD` | Mot de passe initial du super-admin |
+| `NEXT_PUBLIC_SM_SUPPORT_WHATSAPP` | Numéro WhatsApp support (ex: `237670000000`) |
+| `NEXT_PUBLIC_SM_SUPPORT_PHONE` | Affichage du numéro (ex: `670 00 00 00`) |
 | `SM_USER_DATA` | Chemin des données (Electron) |
 | `SM_COOKIE_SECURE` | Mettre à `false` pour désactiver le cookie secure en HTTPS |
 

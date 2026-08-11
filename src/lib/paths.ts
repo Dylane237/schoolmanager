@@ -15,17 +15,24 @@ export function getUserDataDir(): string {
   if (process.env.SM_USER_DATA) {
     return process.env.SM_USER_DATA
   }
+
+  // Lazy evaluation — pas d'appel fs au niveau module
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { app } = require('electron')
+      return app.getPath('userData')
+    } catch {
+      // pas dans Electron, fallback Documents
+    }
+  }
+
   const documentsPath = getDocumentsSchoolManagerPath()
   if (fs.existsSync(documentsPath)) {
     return documentsPath
   }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { app } = require('electron')
-    return app.getPath('userData')
-  } catch {
-    return path.join(process.cwd(), APP_DIR)
-  }
+
+  return path.join(process.cwd(), APP_DIR)
 }
 
 export function ensureUserDataDir(): string {

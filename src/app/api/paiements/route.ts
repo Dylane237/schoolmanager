@@ -20,10 +20,12 @@ export async function GET(request: NextRequest) {
     const classe_id = searchParams.get('classe_id') || undefined
     const search = searchParams.get('search') || undefined
     const eleve_id = searchParams.get('eleve_id') || undefined
+    const statut = searchParams.get('statut') || undefined
 
     const { situations, annee_scolaire } = getElevesSituation(db, user.ecole_id, {
       classeId: classe_id,
       search,
+      statut,
     })
 
     if (eleve_id) {
@@ -33,8 +35,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ situations, annee_scolaire })
   }
+
   const eleve_id = searchParams.get('eleve_id')
   const mois = searchParams.get('mois')
+  const search = searchParams.get('search')
+  const classe_id = searchParams.get('classe_id')
+  const mode = searchParams.get('mode')
 
   let query = `
     SELECT
@@ -52,6 +58,12 @@ export async function GET(request: NextRequest) {
 
   if (eleve_id) { query += ' AND p.eleve_id = ?'; params.push(eleve_id) }
   if (mois) { query += ` AND strftime('%Y-%m', p.date_paiement) = ?`; params.push(mois) }
+  if (search) {
+    query += ' AND (e.nom LIKE ? OR e.prenom LIKE ? OR e.numero_matricule LIKE ? OR p.recu_numero LIKE ?)'
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`)
+  }
+  if (classe_id) { query += ' AND e.classe_id = ?'; params.push(classe_id) }
+  if (mode) { query += ' AND p.mode_paiement = ?'; params.push(mode) }
 
   query += ' ORDER BY p.created_at DESC'
 
@@ -125,12 +137,26 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   const db = getDb()
 
+  // Génération recu_numero unique
   const year = new Date().getFullYear()
-  const count = (db.prepare(`
-    SELECT COUNT(*) as count FROM paiements
-    WHERE ecole_id = ? AND strftime('%Y', created_at) = ?
-  `).get(user.ecole_id, String(year)) as { count: number })?.count ?? 0
-  const recu_numero = `REC-${year}-${String(count + 1).padStart(5, '0')}`
+
+  const lastRecu = db.prepare(`
+    SELECT recu_numero FROM paiements
+    WHERE ecole_id = ? AND recu_numero LIKE 'REC-${year}-%'
+    ORDER BY recu_numero DESC LIMIT 1
+  `).get(user.ecole_id) as { recu_numero: string } | undefined
+
+  let nextNum = 1
+  if (lastRecu) {
+    const parts = lastRecu.recu_numero.split('-')
+    nextNum = parseInt(parts[parts.length - 1]) + 1
+  }
+
+  let recu_numero = `REC-${year}-${String(nextNum).padStart(5, '0')}`
+  while (db.prepare('SELECT id FROM paiements WHERE recu_numero = ?').get(recu_numero)) {
+    nextNum++
+    recu_numero = `REC-${year}-${String(nextNum).padStart(5, '0')}`
+  }
 
   const eleve = db.prepare(`
     SELECT e.*, c.nom as classe_nom
@@ -140,6 +166,60 @@ export async function POST(request: NextRequest) {
 
   if (!eleve) {
     return NextResponse.json({ error: 'Élève introuvable' }, { status: 404 })
+  }
+
+  const fraisAnnexeId = body.frais_annexe_id as string | undefined
+
+  if (fraisAnnexeId) {
+    const frais = db.prepare(`
+      SELECT fa.* FROM frais_annexes fa
+      WHERE fa.id = ? AND fa.ecole_id = ? AND fa.type = 'examen'
+    `).get(fraisAnnexeId, user.ecole_id) as { id: string; classe_id: string; label: string; montant: number } | undefined
+
+    if (!frais) {
+      return NextResponse.json({ error: 'Frais d\'examen introuvable' }, { status: 404 })
+    }
+    if (frais.classe_id !== eleve.classe_id) {
+      return NextResponse.json({ error: 'Cet élève n\'est pas concerné par ce frais d\'examen' }, { status: 400 })
+    }
+
+    db.prepare(`
+      INSERT INTO paiements (
+        ecole_id, eleve_id, frais_annexe_id, montant,
+        date_paiement, mode_paiement, recu_numero, enregistre_par
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      user.ecole_id, body.eleve_id, fraisAnnexeId,
+      body.montant, body.date_paiement || new Date().toISOString().split('T')[0],
+      body.mode_paiement, recu_numero, user.id
+    )
+
+    const inserted = db.prepare('SELECT id FROM paiements WHERE recu_numero = ?')
+      .get(recu_numero) as { id: string }
+
+    const ecole = db.prepare('SELECT nom, directeur_nom, entete_url FROM ecoles WHERE id = ?')
+      .get(user.ecole_id) as { nom: string; directeur_nom: string; entete_url: string | null }
+
+    return NextResponse.json({
+      success: true,
+      recu_numero,
+      recu: {
+        id: inserted.id,
+        recu_numero,
+        numero: recu_numero,
+        ecole: ecole?.nom,
+        directeur: ecole?.directeur_nom,
+        eleve_nom: eleve.nom,
+        eleve_prenom: eleve.prenom,
+        matricule: eleve.numero_matricule,
+        classe: eleve.classe_nom,
+        tranche: frais.label,
+        montant: body.montant,
+        mode: body.mode_paiement,
+        date: body.date_paiement || new Date().toISOString().split('T')[0],
+        entete_url: ecole?.entete_url || null,
+      },
+    })
   }
 
   db.prepare(`
@@ -153,13 +233,23 @@ export async function POST(request: NextRequest) {
     body.mode_paiement, recu_numero, user.id
   )
 
-  const ecole = db.prepare('SELECT nom, directeur_nom FROM ecoles WHERE id = ?')
-    .get(user.ecole_id) as { nom: string; directeur_nom: string }
+  // L'id du paiement est un UUID généré par SQLite à l'insertion
+  // (DEFAULT randomblob), donc inconnu à l'avance : on le retrouve via
+  // recu_numero, qui est garanti unique. Sans cet id, le frontend ne peut
+  // pas appeler /api/paiements/recu pour générer le reçu — c'est ce qui
+  // causait l'erreur "Paiement introuvable" juste après l'enregistrement.
+  const inserted = db.prepare('SELECT id FROM paiements WHERE recu_numero = ?')
+    .get(recu_numero) as { id: string }
+
+  const ecole = db.prepare('SELECT nom, directeur_nom, entete_url FROM ecoles WHERE id = ?')
+    .get(user.ecole_id) as { nom: string; directeur_nom: string; entete_url: string | null }
 
   return NextResponse.json({
     success: true,
     recu_numero,
     recu: {
+      id: inserted.id,
+      recu_numero,
       numero: recu_numero,
       ecole: ecole?.nom,
       directeur: ecole?.directeur_nom,
@@ -171,6 +261,72 @@ export async function POST(request: NextRequest) {
       montant: body.montant,
       mode: body.mode_paiement,
       date: body.date_paiement || new Date().toISOString().split('T')[0],
+      entete_url: ecole?.entete_url || null,
     },
   })
+}
+
+export async function PUT(request: NextRequest) {
+  const user = await getUserFromRequest(request)
+  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const denied = requireModule(user, 'paiements', 'PUT')
+  if (denied) return denied
+
+  const body = await request.json()
+  if (!body.id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
+
+  const db = getDb()
+
+  const paiement = db.prepare(
+    'SELECT id FROM paiements WHERE id = ? AND ecole_id = ?'
+  ).get(body.id, user.ecole_id)
+
+  if (!paiement) {
+    return NextResponse.json({ error: 'Paiement introuvable' }, { status: 404 })
+  }
+
+  db.prepare(`
+    UPDATE paiements SET
+      montant = ?,
+      tranche_numero = ?,
+      mode_paiement = ?,
+      date_paiement = ?
+    WHERE id = ? AND ecole_id = ?
+  `).run(
+    body.montant,
+    body.tranche_numero,
+    body.mode_paiement,
+    body.date_paiement,
+    body.id,
+    user.ecole_id
+  )
+
+  return NextResponse.json({ success: true })
+}
+
+export async function DELETE(request: NextRequest) {
+  const user = await getUserFromRequest(request)
+  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const denied = requireModule(user, 'paiements', 'DELETE')
+  if (denied) return denied
+
+  const { searchParams } = new URL(request.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
+
+  const db = getDb()
+
+  const paiement = db.prepare(
+    'SELECT id FROM paiements WHERE id = ? AND ecole_id = ?'
+  ).get(id, user.ecole_id)
+
+  if (!paiement) {
+    return NextResponse.json({ error: 'Paiement introuvable' }, { status: 404 })
+  }
+
+  db.prepare('DELETE FROM paiements WHERE id = ? AND ecole_id = ?').run(id, user.ecole_id)
+
+  return NextResponse.json({ success: true })
 }

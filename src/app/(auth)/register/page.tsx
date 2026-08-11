@@ -3,14 +3,14 @@
 import { FormEvent, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Mail, Lock, KeyRound, Building2, Link2, User, Phone, Check } from 'lucide-react'
+import { Mail, Lock, KeyRound, Building2, User, Phone, Check } from 'lucide-react'
 import { AuthSplitLayout } from '@/components/auth/auth-split-layout'
 import { AuthInput } from '@/components/auth/auth-input'
 import { AuthButton } from '@/components/auth/auth-button'
 import { AuthStepper } from '@/components/auth/auth-stepper'
 import { AuthStepContent } from '@/components/auth/auth-step-content'
 import { AuthError } from '@/components/auth/auth-error'
-import { slugify } from '@/lib/utils/slug'
+import { RecoveryCodeReveal } from '@/components/auth/recovery-code-reveal'
 import type { Section } from '@/types'
 
 const SECTIONS: { id: Section; label: string; desc: string }[] = [
@@ -26,16 +26,18 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [licenceInfo, setLicenceInfo] = useState<{ valid: boolean; message?: string; plan?: string } | null>(null)
   const [verifyingLicence, setVerifyingLicence] = useState(false)
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null)
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     email: '',
     password: '',
     nom_ecole: '',
-    slug: '',
     telephone: '',
     directeur_nom: '',
     sections: ['francophone'] as Section[],
     cle_licence: '',
+    code_parrain: '',
   })
 
   function updateField(field: keyof typeof form, value: string) {
@@ -91,12 +93,10 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
 
-    const slug = form.slug || slugify(form.nom_ecole)
-
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, slug }),
+      body: JSON.stringify(form),
       credentials: 'include',
     })
 
@@ -108,21 +108,47 @@ export default function RegisterPage() {
       return
     }
 
-    router.push(`/${data.slug}/dashboard`)
+    setRecoveryCode(data.recovery_code)
+    setCreatedSlug(data.slug)
+    setStep(4)
+    setLoading(false)
   }
 
   const step1Valid = form.email && form.password.length >= 8 && form.cle_licence
-  const step2Valid = form.nom_ecole && form.directeur_nom && form.slug
+  const step2Valid = form.nom_ecole && form.directeur_nom
+
+  if (step === 4 && recoveryCode && createdSlug) {
+    return (
+      <AuthSplitLayout
+        mode="register"
+        title="Presque terminé"
+        subtitle="Une dernière étape avant d'accéder à votre école."
+        footer={
+          <>
+            Déjà inscrit ?{' '}
+            <Link href="/login" className="font-medium text-emerald-600 hover:text-emerald-700">
+              Se connecter
+            </Link>
+          </>
+        }
+      >
+        <RecoveryCodeReveal
+          code={recoveryCode}
+          onContinue={() => router.push(`/${createdSlug}/dashboard`)}
+        />
+      </AuthSplitLayout>
+    )
+  }
 
   return (
     <AuthSplitLayout
       mode="register"
-      title="Créer un compte"
-      subtitle="Remplissez le formulaire pour configurer votre établissement."
+      title="Configurer mon école"
+      subtitle="3 étapes pour démarrer — licence, établissement, sections."
       footer={
         <>
           Déjà inscrit ?{' '}
-          <Link href="/login" className="font-medium text-emerald-400 transition-colors hover:text-emerald-300">
+          <Link href="/login" className="font-medium text-emerald-600 hover:text-emerald-700">
             Se connecter
           </Link>
         </>
@@ -137,7 +163,7 @@ export default function RegisterPage() {
           <div className="space-y-5">
             <AuthInput
               id="email"
-              label="Adresse email"
+              label="Votre email (directeur)"
               icon={Mail}
               type="email"
               value={form.email}
@@ -152,7 +178,7 @@ export default function RegisterPage() {
               type="password"
               value={form.password}
               onChange={v => updateField('password', v)}
-              hint="8 caractères minimum."
+              hint="8 caractères minimum — notez-le bien."
               minLength={8}
               autoComplete="new-password"
             />
@@ -167,15 +193,26 @@ export default function RegisterPage() {
               }}
               onBlur={verifyLicence}
               placeholder="STANDARD-POOL-2026-XXXXXXXX"
+              hint="Fournie par SchoolManager à l'achat."
+              mono
+            />
+            {licenceInfo && (
+              <p className={`text-xs -mt-3 ${licenceInfo.valid ? 'text-emerald-600' : 'text-red-600'}`}>
+                {licenceInfo.message}
+              </p>
+            )}
+            <AuthInput
+              id="code_parrain"
+              label="Code parrain (optionnel)"
+              icon={KeyRound}
+              value={form.code_parrain}
+              onChange={v => updateField('code_parrain', v.toUpperCase())}
+              placeholder="SM-MONECOLE"
+              hint="Si un établissement vous a recommandé SchoolManager."
               mono
             />
             {verifyingLicence && (
-              <p className="text-xs text-zinc-500 -mt-3">Vérification de la clé...</p>
-            )}
-            {licenceInfo && !verifyingLicence && (
-              <p className={`text-xs -mt-3 ${licenceInfo.valid ? 'text-emerald-400' : 'text-red-400'}`}>
-                {licenceInfo.message}
-              </p>
+              <p className="text-xs text-gray-500 -mt-3">Vérification de la clé...</p>
             )}
             <AuthButton disabled={!step1Valid || verifyingLicence} onClick={handleContinueStep1}>
               Continuer
@@ -192,29 +229,9 @@ export default function RegisterPage() {
               label="Nom de l'établissement"
               icon={Building2}
               value={form.nom_ecole}
-              onChange={v =>
-                setForm(prev => ({ ...prev, nom_ecole: v, slug: slugify(v) }))
-              }
-              placeholder="Collège Bilingue de la Réussite"
+              onChange={v => updateField('nom_ecole', v)}
+              placeholder="École Primaire Les Espoirs"
             />
-            <div className="auth-field group">
-              <label htmlFor="slug" className="mb-2 flex items-center gap-2 text-[13px] font-medium text-zinc-400">
-                <Link2 className="h-3.5 w-3.5 text-zinc-500" strokeWidth={1.75} />
-                Identifiant URL
-              </label>
-              <div className="flex overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] transition-all duration-200 focus-within:border-emerald-500/50 focus-within:shadow-[0_0_0_3px_rgba(16,185,129,0.12)]">
-                <span className="flex items-center border-r border-white/[0.08] px-3 text-[13px] text-zinc-600">
-                  /
-                </span>
-                <input
-                  id="slug"
-                  type="text"
-                  value={form.slug}
-                  onChange={e => updateField('slug', slugify(e.target.value))}
-                  className="flex-1 bg-transparent px-3 py-3 font-mono text-sm text-white outline-none"
-                />
-              </div>
-            </div>
             <AuthInput
               id="directeur"
               label="Nom du directeur"
@@ -247,7 +264,7 @@ export default function RegisterPage() {
       {step === 3 && (
         <AuthStepContent stepKey={3}>
           <form onSubmit={handleRegister} className="space-y-5">
-            <p className="text-[13px] text-zinc-500">Sections gérées par votre établissement :</p>
+            <p className="text-[13px] text-gray-600">Sections enseignées dans votre établissement :</p>
             <div className="space-y-2.5">
               {SECTIONS.map(opt => {
                 const selected = form.sections.includes(opt.id)
@@ -258,22 +275,22 @@ export default function RegisterPage() {
                     onClick={() => toggleSection(opt.id)}
                     className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all duration-200 active:scale-[0.99] ${
                       selected
-                        ? 'border-emerald-500/40 bg-emerald-500/[0.08] shadow-[0_0_20px_rgba(16,185,129,0.08)]'
-                        : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04]'
+                        ? 'border-emerald-300 bg-emerald-50 shadow-sm'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div
                       className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-200 ${
                         selected
-                          ? 'border-emerald-500 bg-emerald-500 text-white'
-                          : 'border-zinc-600 bg-transparent'
+                          ? 'border-emerald-600 bg-emerald-600 text-white'
+                          : 'border-gray-300 bg-white'
                       }`}
                     >
                       {selected && <Check className="h-3 w-3" strokeWidth={3} />}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-zinc-200">{opt.label}</p>
-                      <p className="text-[12px] text-zinc-500">{opt.desc}</p>
+                      <p className="text-sm font-medium text-gray-900">{opt.label}</p>
+                      <p className="text-[12px] text-gray-500">{opt.desc}</p>
                     </div>
                   </button>
                 )

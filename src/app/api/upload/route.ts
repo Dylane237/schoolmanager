@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
 import { getDb } from '../../../lib/db-server'
 import { saveElevePhoto } from '../../../lib/upload'
+import { requireModule } from '../../../lib/rbac.server'
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user?.ecole_id) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
+  const denied = requireModule(user, 'eleves', 'POST')
+  if (denied) return denied
 
   const formData = await request.formData()
   const file = formData.get('photo') as File | null

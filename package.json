@@ -48,7 +48,13 @@
     ],
     "extraMetadata": {
       "main": "electron/main.js"
-    }
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://updates.schoolmanager.cm/releases/"
+      }
+    ]
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
@@ -59,12 +65,14 @@
     "better-sqlite3": "^12.11.1",
     "concurrently": "^10.0.3",
     "date-fns": "^4.4.0",
+    "electron-updater": "^6.8.9",
     "jose": "^6.2.3",
     "lucide-react": "^1.21.0",
     "next": "^16.2.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hot-toast": "^2.6.0",
+    "recharts": "^3.10.1",
     "typescript": "^6.0.3",
     "wait-on": "^9.0.10"
   },

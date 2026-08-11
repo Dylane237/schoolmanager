@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-
-function isAuthed(request: NextRequest) {
-  const token = request.cookies.get('admin_licences_token')?.value
-  return token === process.env.SUPER_ADMIN_PASSWORD
-}
+import { isAdminLicencesAuthed } from '@/lib/admin-licences-auth'
 
 export async function POST(request: NextRequest) {
-  if (!isAuthed(request)) {
+  if (!(await isAdminLicencesAuthed(request))) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ error: 'Configuration Supabase manquante' }, { status: 503 })
+  }
+
   const { id } = await request.json()
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const supabase = createClient(supabaseUrl, supabaseKey)
 
   const { error } = await supabase
     .from('licences')

@@ -107,6 +107,7 @@ function Header({ onLogout }: { onLogout: () => void }) {
   const navItems = [
     { label: 'Tableau de bord', href: '/admin-licences' },
     { label: 'Licences', href: '/admin-licences/licences' },
+    { label: 'Parrainages', href: '/admin-licences/parrainages' },
   ]
 
   return (

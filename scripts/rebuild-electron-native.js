@@ -1,44 +1,46 @@
-/**
- * Recompile better-sqlite3 pour la version Node embarquée dans Electron.
- * À exécuter après next build + prepare-electron, avant electron-builder.
- */
 const path = require('path')
+const fs = require('fs')
 const { rebuild } = require('@electron/rebuild')
 
 const standaloneDir = path.join(__dirname, '..', '.next', 'standalone')
 const electronVersion = require('electron/package.json').version
 
+async function rebuildIn(buildPath, label) {
+  const modulesPath = path.join(buildPath, 'node_modules', 'better-sqlite3')
+  if (!fs.existsSync(modulesPath)) {
+    console.log(`⏭️  Pas de better-sqlite3 dans ${label}, ignoré`)
+    return
+  }
+  console.log(`🔧 Rebuild better-sqlite3 dans ${label}…`)
+  try {
+    await rebuild({
+      buildPath,
+      electronVersion,
+      force: true,
+      onlyModules: ['better-sqlite3'],
+    })
+    const binary = path.join(modulesPath, 'build', 'Release', 'better_sqlite3.node')
+    if (fs.existsSync(binary)) {
+      const stats = fs.statSync(binary)
+      console.log(`✅ ${label} — ${stats.size} bytes — ${stats.mtime}`)
+    } else {
+      console.error(`❌ Binaire introuvable dans ${label}`)
+    }
+  } catch (e) {
+    console.warn(`⚠️  Rebuild ${label} ignoré:`, e.message)
+  }
+}
+
 async function main() {
   console.log(`🔧 Rebuild better-sqlite3 pour Electron ${electronVersion}…`)
+  console.log(`🔧 Node local ABI: ${process.versions.modules} — Target Electron ABI: 146`)
 
-  // Rebuild dans le standalone (node_modules à la racine)
-  await rebuild({
-    buildPath: standaloneDir,
-    electronVersion,
-    force: true,
-    onlyModules: ['better-sqlite3'],
-  })
+  // 1. standalone/node_modules
+  await rebuildIn(standaloneDir, 'standalone/node_modules')
 
-  // Rebuild aussi dans .next/node_modules à l'intérieur du standalone
+  // 2. standalone/.next/node_modules
   const standaloneNextDir = path.join(standaloneDir, '.next')
-  const fs = require('fs')
-  const nestedModules = path.join(standaloneNextDir, 'node_modules')
-  
-  if (fs.existsSync(nestedModules)) {
-    console.log(`🔧 Rebuild better-sqlite3 dans .next/node_modules…`)
-    try {
-      await rebuild({
-        buildPath: standaloneNextDir,
-        electronVersion,
-        force: true,
-        onlyModules: ['better-sqlite3'],
-      })
-    } catch (e) {
-      console.warn('⚠️  Rebuild .next/node_modules ignoré:', e.message)
-    }
-  }
-
-  console.log('✅ better-sqlite3 prêt pour Electron (standalone)')
+  await rebuildIn(standaloneNextDir, 'standalone/.next/node_modules')
 }
 
 main().catch((err) => {

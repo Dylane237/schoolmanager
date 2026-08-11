@@ -2,7 +2,11 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { verifyToken } from '@/lib/auth'
 import { getDb } from '@/lib/db-server'
+import { getElevesSituation } from '@/lib/paiements-utils'
+import { studentLinks } from '@/lib/student-context-links'
 import PageShell from '@/components/layout/PageShell'
+import EncaissementsChart from '@/components/dashboard/EncaissementsChart'
+import ClassesPaiementChart from '@/components/dashboard/ClassesPaiementChart'
 import {
   Users, DoorOpen, UserCheck, Banknote,
   CreditCard, ClipboardList, CheckSquare,
@@ -43,7 +47,6 @@ const ALERT_BG: Record<Alert['level'], string> = {
   info:   'bg-blue-100 text-blue-500',
 }
 
-const MOIS_FR = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']
 
 export default async function DashboardPage({
   params,
@@ -136,43 +139,35 @@ export default async function DashboardPage({
   if (alerts.length === 0)
     alerts.push({ level: 'info',   text: 'Tout est en ordre', sub: `Mis à jour le ${new Date().toLocaleDateString('fr-FR')}` })
 
-  // ── encaissements 6 derniers mois ──
-  const encaissements6mois = db.prepare(`
-    SELECT strftime('%Y-%m', date_paiement) as mois,
-           COALESCE(SUM(montant), 0) as total
-    FROM paiements WHERE ecole_id = ?
-      AND date_paiement >= date('now', '-5 months', 'start of month')
-    GROUP BY mois ORDER BY mois ASC
-  `).all(ecole?.id) as { mois: string; total: number }[]
-
-  // Remplir les mois manquants
-  const chartData: { label: string; total: number }[] = []
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(); d.setMonth(d.getMonth() - i); d.setDate(1)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const found = encaissements6mois.find(r => r.mois === key)
-    chartData.push({ label: MOIS_FR[d.getMonth()], total: found?.total ?? 0 })
+  // ── taux d'élèves à jour dans leurs paiements, par classe ──
+  // S'appuie sur la même logique métier que la page paiements
+  // (getElevesSituation) pour rester cohérent avec le badge "impayés" déjà
+  // affiché ailleurs, plutôt que de recalculer un critère différent ici.
+  // Les élèves "non_configure" (aucune tranche définie pour leur classe)
+  // sont exclus du calcul plutôt que comptés comme impayés, car il n'y a
+  // rien à leur reprocher si la classe n'a pas encore de tranches.
+  const { situations } = getElevesSituation(db, ecole?.id ?? '')
+  const classesPaiementMap = new Map<string, { classe: string; effectif: number; payes: number }>()
+  for (const s of situations) {
+    if (!s.classe_id || s.statut === 'non_configure') continue
+    const entry = classesPaiementMap.get(s.classe_id) ?? { classe: s.classe_nom ?? '—', effectif: 0, payes: 0 }
+    entry.effectif += 1
+    if (s.statut === 'paye') entry.payes += 1
+    classesPaiementMap.set(s.classe_id, entry)
   }
+  const classesPaiement = Array.from(classesPaiementMap.values())
+    .map(c => ({ ...c, pct: c.effectif > 0 ? Math.round((c.payes / c.effectif) * 100) : 0 }))
+    .sort((a, b) => a.pct - b.pct)
 
-  // ── répartition modes paiement ──
-  const repartitionModes = db.prepare(`
-    SELECT mode_paiement, COALESCE(SUM(montant), 0) as total
-    FROM paiements WHERE ecole_id = ?
-    GROUP BY mode_paiement
-  `).all(ecole?.id) as { mode_paiement: string; total: number }[]
-
-  const totalGeneral = repartitionModes.reduce((s, r) => s + r.total, 0) || 1
-  const modeConfig: Record<string, { label: string; color: string; bg: string }> = {
-    especes:      { label: 'Espèces',      color: '#10b981', bg: 'bg-emerald-500' },
-    orange_money: { label: 'Orange Money', color: '#f97316', bg: 'bg-orange-500'  },
-    mtn_momo:     { label: 'MTN MoMo',     color: '#eab308', bg: 'bg-yellow-500'  },
-    virement:     { label: 'Virement',     color: '#3b82f6', bg: 'bg-blue-500'    },
-  }
+  const capaciteMoyenne = totalClasses > 0
+    ? Math.round((db.prepare('SELECT COALESCE(AVG(capacite_max), 60) as avg FROM classes WHERE ecole_id = ?').get(ecole?.id) as { avg: number }).avg)
+    : 60
 
   // ── derniers paiements ──
   const derniersPaiements = db.prepare(`
     SELECT p.montant, p.date_paiement, p.mode_paiement,
-           e.nom as eleve_nom, e.prenom as eleve_prenom,
+           e.id as eleve_id, e.nom as eleve_nom, e.prenom as eleve_prenom,
+           e.numero_matricule,
            c.nom as classe_nom
     FROM paiements p
     JOIN eleves e ON e.id = p.eleve_id
@@ -194,7 +189,7 @@ export default async function DashboardPage({
 
   const stats = [
     { label: 'Élèves actifs',    value: totalEleves.toLocaleString('fr-FR'),         suffix: undefined, Icon: Users,    trend: `sur ${totalClasses} classe${totalClasses !== 1 ? 's' : ''}`, trendUp: false },
-    { label: 'Classes',          value: totalClasses.toLocaleString('fr-FR'),         suffix: undefined, Icon: DoorOpen, trend: 'capacité moyenne : 60 élèves',                                 trendUp: false },
+    { label: 'Classes',          value: totalClasses.toLocaleString('fr-FR'),         suffix: undefined, Icon: DoorOpen, trend: `capacité moyenne : ${capaciteMoyenne} élèves`,                     trendUp: false },
     { label: 'Personnel',        value: totalPersonnel.toLocaleString('fr-FR'),       suffix: undefined, Icon: UserCheck,trend: totalPersonnel === 0 ? 'Aucun staff enregistré' : 'membres actifs', trendUp: false },
     { label: 'Collecté ce mois', value: Number(totalMois).toLocaleString('fr-FR'), suffix: 'FCFA', Icon: Banknote, trend: trendCollecte, trendUp: trendCollecteUp },
   ]
@@ -222,26 +217,6 @@ export default async function DashboardPage({
 
   const dateStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
-  // Calculs graphique barres
-  const chartMax = Math.max(...chartData.map(d => d.total), 1)
-
-  // SVG donut
-  const donutData = repartitionModes.map(r => ({
-    ...r,
-    pct: r.total / totalGeneral,
-    cfg: modeConfig[r.mode_paiement] ?? { label: r.mode_paiement, color: '#94a3b8', bg: 'bg-slate-400' },
-  }))
-  const DONUT_R = 54; const DONUT_CX = 70; const DONUT_CY = 70
-  const circumference = 2 * Math.PI * DONUT_R
-  let donutOffset = 0
-  const donutSlices = donutData.map(d => {
-    const dash = d.pct * circumference
-    const gap  = circumference - dash
-    const rot  = donutOffset * 360
-    donutOffset += d.pct
-    return { ...d, dash, gap, rot }
-  })
-  const donutEmpty = donutData.length === 0
 
   return (
     <PageShell
@@ -292,90 +267,11 @@ export default async function DashboardPage({
         {/* graphiques */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-          {/* barres — encaissements 6 mois */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Encaissements</p>
-                <p className="text-lg font-semibold text-slate-800">6 derniers mois</p>
-              </div>
-              <span className="text-xs text-slate-400 bg-slate-100 rounded-lg px-3 py-1.5">FCFA</span>
-            </div>
+          {/* encaissements — graphique interactif avec filtres */}
+          <EncaissementsChart slug={slug} />
 
-            <div className="flex items-end gap-3 h-44">
-              {chartData.map((d, i) => {
-                const pct = chartMax > 0 ? d.total / chartMax : 0
-                const isLast = i === chartData.length - 1
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                    <p className="text-xs text-slate-500 font-medium">
-                      {d.total > 0 ? (d.total >= 1000 ? `${Math.round(d.total / 1000)}k` : d.total) : ''}
-                    </p>
-                    <div className="w-full flex items-end" style={{ height: '120px' }}>
-                      <div
-                        className={`w-full rounded-t-lg transition-all ${isLast ? 'bg-emerald-500' : 'bg-slate-200'}`}
-                        style={{ height: `${Math.max(pct * 100, pct > 0 ? 4 : 0)}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-slate-400">{d.label}</p>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* donut — répartition modes */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Répartition</p>
-            <p className="text-lg font-semibold text-slate-800 mb-5">Modes de paiement</p>
-
-            <div className="flex items-center gap-6 flex-1">
-              {/* donut SVG */}
-              <div className="flex-shrink-0">
-                <svg width="140" height="140" viewBox="0 0 140 140">
-                  {donutEmpty ? (
-                    <circle cx={DONUT_CX} cy={DONUT_CY} r={DONUT_R} fill="none" stroke="#e2e8f0" strokeWidth="18" />
-                  ) : (
-                    donutSlices.map((s, i) => (
-                      <circle
-                        key={i}
-                        cx={DONUT_CX} cy={DONUT_CY} r={DONUT_R}
-                        fill="none"
-                        stroke={s.cfg.color}
-                        strokeWidth="18"
-                        strokeDasharray={`${s.dash} ${s.gap}`}
-                        strokeDashoffset={-((donutSlices.slice(0, i).reduce((a, c) => a + c.dash, 0)) - circumference / 4)}
-                        style={{ transform: 'rotate(-90deg)', transformOrigin: `${DONUT_CX}px ${DONUT_CY}px` }}
-                      />
-                    ))
-                  )}
-                  <text x={DONUT_CX} y={DONUT_CY - 6} textAnchor="middle" fontSize="13" fill="#1e293b" fontWeight="700">
-                    {repartitionModes.length}
-                  </text>
-                  <text x={DONUT_CX} y={DONUT_CY + 10} textAnchor="middle" fontSize="10" fill="#94a3b8">
-                    {repartitionModes.length > 1 ? 'modes' : 'mode'}
-                  </text>
-                </svg>
-              </div>
-
-              {/* légende */}
-              <div className="flex flex-col gap-2.5 flex-1 min-w-0">
-                {donutEmpty ? (
-                  <p className="text-sm text-slate-400">Aucun paiement</p>
-                ) : (
-                  donutSlices.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2 min-w-0">
-                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.cfg.bg}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-700 truncate">{s.cfg.label}</p>
-                        <p className="text-xs text-slate-400">{Math.round(s.pct * 100)} %</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
+          {/* taux de paiement par classe */}
+          <ClassesPaiementChart data={classesPaiement} slug={slug} />
         </div>
 
         {/* modules + alertes */}
@@ -446,9 +342,18 @@ export default async function DashboardPage({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {derniersPaiements.map((p: any, i: number) => (
+                    {derniersPaiements.map((p: { eleve_id: string; eleve_nom: string; eleve_prenom: string; numero_matricule?: string; classe_nom?: string; mode_paiement: string; montant: number }, i: number) => (
                       <tr key={i} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-5 py-3.5 text-sm font-medium text-slate-700">{p.eleve_prenom} {p.eleve_nom}</td>
+                        <td className="px-5 py-3.5 text-sm font-medium text-slate-700">
+                          <Link href={studentLinks(slug, {
+                            id: p.eleve_id,
+                            nom: p.eleve_nom,
+                            prenom: p.eleve_prenom,
+                            numero_matricule: p.numero_matricule || '',
+                          }).fiche} className="hover:text-emerald-700">
+                            {p.eleve_prenom} {p.eleve_nom}
+                          </Link>
+                        </td>
                         <td className="px-5 py-3.5 text-sm text-slate-500">{p.classe_nom ?? '—'}</td>
                         <td className="px-5 py-3.5">
                           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${modeBadge[p.mode_paiement] ?? 'bg-slate-100 text-slate-500'}`}>

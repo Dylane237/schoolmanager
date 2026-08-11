@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
 import { getDb } from '../../../lib/db-server'
+import { requireModule } from '../../../lib/rbac.server'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user?.ecole_id) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
+  const denied = requireModule(user, 'parametres', 'GET')
+  if (denied) return denied
 
   const db = getDb()
   const annees = db.prepare(`
@@ -23,13 +26,15 @@ export async function POST(request: NextRequest) {
   if (!user?.ecole_id) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
+  const denied = requireModule(user, 'parametres', 'POST')
+  if (denied) return denied
 
   const body = await request.json()
   const db = getDb()
 
   if (!body.label || !/^\d{4}-\d{4}$/.test(body.label)) {
     return NextResponse.json(
-      { error: 'Format requis : AAAA-AAAA (ex: 2025-2026)' },
+      { error: 'Format requis : AAAA-AAAA (ex: 2026-2027)' },
       { status: 400 }
     )
   }
@@ -60,6 +65,8 @@ export async function PUT(request: NextRequest) {
   if (!user?.ecole_id) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
+  const denied = requireModule(user, 'parametres', 'PUT')
+  if (denied) return denied
 
   const body = await request.json()
   const db = getDb()

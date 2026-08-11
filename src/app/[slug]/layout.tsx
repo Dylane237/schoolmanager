@@ -4,6 +4,7 @@ import { verifyToken } from '@/lib/auth'
 import { getDb, getActiveAnneeScolaire } from '@/lib/db-server'
 import Sidebar from '@/components/layout/Sidebar'
 import { SchoolProvider } from '@/components/layout/SchoolProvider'
+import AppShell from '@/components/layout/AppShell'
 
 export default async function SlugLayout({
   children,
@@ -33,8 +34,8 @@ export default async function SlugLayout({
   }
 
   const db = getDb()
-  const ecole = db.prepare('SELECT * FROM ecoles WHERE slug = ?').get(slug) as {
-    id: string; nom: string
+  const ecole = db.prepare('SELECT id, nom, logo_url FROM ecoles WHERE slug = ?').get(slug) as {
+    id: string; nom: string; logo_url: string | null
   } | undefined
 
   if (!ecole) redirect('/login')
@@ -100,16 +101,13 @@ if (!licence && payload.role !== 'super_admin') {
       ecoleNom: ecole.nom,
       anneeScolaire,
       licenceType: licence?.type ?? null,
+      licenceFin: licence?.date_fin ?? null,
+      logoUrl: ecole.logo_url || null,
       userInitials: initials,
       userNom: prenom ? `${prenom} ${nom}` : nom,
       userRole: payload.role,
     }}>
-      <div className="flex h-screen bg-slate-50 overflow-hidden">
-        <Sidebar slug={slug} ecoleNom={ecole.nom} licenceFin={licence?.date_fin} />
-        <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">
-          {children}
-        </main>
-      </div>
+      <AppShell>{children}</AppShell>
     </SchoolProvider>
   )
 }

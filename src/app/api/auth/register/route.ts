@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '../../../../lib/db-server'
 import { hashPassword, signToken, setAuthCookie } from '../../../../lib/auth'
-import { slugify } from '../../../../lib/utils/slug'
+import { uniqueSlug } from '../../../../lib/utils/slug'
 import { getMachineFingerprint } from '../../../../lib/paths'
+import { generateRecoveryCode, hashRecoveryCode } from '../../../../lib/recovery-code'
+import { getDefaultAnneeScolaireBounds } from '../../../../lib/school-year'
 
 const LICENCE_SERVER_URL = 'https://schoolmanager-eosin.vercel.app'
 
@@ -10,8 +12,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const {
-      email, password, nom_ecole, slug, telephone,
-      directeur_nom, sections, cle_licence,
+      email, password, nom_ecole, telephone,
+      directeur_nom, sections, cle_licence, code_parrain,
     } = body
 
     if (!email || !password || !nom_ecole || !directeur_nom || !cle_licence) {
@@ -23,14 +25,11 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getDb()
-    const finalSlug = (slug || slugify(nom_ecole)).toLowerCase()
+    const slugExists = (s: string) =>
+      !!db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(s)
+    const finalSlug = uniqueSlug(nom_ecole, slugExists)
 
-    const existingSlug = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(finalSlug)
-    if (existingSlug) {
-      return NextResponse.json({ error: 'Cet identifiant URL est déjà utilisé' }, { status: 409 })
-    }
-
-    const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email)
+    const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email.trim().toLowerCase())
     if (existingEmail) {
       return NextResponse.json({ error: 'Cet email est déjà enregistré' }, { status: 409 })
     }
@@ -92,6 +91,8 @@ export async function POST(request: NextRequest) {
           cle: cle_licence.trim().toUpperCase(),
           ecole_slug: finalSlug,
           ecole_nom: nom_ecole,
+          parrain_code: code_parrain?.trim().toUpperCase() || null,
+          machine_fingerprint: fingerprint,
         }),
         signal: AbortSignal.timeout(8000),
       })
@@ -100,24 +101,23 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Année scolaire
-    const year = new Date().getFullYear()
-    const month = new Date().getMonth()
-    const startYear = month >= 8 ? year : year - 1
-    const anneeLabel = `${startYear}-${startYear + 1}`
+    const { label: anneeLabel, date_debut, date_fin } = getDefaultAnneeScolaireBounds()
 
     db.prepare(`
       INSERT INTO annees_scolaires (ecole_id, label, date_debut, date_fin, is_active)
       VALUES (?, ?, ?, ?, 1)
-    `).run(ecole.id, anneeLabel, `${startYear}-09-01`, `${startYear + 1}-07-31`)
+    `).run(ecole.id, anneeLabel, date_debut, date_fin)
 
-    // 7. Créer l'utilisateur admin
+    // 7. Créer l'utilisateur admin + code de secours
+    const recoveryCode = generateRecoveryCode()
+    const recoveryHash = await hashRecoveryCode(recoveryCode)
     const passwordHash = await hashPassword(password)
     db.prepare(`
-      INSERT INTO users (email, password_hash, nom, role, ecole_id)
-      VALUES (?, ?, ?, 'admin', ?)
-    `).run(email, passwordHash, directeur_nom, ecole.id)
+      INSERT INTO users (email, password_hash, nom, role, ecole_id, recovery_code_hash)
+      VALUES (?, ?, ?, 'admin', ?, ?)
+    `).run(email.trim().toLowerCase(), passwordHash, directeur_nom, ecole.id, recoveryHash)
 
-    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as { id: string }
+    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email.trim().toLowerCase()) as { id: string }
 
     const token = await signToken({
       id: user.id,
@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       slug: finalSlug,
+      recovery_code: recoveryCode,
       user: { ecole_slug: finalSlug, role: 'admin', nom: directeur_nom },
     })
     setAuthCookie(response, token)

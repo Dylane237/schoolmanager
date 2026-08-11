@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { ShieldAlert, Mail, ArrowLeft } from 'lucide-react'
+import { WhatsAppSupportLink } from '@/components/support/whatsapp-support-link'
+import LicenceRenewForm from '@/components/licence/LicenceRenewForm'
 
 export default function LicenceExpireePage() {
   return (
@@ -7,7 +9,7 @@ export default function LicenceExpireePage() {
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl mb-5">
-            <ShieldAlert className="w-8 h-8 text-red-400" />
+            <ShieldAlert className="w-8 h-8 text-red-400" strokeWidth={1.75} />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Licence expirée</h1>
           <p className="text-slate-400 text-base leading-relaxed">
@@ -29,20 +31,30 @@ export default function LicenceExpireePage() {
             </li>
             <li className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold flex items-center justify-center shrink-0">3</span>
-              Votre accès sera réactivé immédiatement
+              Activez la clé ci-dessous ou contactez le support
             </li>
           </ol>
 
-          <a href="mailto:support@schoolmanager.cm"
-            className="mt-6 flex items-center justify-center gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl px-5 py-3.5 transition-colors">
-            <Mail className="w-5 h-5" />
-            Contacter le support
-          </a>
+          <div className="mt-6 space-y-3">
+            <WhatsAppSupportLink
+              variant="dark"
+              message="Bonjour, ma licence SchoolManager a expiré. Je souhaite la renouveler."
+            />
+            <a
+              href="mailto:support@schoolmanager.cm"
+              className="flex items-center justify-center gap-2 w-full bg-white/10 hover:bg-white/15 text-white font-semibold rounded-xl px-5 py-3.5 transition-colors border border-white/10"
+            >
+              <Mail className="w-5 h-5" strokeWidth={1.75} />
+              Email support
+            </a>
+          </div>
+
+          <LicenceRenewForm />
         </div>
 
         <Link href="/login"
           className="mt-6 flex items-center justify-center gap-2 text-slate-400 hover:text-white text-base transition-colors">
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           Retour à la connexion
         </Link>
       </div>

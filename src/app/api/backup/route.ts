@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
 import { getDb } from '../../../lib/db-server'
 import { runDailyBackup, listBackups, exportDatabase } from '../../../lib/backup'
+import { requireModule } from '../../../lib/rbac.server'
 import path from 'path'
 import { getBackupsDir } from '../../../lib/paths'
 
@@ -10,6 +11,8 @@ export async function GET(request: NextRequest) {
   if (!user?.ecole_id) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
+  const denied = requireModule(user, 'parametres', 'GET')
+  if (denied) return denied
 
   runDailyBackup()
   const backups = listBackups()
@@ -22,6 +25,8 @@ export async function POST(request: NextRequest) {
   if (!user?.ecole_id) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
+  const denied = requireModule(user, 'parametres', 'POST')
+  if (denied) return denied
 
   const body = await request.json()
   const action = body.action as string

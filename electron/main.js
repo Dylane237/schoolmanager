@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron')
+const { autoUpdater } = require('electron-updater')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
@@ -169,9 +170,7 @@ function startNextServer() {
         HOSTNAME: '127.0.0.1',
         SM_USER_DATA: userDataPath,
         ELECTRON_RUN_AS_NODE: '1',
-        LICENCE_SERVER_URL: 'https://schoolmanager-eosin.vercel.app',
-        NEXT_PUBLIC_SUPABASE_URL: 'https://lwfylrnmpwtemzbogppt.supabase.co',
-        SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_Lvh8K6K8NMMwegPPYJBn0w_Ef-gtX8N',
+        LICENCE_SERVER_URL: process.env.LICENCE_SERVER_URL || 'https://schoolmanager-eosin.vercel.app',
         ...(jwtSecret ? { SM_JWT_SECRET: jwtSecret } : {}),
       },
       cwd: serverDir,
@@ -211,6 +210,126 @@ function ensureDirectories(userDataPath) {
 
 ipcMain.handle('get-data-path', () => SCHOOL_MANAGER_DATA)
 ipcMain.handle('open-data-folder', () => shell.openPath(SCHOOL_MANAGER_DATA))
+ipcMain.handle('get-app-version', () => app.getVersion())
+
+function sendUpdateStatus(payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', payload)
+  }
+}
+
+function setupAutoUpdater() {
+  if (!app.isPackaged) return
+
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = true
+
+  const updateUrl = process.env.SM_UPDATE_URL
+  if (updateUrl) {
+    autoUpdater.setFeedURL({ provider: 'generic', url: updateUrl })
+  }
+
+  autoUpdater.on('checking-for-update', () => {
+    sendUpdateStatus({ status: 'checking' })
+  })
+  autoUpdater.on('update-available', (info) => {
+    sendUpdateStatus({ status: 'available', version: info.version })
+  })
+  autoUpdater.on('update-not-available', () => {
+    sendUpdateStatus({ status: 'not-available' })
+  })
+  autoUpdater.on('download-progress', (progress) => {
+    sendUpdateStatus({
+      status: 'downloading',
+      progress: progress.percent,
+    })
+  })
+  autoUpdater.on('update-downloaded', (info) => {
+    sendUpdateStatus({ status: 'downloaded', version: info.version })
+  })
+  autoUpdater.on('error', (err) => {
+    sendUpdateStatus({ status: 'error', error: err.message })
+  })
+}
+
+ipcMain.handle('check-for-updates', async () => {
+  if (!app.isPackaged) {
+    return { error: 'Les mises à jour ne sont disponibles que sur la version installée' }
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    return { success: true, version: result?.updateInfo?.version }
+  } catch (err) {
+    return { error: err.message || 'Erreur lors de la vérification' }
+  }
+})
+
+ipcMain.handle('download-update', async () => {
+  if (!app.isPackaged) return { error: 'Non disponible en développement' }
+  try {
+    await autoUpdater.downloadUpdate()
+    return { success: true }
+  } catch (err) {
+    return { error: err.message || 'Erreur de téléchargement' }
+  }
+})
+
+ipcMain.handle('install-update', () => {
+  autoUpdater.quitAndInstall(false, true)
+})
+
+ipcMain.handle('restore-database', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Restaurer une sauvegarde',
+    buttonLabel: 'Restaurer',
+    filters: [{ name: 'Base de données SchoolManager', extensions: ['db'] }],
+    properties: ['openFile'],
+  })
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return { success: false, canceled: true }
+  }
+
+  const sourcePath = result.filePaths[0]
+
+  // Avertissement + confirmation avant d'écraser la base actuelle
+  const confirm = await dialog.showMessageBox(mainWindow, {
+    type: 'warning',
+    buttons: ['Annuler', 'Restaurer et redémarrer'],
+    defaultId: 0,
+    cancelId: 0,
+    title: 'Confirmer la restauration',
+    message: 'Cette action va remplacer la base de données actuelle.',
+    detail:
+      "Une sauvegarde de sécurité de la base actuelle sera créée automatiquement avant l'écrasement. L'application va redémarrer une fois la restauration terminée.",
+  })
+
+  if (confirm.response !== 1) {
+    return { success: false, canceled: true }
+  }
+
+  try {
+    const res = await fetch(`http://127.0.0.1:${PORT}/api/backup/restore`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourcePath }),
+    })
+    const data = await res.json()
+
+    if (!data.success) {
+      dialog.showErrorBox('Restauration échouée', data.error || 'Erreur inconnue.')
+      return { success: false, error: data.error }
+    }
+  } catch (err) {
+    dialog.showErrorBox('Restauration échouée', err.message)
+    return { success: false, error: err.message }
+  }
+
+  // Redémarre proprement pour que le serveur Next.js recharge la base restaurée
+  app.relaunch()
+  app.quit()
+  return { success: true }
+})
 
 function runDailyBackup(userDataPath) {
   try {
@@ -298,6 +417,7 @@ app.whenReady().then(async () => {
   }
 
   await createMainWindow()
+  setupAutoUpdater()
 })
 
 app.on('window-all-closed', () => {

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../../lib/auth'
 import { getDb, getActiveAnneeScolaire } from '../../../../lib/db-server'
-import { getEleveSituation } from '../../../../lib/paiements-utils'
+import { getEleveSituation, sqlTotalAttenduEleve } from '../../../../lib/paiements-utils'
+import { getFraisExamenResumeForClasse } from '../../../../lib/frais-examens-utils'
 import { requireModule } from '../../../../lib/rbac.server'
 
 export async function GET(
@@ -32,15 +33,16 @@ export async function GET(
     return NextResponse.json({ error: 'Classe introuvable' }, { status: 404 })
   }
 
+  const totalAttenduSql = sqlTotalAttenduEleve('?')
+
   const eleves = db.prepare(`
     SELECT e.id, e.nom, e.prenom, e.numero_matricule, e.sexe, e.photo_url, e.statut,
       COALESCE((SELECT SUM(pa.montant) FROM paiements pa WHERE pa.eleve_id = e.id), 0) as total_paye,
-      COALESCE((SELECT SUM(tc.montant_attendu) FROM tranches_config tc
-        WHERE tc.classe_id = e.classe_id AND tc.annee_scolaire = ?), 0) as total_attendu
+      ${totalAttenduSql} as total_attendu
     FROM eleves e
     WHERE e.classe_id = ? AND e.ecole_id = ? AND e.statut = 'actif'
     ORDER BY e.nom, e.prenom
-  `).all(annee, id, user.ecole_id) as Record<string, unknown>[]
+  `).all(annee, annee, id, user.ecole_id) as Record<string, unknown>[]
 
   const matieres = db.prepare(`
     SELECT m.*
@@ -67,12 +69,18 @@ export async function GET(
 
   const ecoleId = user.ecole_id
 
+  const fraisExamenData = getFraisExamenResumeForClasse(db, ecoleId, id, annee)
+  const fraisByEleve = new Map(fraisExamenData.eleves.map(e => [e.eleve_id, e]))
+
   const elevesAvecSituation = eleves.map(el => {
     const situation = getEleveSituation(db, ecoleId, el.id as string)
+    const frais = fraisByEleve.get(el.id as string)
     return {
       ...el,
       paiement_statut: situation?.statut ?? 'non_configure',
       total_reste: situation?.total_reste ?? 0,
+      frais_examen_statut: fraisExamenData.config ? (frais?.statut ?? 'non_configure') : null,
+      frais_examen_reste: frais?.reste ?? 0,
     }
   })
 
@@ -89,6 +97,8 @@ export async function GET(
     eleves: elevesAvecSituation,
     matieres,
     tranches,
+    frais_examen: fraisExamenData.config,
+    frais_examen_impayes: fraisExamenData.impayes,
     enseignants,
     annee_scolaire: annee,
     stats: {

@@ -20,10 +20,10 @@ export function AuthStepper({ step, total = 3 }: AuthStepperProps) {
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${
                   active
-                    ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-110'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 scale-110'
                     : done
-                      ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30'
-                      : 'bg-white/[0.05] text-zinc-600 ring-1 ring-white/[0.08]'
+                      ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200'
+                      : 'bg-gray-100 text-gray-400 ring-1 ring-gray-200'
                 }`}
               >
                 {done ? '✓' : n}
@@ -31,7 +31,7 @@ export function AuthStepper({ step, total = 3 }: AuthStepperProps) {
               {n < total && (
                 <div
                   className={`mx-1 h-px w-8 transition-colors duration-300 sm:w-12 ${
-                    step > n ? 'bg-emerald-500/50' : 'bg-white/[0.08]'
+                    step > n ? 'bg-emerald-300' : 'bg-gray-200'
                   }`}
                 />
               )}
@@ -39,10 +39,10 @@ export function AuthStepper({ step, total = 3 }: AuthStepperProps) {
           )
         })}
       </div>
-      <p className="mt-3 text-center text-[13px] text-zinc-500">
+      <p className="mt-3 text-center text-[13px] text-gray-500">
         Étape {step} sur {total}
-        <span className="text-zinc-600"> · </span>
-        <span className="text-zinc-400">{STEP_LABELS[step - 1]}</span>
+        <span className="text-gray-300"> · </span>
+        <span className="font-medium text-gray-700">{STEP_LABELS[step - 1]}</span>
       </p>
     </div>
   )

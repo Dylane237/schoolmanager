@@ -5,15 +5,24 @@ import { getUserFromRequest } from '../../../../../lib/auth'
 import { getDb } from '../../../../../lib/db-server'
 import { getExportsDir } from '../../../../../lib/paths'
 import { buildClassListHtml } from '../../../../../lib/class-list-export'
+import { requireModule } from '../../../../../lib/rbac.server'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUserFromRequest(request)
   if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  const denied = requireModule(user, 'classes', 'GET')
+  if (denied) return denied
 
   const { id } = await params
   const db = getDb()
 
-  const ecole = db.prepare('SELECT nom FROM ecoles WHERE id = ?').get(user.ecole_id) as { nom: string } | undefined
+  const ecole = db.prepare(`
+    SELECT nom, adresse, telephone, email, directeur_nom, entete_url
+    FROM ecoles WHERE id = ?
+  `).get(user.ecole_id) as {
+    nom: string; adresse: string; telephone: string; email: string
+    directeur_nom: string; entete_url: string | null
+  } | undefined
   const classe = db.prepare(`
     SELECT c.*, p.nom as enseignant_nom, p.prenom as enseignant_prenom
     FROM classes c
@@ -44,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     : null
 
   const html = buildClassListHtml({
-    ecoleNom: ecole?.nom ?? 'École',
+    ecole: ecole ?? { nom: 'École' },
     classeNom: classe.nom as string,
     section: classe.section as string,
     anneeScolaire: classe.annee_scolaire as string,

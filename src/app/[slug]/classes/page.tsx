@@ -1,15 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Plus, School, UserCheck, ChevronRight, BookOpen, Layers, ArrowRightLeft } from 'lucide-react'
+import { Plus, School, UserCheck, ChevronRight, Layers, ArrowRightLeft, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
+import SmartFilterBar from '@/components/filters/SmartFilterBar'
 import { useSchool } from '@/components/layout/SchoolProvider'
+import { useSmartFilters } from '@/hooks/useSmartFilters'
+import { SECTION_OPTIONS } from '@/lib/filter-presets'
+import { canWriteModule } from '@/lib/rbac'
 import {
   CAMEROON_SECTIONS,
   SECTION_ORDER,
@@ -38,7 +42,8 @@ interface Enseignant {
 
 export default function ClassesPage() {
   const { slug } = useParams()
-  const { anneeScolaire } = useSchool()
+  const { anneeScolaire, userRole } = useSchool()
+  const canCreateClass = canWriteModule(userRole, 'classes')
   const [classes, setClasses] = useState<Classe[]>([])
   const [enseignants, setEnseignants] = useState<Enseignant[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,7 +51,6 @@ export default function ClassesPage() {
   const [showReferentiel, setShowReferentiel] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selectedNiveaux, setSelectedNiveaux] = useState<Set<string>>(new Set())
-  const [activeSection, setActiveSection] = useState<string>('francophone')
 
   const [form, setForm] = useState({
     nom: '', section: 'francophone', niveau: '',
@@ -54,6 +58,37 @@ export default function ClassesPage() {
   })
 
   const up = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
+
+  const filterFields = useMemo(() => [
+    {
+      key: 'q',
+      type: 'search' as const,
+      placeholder: 'Rechercher une classe, un niveau...',
+      debounce: true,
+    },
+    {
+      key: 'section',
+      type: 'select' as const,
+      label: 'Section',
+      options: SECTION_OPTIONS,
+      defaultValue: '',
+    },
+  ], [])
+
+  const { values, debouncedValues, setFilter, reset, activeFilters } = useSmartFilters(filterFields)
+
+  const filteredClasses = useMemo(() => {
+    const q = debouncedValues.q?.toLowerCase().trim()
+    const section = debouncedValues.section
+    return classes.filter(c => {
+      if (section && c.section !== section) return false
+      if (q) {
+        const hay = `${c.nom} ${c.niveau} ${c.enseignant_nom ?? ''} ${c.enseignant_prenom ?? ''}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+  }, [classes, debouncedValues.q, debouncedValues.section])
 
   const fetchClasses = async () => {
     setLoading(true)
@@ -159,86 +194,47 @@ export default function ClassesPage() {
   }
 
   const grouped = SECTION_ORDER.reduce((acc: Record<string, Classe[]>, section) => {
-    const items = classes.filter(c => c.section === section)
+    const items = filteredClasses.filter(c => c.section === section)
     if (items.length > 0) acc[section] = items
     return acc
   }, {})
 
-  const activeRef = CAMEROON_SECTIONS.find(s => s.id === activeSection)
-
   return (
     <PageShell
       title="Classes"
-      subtitle={`${classes.length} classe(s) · Année ${anneeScolaire}`}
+      subtitle={`${filteredClasses.length} classe(s) · Année ${anneeScolaire}`}
       breadcrumb="Classes"
       actions={
         <div className="flex items-center gap-2">
           <Link href={`/${slug}/classes/transferts`} className="btn-secondary flex items-center gap-2 py-2.5">
             <ArrowRightLeft className="w-5 h-5" /> Répartition
           </Link>
-          <button onClick={() => setShowReferentiel(true)} className="btn-secondary flex items-center gap-2 py-2.5">
-            <Layers className="w-5 h-5" /> Référentiel CM
-          </button>
-          <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2 py-2.5">
-            <Plus className="w-5 h-5" /> Nouvelle classe
-          </button>
+          {canCreateClass && (
+            <>
+              <button onClick={() => setShowReferentiel(true)} className="btn-secondary flex items-center gap-2 py-2.5">
+                <Layers className="w-5 h-5" /> Référentiel CM
+              </button>
+              <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2 py-2.5">
+                <Plus className="w-5 h-5" /> Nouvelle classe
+              </button>
+            </>
+          )}
         </div>
       }
     >
-      {/* Référentiel camerounais — aperçu */}
-      <div className="card p-6 mb-8">
-        <div className="flex items-center gap-2 mb-4">
-          <BookOpen className="w-5 h-5 text-emerald-600" />
-          <h2 className="font-semibold text-slate-800">Référentiel des niveaux — Cameroun</h2>
-        </div>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {CAMEROON_SECTIONS.map(sec => (
-            <button
-              key={sec.id}
-              type="button"
-              onClick={() => setActiveSection(sec.id)}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                activeSection === sec.id
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {sec.label}
-            </button>
-          ))}
-        </div>
-        {activeRef && (
-          <div className="space-y-4">
-            <p className="text-sm text-slate-500">{activeRef.description}</p>
-            {activeRef.cycles.map(cycle => (
-              <div key={cycle.nom}>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{cycle.nom}</p>
-                <div className="flex flex-wrap gap-2">
-                  {cycle.niveaux.map(nv => {
-                    const created = isNiveauCreated(activeRef.id, nv.nomDefaut)
-                    return (
-                      <span
-                        key={nv.code}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                          created
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                            : 'bg-white border-slate-200 text-slate-600'
-                        }`}
-                        title={nv.label}
-                      >
-                        {nv.nomDefaut}
-                        {created && ' ✓'}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <SmartFilterBar
+        fields={filterFields}
+        values={values}
+        onChange={setFilter}
+        onReset={reset}
+        activeFilters={activeFilters}
+        resultCount={filteredClasses.length}
+        resultLabel="classe(s)"
+        loading={loading}
+        className="mb-6"
+      />
 
-      <Modal open={showReferentiel} onClose={() => setShowReferentiel(false)} title="Créer depuis le référentiel">
+      <Modal open={showReferentiel} onClose={() => setShowReferentiel(false)} title="Référentiel des niveaux — Cameroun">
         <p className="text-sm text-slate-500 mb-4">
           Sélectionnez les niveaux à créer pour l&apos;année {anneeScolaire}. Les classes existantes sont ignorées.
         </p>
@@ -339,8 +335,21 @@ export default function ClassesPage() {
           title="Aucune classe configurée"
           description="Utilisez le référentiel camerounais pour créer vos classes en un clic."
           action={
-            <button onClick={() => setShowReferentiel(true)} className="btn-primary">
-              Ouvrir le référentiel
+            canCreateClass ? (
+              <button onClick={() => setShowReferentiel(true)} className="btn-primary">
+                Ouvrir le référentiel
+              </button>
+            ) : undefined
+          }
+        />
+      ) : filteredClasses.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="Aucune classe correspondante"
+          description="Modifiez vos critères de recherche ou réinitialisez les filtres."
+          action={
+            <button onClick={reset} className="btn-secondary">
+              Réinitialiser les filtres
             </button>
           }
         />

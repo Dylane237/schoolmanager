@@ -1,5 +1,7 @@
 import Database from 'better-sqlite3'
 import { getDbPath, ensureUserDataDir } from './paths'
+import { getDefaultAnneeScolaireLabel, getDefaultAnneeScolaireBounds, getLegacyAnneeScolaireLabel } from './school-year'
+import { ensureSuperAdminCredentials } from './super-admin-credentials'
 
 let _db: InstanceType<typeof Database> | null = null
 
@@ -27,6 +29,9 @@ function initSchema(db: InstanceType<typeof Database>) {
       email TEXT,
       directeur_nom TEXT,
       sections TEXT DEFAULT '["francophone"]',
+      entete_url TEXT,
+      nom_caissier TEXT,
+      referral_code TEXT UNIQUE,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -123,6 +128,8 @@ function initSchema(db: InstanceType<typeof Database>) {
       label TEXT NOT NULL,
       montant REAL NOT NULL,
       obligatoire INTEGER DEFAULT 0,
+      type TEXT DEFAULT 'autre',
+      date_limite TEXT,
       annee_scolaire TEXT NOT NULL,
       annee_scolaire_id TEXT REFERENCES annees_scolaires(id)
     );
@@ -250,14 +257,6 @@ function initSchema(db: InstanceType<typeof Database>) {
       is_active INTEGER NOT NULL DEFAULT 1
     );
 
-    CREATE TABLE IF NOT EXISTS licence_cache (
-  cle TEXT PRIMARY KEY,
-  plan TEXT NOT NULL,
-  date_fin TEXT NOT NULL,
-  last_verified TEXT NOT NULL,
-  is_active INTEGER DEFAULT 1
-  );
-
     CREATE INDEX IF NOT EXISTS idx_eleves_ecole ON eleves(ecole_id);
     CREATE INDEX IF NOT EXISTS idx_eleves_classe ON eleves(ecole_id, classe_id);
     CREATE INDEX IF NOT EXISTS idx_paiements_ecole ON paiements(ecole_id);
@@ -324,6 +323,59 @@ function runMigrations(db: InstanceType<typeof Database>) {
     db.exec(`ALTER TABLE licences ADD COLUMN machine_fingerprint TEXT`)
   }
 
+  // Migration : en-tête personnalisée du reçu (logo + adresse déjà mis en page)
+  const ecoleCols = db.prepare(`PRAGMA table_info(ecoles)`).all() as { name: string }[]
+  if (!ecoleCols.find(c => c.name === 'entete_url')) {
+    db.exec(`ALTER TABLE ecoles ADD COLUMN entete_url TEXT`)
+  }
+
+  // Migration : nom du caissier affiché sous "La caisse" sur le reçu
+  if (!ecoleCols.find(c => c.name === 'nom_caissier')) {
+    db.exec(`ALTER TABLE ecoles ADD COLUMN nom_caissier TEXT`)
+  }
+
+  // Migration : code de secours (récupération mot de passe offline)
+  const userCols = db.prepare(`PRAGMA table_info(users)`).all() as { name: string }[]
+  if (!userCols.find(c => c.name === 'recovery_code_hash')) {
+    db.exec(`ALTER TABLE users ADD COLUMN recovery_code_hash TEXT`)
+  }
+
+  const faCols = db.prepare(`PRAGMA table_info(frais_annexes)`).all() as { name: string }[]
+  if (!faCols.find(c => c.name === 'type')) {
+    db.exec(`ALTER TABLE frais_annexes ADD COLUMN type TEXT DEFAULT 'autre'`)
+  }
+  if (!faCols.find(c => c.name === 'date_limite')) {
+    db.exec(`ALTER TABLE frais_annexes ADD COLUMN date_limite TEXT`)
+  }
+
+  const ecoleCols2 = db.prepare(`PRAGMA table_info(ecoles)`).all() as { name: string }[]
+  if (!ecoleCols2.find(c => c.name === 'referral_code')) {
+    db.exec(`ALTER TABLE ecoles ADD COLUMN referral_code TEXT`)
+  }
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS parrainages (
+      id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+      parrain_ecole_id TEXT NOT NULL REFERENCES ecoles(id) ON DELETE CASCADE,
+      contact_nom TEXT NOT NULL,
+      contact_ecole TEXT,
+      contact_telephone TEXT NOT NULL,
+      notes TEXT,
+      statut TEXT DEFAULT 'en_cours' CHECK (statut IN ('en_cours', 'abonnement_actif', 'commission_versee', 'annule')),
+      montant_abonnement REAL,
+      commission_pct REAL DEFAULT 10,
+      commission_montant REAL,
+      cloud_id TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `)
+
+  const parrainageCols = db.prepare(`PRAGMA table_info(parrainages)`).all() as { name: string }[]
+  if (!parrainageCols.find(c => c.name === 'cloud_id')) {
+    db.exec(`ALTER TABLE parrainages ADD COLUMN cloud_id TEXT`)
+  }
+
   // Migration : ajout table licence_cache si elle n'existe pas
   db.exec(`
     CREATE TABLE IF NOT EXISTS licence_cache (
@@ -334,6 +386,36 @@ function runMigrations(db: InstanceType<typeof Database>) {
       is_active INTEGER NOT NULL DEFAULT 1
     );
   `)
+  migrateAnneeScolaireDefault(db)
+}
+
+function migrateAnneeScolaireDefault(db: InstanceType<typeof Database>) {
+  const now = new Date()
+  if (now.getMonth() < 7) return
+
+  const { label, date_debut, date_fin } = getDefaultAnneeScolaireBounds(now)
+  const legacyLabel = getLegacyAnneeScolaireLabel(now)
+  if (label === legacyLabel) return
+
+  const ecoles = db.prepare('SELECT id FROM ecoles').all() as { id: string }[]
+  for (const { id } of ecoles) {
+    const active = db.prepare(`
+      SELECT id, label FROM annees_scolaires
+      WHERE ecole_id = ? AND is_active = 1
+      LIMIT 1
+    `).get(id) as { id: string; label: string } | undefined
+
+    if (!active || active.label !== legacyLabel) continue
+
+    const hasClasses = db.prepare(`
+      SELECT 1 FROM classes WHERE ecole_id = ? AND annee_scolaire = ? LIMIT 1
+    `).get(id, legacyLabel)
+    if (hasClasses) continue
+
+    db.prepare(`
+      UPDATE annees_scolaires SET label = ?, date_debut = ?, date_fin = ? WHERE id = ?
+    `).run(label, date_debut, date_fin, active.id)
+  }
 }
 
 function seedInitialData(db: InstanceType<typeof Database>) {
@@ -342,13 +424,19 @@ function seedInitialData(db: InstanceType<typeof Database>) {
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const bcrypt = require('bcryptjs')
-  const defaultPassword = process.env.SM_SUPER_ADMIN_PASSWORD || 'Admin2026!'
-  const hash = bcrypt.hashSync(defaultPassword, 12)
+  const { email, password, isNew } = ensureSuperAdminCredentials()
+  const hash = bcrypt.hashSync(password, 12)
 
   db.prepare(`
     INSERT INTO users (email, password_hash, nom, role)
     VALUES (?, ?, ?, ?)
-  `).run('admin@schoolmanager.cm', hash, 'Super Admin', 'super_admin')
+  `).run(email, hash, 'Super Admin', 'super_admin')
+
+  if (isNew) {
+    console.info(
+      `[SchoolManager] Super-admin créé. Identifiants dans Documents/SchoolManager/.super-admin-credentials.json`,
+    )
+  }
 }
 
 export function getActiveAnneeScolaire(db: InstanceType<typeof Database>, ecoleId: string): string {
@@ -360,8 +448,5 @@ export function getActiveAnneeScolaire(db: InstanceType<typeof Database>, ecoleI
 
   if (row) return row.label
 
-  const year = new Date().getFullYear()
-  const month = new Date().getMonth()
-  const startYear = month >= 8 ? year : year - 1
-  return `${startYear}-${startYear + 1}`
+  return getDefaultAnneeScolaireLabel()
 }

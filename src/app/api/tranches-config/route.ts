@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
 import { getDb, getActiveAnneeScolaire } from '../../../lib/db-server'
+import { requireModule } from '../../../lib/rbac.server'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  const denied = requireModule(user, 'paiements', 'GET')
+  if (denied) return denied
 
   const { searchParams } = new URL(request.url)
   const classeId = searchParams.get('classe_id')
@@ -32,6 +35,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  const denied = requireModule(user, 'paiements', 'POST')
+  if (denied) return denied
 
   const body = await request.json()
   if (!body.classe_id || !Array.isArray(body.tranches)) {

@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../../lib/auth'
 import { getDb } from '../../../../lib/db-server'
 import { getEleveSituation } from '../../../../lib/paiements-utils'
+import { getFraisExamenSituationForEleve } from '../../../../lib/frais-examens-utils'
+import { requireModule } from '../../../../lib/rbac.server'
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {  const user = await getUserFromRequest(request)
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getUserFromRequest(request)
   if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  const denied = requireModule(user, 'eleves', 'GET')
+  if (denied) return denied
 
   const { id } = await params
   const db = getDb()
@@ -32,20 +37,38 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   ).all(id)
 
   const situation = getEleveSituation(db, user.ecole_id, id)
+  const fraisExamen = getFraisExamenSituationForEleve(db, user.ecole_id, id)
 
   const classes = db.prepare(`
     SELECT id, nom, section, niveau FROM classes
     WHERE ecole_id = ? ORDER BY section, nom
   `).all(user.ecole_id)
 
-  const ecole = db.prepare('SELECT nom FROM ecoles WHERE id = ?').get(user.ecole_id) as { nom: string } | undefined
+  const ecole = db.prepare(`
+    SELECT nom, adresse, telephone, email, directeur_nom, entete_url
+    FROM ecoles WHERE id = ?
+  `).get(user.ecole_id) as {
+    nom: string; adresse: string; telephone: string; email: string
+    directeur_nom: string; entete_url: string | null
+  } | undefined
 
-  return NextResponse.json({ eleve, parents, paiements, notes, presences, situation, classes, ecoleNom: ecole?.nom })
+  const anneeRow = db.prepare(
+    'SELECT label FROM annees_scolaires WHERE ecole_id = ? AND is_active = 1 LIMIT 1'
+  ).get(user.ecole_id) as { label: string } | undefined
+
+  return NextResponse.json({
+    eleve, parents, paiements, notes, presences, situation, fraisExamen, classes,
+    ecoleNom: ecole?.nom,
+    ecole,
+    anneeScolaire: anneeRow?.label ?? null,
+  })
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUserFromRequest(request)
   if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  const denied = requireModule(user, 'eleves', 'PUT')
+  if (denied) return denied
 
   const { id } = await params
   const body = await request.json()
@@ -75,4 +98,48 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   )
 
   return NextResponse.json({ success: true })
+}
+  
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getUserFromRequest(request)
+  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  const denied = requireModule(user, 'eleves', 'DELETE')
+  if (denied) return denied
+
+  const { id } = await params
+  const { searchParams } = new URL(request.url)
+  const force = searchParams.get('force') === 'true'
+  const db = getDb()
+
+  const eleve = db.prepare(
+    'SELECT id, nom, prenom FROM eleves WHERE id = ? AND ecole_id = ?'
+  ).get(id, user.ecole_id) as any
+
+  if (!eleve) return NextResponse.json({ error: 'Élève introuvable' }, { status: 404 })
+
+  const paiements = db.prepare(
+    'SELECT COUNT(*) as count FROM paiements WHERE eleve_id = ?'
+  ).get(id) as { count: number }
+
+  // Si paiements et pas force → demander confirmation
+  if (paiements.count > 0 && !force) {
+    return NextResponse.json({
+      warning: true,
+      message: `Cet élève a ${paiements.count} paiement(s) enregistré(s). Confirmer la suppression ?`,
+      nb_paiements: paiements.count
+    }, { status: 409 })
+  }
+
+  // Supprimer dans l'ordre (contraintes FK)
+  db.prepare('DELETE FROM presences WHERE eleve_id = ?').run(id)
+  db.prepare('DELETE FROM notes WHERE eleve_id = ?').run(id)
+  db.prepare('DELETE FROM competences_maternelle WHERE eleve_id = ?').run(id)
+  db.prepare('DELETE FROM paiements WHERE eleve_id = ?').run(id)
+  db.prepare('DELETE FROM parents WHERE eleve_id = ?').run(id)
+  db.prepare('DELETE FROM liste_attente WHERE eleve_id = ?').run(id)
+  db.prepare('DELETE FROM academic_histories WHERE eleve_id = ?').run(id)
+  db.prepare('DELETE FROM eleves WHERE id = ? AND ecole_id = ?').run(id, user.ecole_id)
+
+  return NextResponse.json({ success: true, message: `${eleve.prenom} ${eleve.nom} supprimé(e)` })
+
 }

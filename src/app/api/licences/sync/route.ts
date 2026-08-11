@@ -1,19 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-const SERVER_SECRET = process.env.LICENCE_SERVER_SECRET || 'schoolmanager_server_secret_2026'
-
 export async function POST(request: NextRequest) {
-  // Vérifier le secret
+  const SERVER_SECRET = process.env.LICENCE_SERVER_SECRET
+  if (!SERVER_SECRET) {
+    return NextResponse.json({ error: 'Service non configuré' }, { status: 503 })
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ error: 'Configuration Supabase manquante' }, { status: 503 })
+  }
+
   const secret = request.headers.get('x-server-secret')
   if (secret !== SERVER_SECRET) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
+
+  const supabase = createClient(supabaseUrl, supabaseKey)
 
   const body = await request.json()
   const { cle, plan, date_debut, date_fin, ecole_slug, ecole_nom } = body

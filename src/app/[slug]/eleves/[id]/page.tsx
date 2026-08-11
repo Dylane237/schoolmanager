@@ -6,12 +6,13 @@ import Link from 'next/link'
 import {
   ArrowLeft, User, Phone, MapPin, Calendar, GraduationCap,
   CreditCard, BookOpen, Clock, Edit2, Save, X, Printer,
-  ExternalLink, AlertCircle, TrendingUp,
+  ExternalLink, AlertCircle, TrendingUp, Trash2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PhotoUpload from '@/components/eleves/PhotoUpload'
 import Badge from '@/components/ui/Badge'
 import { formatMoyenne, getNoteMax } from '@/lib/notes-utils'
+import { studentLinks } from '@/lib/student-context-links'
 
 interface Eleve {
   id: string
@@ -75,6 +76,17 @@ interface Situation {
   tranches: { tranche_numero: number; montant_attendu: number; montant_paye: number; reste: number; statut: string }[]
 }
 
+interface FraisExamenSituation {
+  config: { id: string; label: string; montant: number; date_limite: string | null } | null
+  montant_attendu: number
+  montant_paye: number
+  reste: number
+  statut: string
+  date_limite: string | null
+  jours_restants: number | null
+  en_retard: boolean
+}
+
 function calcAge(dateNaissance: string | null): number | null {
   if (!dateNaissance) return null
   const birth = new Date(dateNaissance)
@@ -100,6 +112,7 @@ export default function FicheElevePage() {
   const [notes, setNotes] = useState<Note[]>([])
   const [presences, setPresences] = useState<Presence[]>([])
   const [situation, setSituation] = useState<Situation | null>(null)
+  const [fraisExamen, setFraisExamen] = useState<FraisExamenSituation | null>(null)
   const [classes, setClasses] = useState<ClasseOption[]>([])
   const [loading, setLoading] = useState(true)
   const [onglet, setOnglet] = useState<'infos' | 'paiements' | 'notes' | 'presences'>('infos')
@@ -107,6 +120,7 @@ export default function FicheElevePage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Partial<Eleve>>({})
   const [periodeFiltre, setPeriodeFiltre] = useState('tous')
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -120,6 +134,7 @@ export default function FicheElevePage() {
     setNotes(data.notes || [])
     setPresences(data.presences || [])
     setSituation(data.situation || null)
+    setFraisExamen(data.fraisExamen || null)
     setClasses(data.classes || [])
     setLoading(false)
   }, [id, slug, router])
@@ -144,6 +159,21 @@ export default function FicheElevePage() {
     toast.success('Fiche mise à jour')
   }
 
+  const handleDelete = async (force = false) => {
+    const res = await fetch(`/api/eleves/${id}?force=${force}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (res.status === 409 && data.warning) {
+      setConfirmDelete(true)
+      return
+    }
+    if (res.ok) {
+      toast.success(data.message)
+      router.push(`/${slug}/eleves`)
+    } else {
+      toast.error(data.error || 'Erreur lors de la suppression')
+    }
+  }
+
   const handlePrint = async () => {
     const res = await fetch(`/api/eleves/${id}`)
     const data = await res.json()
@@ -160,9 +190,10 @@ export default function FicheElevePage() {
     const nbPresent = (data.presences as Presence[]).filter(p => p.statut === 'present').length
     const taux = totalPres ? Math.round((nbPresent / totalPres) * 100) : null
 
-    const { buildFicheEleveHtml } = await import('@/lib/class-list-export')
+    const { buildFicheEleveHtml } = await import('@/lib/school-documents')
     const html = buildFicheEleveHtml({
-      ecoleNom: data.ecoleNom || 'École',
+      ecole: data.ecole || { nom: data.ecoleNom || 'École' },
+      anneeScolaire: data.anneeScolaire ?? null,
       eleve: data.eleve,
       parents: data.parents || [],
       situation: data.situation || { total_paye: 0, total_attendu: 0, total_reste: 0, statut: '—' },
@@ -174,7 +205,6 @@ export default function FicheElevePage() {
     if (!win) { toast.error('Autorisez les pop-ups'); return }
     win.document.write(html)
     win.document.close()
-    win.onload = () => win.print()
   }
 
   const up = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
@@ -255,6 +285,11 @@ export default function FicheElevePage() {
                     {situation.statut === 'paye' ? 'Soldé' : situation.statut === 'partiel' ? 'Partiel' : situation.statut === 'impaye' ? 'Impayé' : '—'}
                   </Badge>
                 )}
+                {fraisExamen?.config && (
+                  <Badge variant={PAIEMENT_VARIANT[fraisExamen.statut] ?? 'neutral'} size="sm">
+                    Examen : {fraisExamen.statut === 'paye' ? 'Payé' : fraisExamen.statut === 'partiel' ? 'Partiel' : 'Impayé'}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -263,9 +298,16 @@ export default function FicheElevePage() {
             <button onClick={handlePrint} className="flex items-center gap-1.5 border border-slate-200 hover:border-slate-300 text-slate-600 px-3 py-2 rounded-lg text-sm transition-colors">
               <Printer className="w-4 h-4" /> Imprimer fiche
             </button>
-            <Link href={`/${slug}/paiements/nouveau?eleve_id=${id}`} className="flex items-center gap-1.5 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+            <Link href={studentLinks(slug, { id, nom: eleve.nom, prenom: eleve.prenom, numero_matricule: eleve.numero_matricule, classe_id: eleve.classe_id }).encaisser}
+              className="flex items-center gap-1.5 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
               <CreditCard className="w-4 h-4" /> Encaisser
             </Link>
+            {fraisExamen?.config && fraisExamen.reste > 0 && (
+              <Link href={studentLinks(slug, { id, nom: eleve.nom, prenom: eleve.prenom, numero_matricule: eleve.numero_matricule, classe_id: eleve.classe_id }).encaisserExamen}
+                className="flex items-center gap-1.5 border border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                <GraduationCap className="w-4 h-4" /> Frais examen
+              </Link>
+            )}
             {editing ? (
               <>
                 <button onClick={() => { setEditing(false); setForm(eleve) }} className="flex items-center gap-1.5 text-slate-500 border border-slate-200 px-3 py-2 rounded-lg text-sm">
@@ -276,9 +318,16 @@ export default function FicheElevePage() {
                 </button>
               </>
             ) : (
-              <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 border border-slate-200 hover:border-slate-300 text-slate-600 px-3 py-2 rounded-lg text-sm">
-                <Edit2 className="w-4 h-4" /> Modifier
-              </button>
+              <>
+                <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 border border-slate-200 hover:border-slate-300 text-slate-600 px-3 py-2 rounded-lg text-sm">
+                  <Edit2 className="w-4 h-4" /> Modifier
+                </button>
+                <button
+                  onClick={() => handleDelete(false)}
+                  className="flex items-center gap-1.5 border border-red-200 hover:bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm transition-colors">
+                  <Trash2 className="w-4 h-4" /> Supprimer
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -323,20 +372,32 @@ export default function FicheElevePage() {
       </div>
 
       {/* Actions rapides */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: 'Bulletin', href: `/${slug}/notes/bulletins?eleve_id=${id}`, icon: BookOpen },
-          { label: 'Présences', href: `/${slug}/presences`, icon: Clock },
-          { label: 'Classe', href: eleve.classe_id ? `/${slug}/classes/${eleve.classe_id}` : `/${slug}/classes`, icon: GraduationCap },
-          { label: 'Transfert', href: `/${slug}/classes/transferts`, icon: TrendingUp },
-        ].map(a => (
-          <Link key={a.label} href={a.href} className="card p-3 flex items-center gap-3 hover:border-emerald-300 transition-colors group">
-            <a.icon className="w-5 h-5 text-emerald-600" />
-            <span className="text-sm font-medium text-slate-700 group-hover:text-emerald-600">{a.label}</span>
-            <ExternalLink className="w-3.5 h-3.5 text-slate-300 ml-auto" />
-          </Link>
-        ))}
-      </div>
+      {(() => {
+        const links = studentLinks(slug, {
+          id: eleve.id,
+          nom: eleve.nom,
+          prenom: eleve.prenom,
+          numero_matricule: eleve.numero_matricule,
+          classe_id: eleve.classe_id,
+          section: eleve.section || eleve.classe_section,
+        })
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            {[
+              { label: 'Bulletin', href: links.bulletin, icon: BookOpen },
+              { label: 'Présences', href: links.presences, icon: Clock },
+              { label: 'Classe', href: links.classe, icon: GraduationCap },
+              { label: 'Transfert', href: links.transfert, icon: TrendingUp },
+            ].map(a => (
+              <Link key={a.label} href={a.href} className="card p-3 flex items-center gap-3 hover:border-emerald-300 transition-colors group">
+                <a.icon className="w-5 h-5 text-emerald-600" />
+                <span className="text-sm font-medium text-slate-700 group-hover:text-emerald-600">{a.label}</span>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-300 ml-auto" />
+              </Link>
+            ))}
+          </div>
+        )
+      })()}
 
       <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mb-6">
         {([
@@ -439,6 +500,74 @@ export default function FicheElevePage() {
                 </div>
               </div>
             )}
+
+            {fraisExamen?.config && (
+              <div className="card p-5 border-violet-100">
+                <h2 className="font-semibold text-slate-700 text-sm mb-4 flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-violet-500" /> {fraisExamen.config.label}
+                </h2>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Montant</span>
+                    <span className="font-semibold">{fraisExamen.montant_attendu.toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Payé</span>
+                    <span className="font-semibold text-emerald-600">{fraisExamen.montant_paye.toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                  {fraisExamen.reste > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500">Reste</span>
+                      <span className="font-semibold text-red-600">{fraisExamen.reste.toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                  )}
+                  {fraisExamen.date_limite && (
+                    <p className={`text-xs ${fraisExamen.en_retard ? 'text-red-600 font-medium' : 'text-slate-400'}`}>
+                      {fraisExamen.en_retard
+                        ? `Échéance dépassée (${Math.abs(fraisExamen.jours_restants ?? 0)} j)`
+                        : fraisExamen.jours_restants !== null && fraisExamen.jours_restants >= 0
+                          ? `Échéance : ${new Date(fraisExamen.date_limite).toLocaleDateString('fr-FR')} (${fraisExamen.jours_restants} j restants)`
+                          : `Échéance : ${new Date(fraisExamen.date_limite).toLocaleDateString('fr-FR')}`}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <Badge variant={PAIEMENT_VARIANT[fraisExamen.statut] ?? 'neutral'} size="sm">
+                      {fraisExamen.statut === 'paye' ? 'Soldé' : fraisExamen.statut === 'partiel' ? 'Partiel' : 'Impayé'}
+                    </Badge>
+                    {fraisExamen.reste > 0 && (
+                      <Link
+                        href={studentLinks(slug, { id, nom: eleve.nom, prenom: eleve.prenom, numero_matricule: eleve.numero_matricule, classe_id: eleve.classe_id }).encaisserExamen}
+                        className="text-xs font-semibold text-violet-600 hover:underline"
+                      >
+                        Encaisser →
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmation suppression */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-slate-800 mb-2">Confirmer la suppression</h3>
+            <p className="text-slate-500 text-sm mb-6">
+              Cet élève a des paiements enregistrés. Toutes les données associées seront supprimées définitivement.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDelete(false)}
+                className="flex-1 border border-slate-200 text-slate-600 font-semibold rounded-lg px-4 py-2.5 text-sm hover:bg-slate-50">
+                Annuler
+              </button>
+              <button onClick={() => { setConfirmDelete(false); handleDelete(true) }}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg px-4 py-2.5 text-sm">
+                Supprimer quand même
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -448,7 +577,8 @@ export default function FicheElevePage() {
           {paiements.length === 0 ? (
             <div className="p-12 text-center text-slate-400 text-sm">
               <p className="mb-4">Aucun paiement enregistré</p>
-              <Link href={`/${slug}/paiements/nouveau?eleve_id=${id}`} className="btn-primary inline-flex items-center gap-2">
+              <Link href={studentLinks(slug, { id, nom: eleve.nom, prenom: eleve.prenom, numero_matricule: eleve.numero_matricule, classe_id: eleve.classe_id }).encaisser}
+                className="btn-primary inline-flex items-center gap-2">
                 <CreditCard className="w-4 h-4" /> Enregistrer un paiement
               </Link>
             </div>

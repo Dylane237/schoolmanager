@@ -1,38 +1,96 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Save, Plus, X } from 'lucide-react'
+import { Save, Plus, X, ClipboardList } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
+import EmptyState from '@/components/ui/EmptyState'
+import SmartFilterBar from '@/components/filters/SmartFilterBar'
+import StudentContextBanner from '@/components/students/StudentContextBanner'
+import { useSmartFilters } from '@/hooks/useSmartFilters'
+import { useStudentDeepLink } from '@/hooks/useStudentDeepLink'
+import { useClasses } from '@/hooks/useClasses'
+import { studentLinks } from '@/lib/student-context-links'
 import { getNoteMax, getMention } from '@/lib/notes-utils'
 
-interface Classe { id: string; nom: string; section: string }
 interface Matiere { id: string; nom: string; coefficient: number }
 interface Eleve { id: string; nom: string; prenom: string; numero_matricule: string }
 interface Note { eleve_id: string; note: number; appreciation: string }
 
 export default function SaisieNotesPage() {
-  const { slug } = useParams()
-  const [classes, setClasses] = useState<Classe[]>([])
+  return (
+    <Suspense fallback={<PageShell title="Saisie des notes" breadcrumb="Notes"><div className="card p-12 text-center text-slate-400">Chargement...</div></PageShell>}>
+      <SaisieNotesPageContent />
+    </Suspense>
+  )
+}
+
+function SaisieNotesPageContent() {
+  const { slug } = useParams() as { slug: string }
+  const { classes } = useClasses()
   const [matieres, setMatieres] = useState<Matiere[]>([])
   const [eleves, setEleves] = useState<Eleve[]>([])
   const [notes, setNotes] = useState<Record<string, string>>({})
-  const [classeId, setClasseId] = useState('')
-  const [matiereId, setMatiereId] = useState('')
-  const [periode, setPeriode] = useState('T1')
   const [section, setSection] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showMatForm, setShowMatForm] = useState(false)
   const [newMat, setNewMat] = useState({ nom: '', coefficient: '1' })
 
-  useEffect(() => {
-    fetch('/api/classes').then(r => r.json()).then(d => setClasses(d.classes || []))
-  }, [])
+  const periodes = section === 'anglophone'
+    ? ['S1', 'S2', 'S3', 'S4', 'S5', 'S6']
+    : ['T1', 'T2', 'T3']
+
+  const matiereOptions = useMemo(() => [
+    { value: '', label: 'Sélectionner une matière' },
+    ...matieres.map(m => ({ value: m.id, label: `${m.nom} (coef. ${m.coefficient})` })),
+  ], [matieres])
+
+  const filterFields = useMemo(() => [
+    {
+      key: 'classe',
+      type: 'select' as const,
+      label: 'Classe',
+      options: [{ value: '', label: 'Sélectionner' }, ...classes.map(c => ({ value: c.id, label: c.nom }))],
+      defaultValue: '',
+    },
+    {
+      key: 'matiere',
+      type: 'select' as const,
+      label: 'Matière',
+      options: matiereOptions,
+      defaultValue: '',
+    },
+    {
+      key: 'periode',
+      type: 'select' as const,
+      label: 'Période',
+      options: periodes.map(p => ({ value: p, label: p })),
+      defaultValue: section === 'anglophone' ? 'S1' : 'T1',
+    },
+    {
+      key: 'q',
+      type: 'search' as const,
+      placeholder: 'Filtrer un élève...',
+      debounce: true,
+    },
+  ], [classes, matiereOptions, periodes, section])
+
+  const { values, debouncedValues, setFilter, setFilters, reset, activeFilters } = useSmartFilters(filterFields)
+  const { student } = useStudentDeepLink(setFilters)
+  const classeId = values.classe
+  const matiereId = values.matiere
+  const periode = values.periode || (section === 'anglophone' ? 'S1' : 'T1')
 
   useEffect(() => {
-    if (!classeId) return
+    if (!classeId) {
+      setMatieres([])
+      setEleves([])
+      setNotes({})
+      return
+    }
     const classe = classes.find(c => c.id === classeId)
     setSection(classe?.section || '')
     fetch(`/api/notes?classe_id=${classeId}`)
@@ -42,9 +100,9 @@ export default function SaisieNotesPage() {
         setEleves(d.eleves || [])
         if (d.section) setSection(d.section)
       })
-    setMatiereId('')
+    setFilter('matiere', '')
     setNotes({})
-  }, [classeId])
+  }, [classeId, classes])
 
   useEffect(() => {
     if (!classeId || !matiereId || !periode) return
@@ -55,11 +113,15 @@ export default function SaisieNotesPage() {
         d.notes?.forEach((n: Note) => { map[n.eleve_id] = String(n.note) })
         setNotes(map)
       })
-  }, [matiereId, periode])
+  }, [classeId, matiereId, periode])
 
-  const periodes = section === 'anglophone'
-    ? ['S1','S2','S3','S4','S5','S6']
-    : ['T1','T2','T3']
+  const filteredEleves = useMemo(() => {
+    const q = debouncedValues.q?.toLowerCase().trim()
+    if (!q) return eleves
+    return eleves.filter(e =>
+      `${e.nom} ${e.prenom} ${e.numero_matricule}`.toLowerCase().includes(q)
+    )
+  }, [eleves, debouncedValues.q])
 
   const noteMax = getNoteMax(section)
 
@@ -93,11 +155,6 @@ export default function SaisieNotesPage() {
     setShowMatForm(false)
   }
 
-  const getMoyenne = (eleveId: string) => {
-    const note = parseFloat(notes[eleveId] || '')
-    return isNaN(note) ? '—' : note.toFixed(2)
-  }
-
   const getMentionLabel = (note: number) => getMention(note, section)
 
   return (
@@ -106,65 +163,42 @@ export default function SaisieNotesPage() {
       subtitle={section === 'anglophone' ? 'Notation sur 100 (grades A-F)' : 'Notation sur 20'}
       breadcrumb="Notes"
     >
-      <div className="card p-4 mb-6 flex flex-wrap gap-4">
-        <div className="flex-1 min-w-40">
-          <label className="block text-xs font-medium text-slate-500 mb-1">Classe</label>
-          <select value={classeId} onChange={e => setClasseId(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-            <option value="">Sélectionner</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-          </select>
-        </div>
-
-        <div className="flex-1 min-w-40">
-          <label className="block text-xs font-medium text-slate-500 mb-1">Matière</label>
-          <select value={matiereId} onChange={e => setMatiereId(e.target.value)}
-            disabled={!classeId}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-slate-50">
-            <option value="">Sélectionner</option>
-            {matieres.map(m => (
-              <option key={m.id} value={m.id}>{m.nom} (coeff. {m.coefficient})</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Période</label>
-          <select value={periode} onChange={e => setPeriode(e.target.value)}
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-            {periodes.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </div>
-
-        {classeId && (
-          <div className="flex items-end">
-            <button onClick={() => setShowMatForm(true)}
-              className="flex items-center gap-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium px-3 py-2 rounded-lg transition-colors">
-              <Plus className="w-4 h-4" /> Matière
-            </button>
+      <SmartFilterBar
+        fields={filterFields}
+        values={values}
+        onChange={setFilter}
+        onReset={reset}
+        activeFilters={activeFilters}
+        resultCount={matiereId ? filteredEleves.length : undefined}
+        resultLabel="élève(s)"
+        extra={
+          <div className="flex gap-2">
+            {classeId && (
+              <button onClick={() => setShowMatForm(true)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
+                <Plus className="w-3.5 h-3.5 inline mr-1" /> Matière
+              </button>
+            )}
+            {matiereId && (
+              <button onClick={handleSave} disabled={saving}
+                className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 text-white text-xs font-semibold px-3 py-1.5 rounded-full">
+                <Save className="w-3.5 h-3.5" />
+                {saving ? 'Sauvegarde...' : saved ? 'Sauvegardé !' : 'Sauvegarder'}
+              </button>
+            )}
           </div>
-        )}
+        }
+        className="mb-4"
+      />
 
-        {matiereId && (
-          <div className="flex items-end">
-            <button onClick={handleSave} disabled={saving}
-              className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-              <Save className="w-4 h-4" />
-              {saving ? 'Sauvegarde...' : saved ? 'Sauvegardé !' : 'Sauvegarder'}
-            </button>
-          </div>
-        )}
-      </div>
+      {student && <StudentContextBanner slug={slug} student={student} className="mb-6" />}
 
-      {/* Modal nouvelle matière */}
       {showMatForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-slate-800">Nouvelle matière</h3>
-              <button onClick={() => setShowMatForm(false)}>
-                <X className="w-5 h-5 text-slate-400" />
-              </button>
+              <button onClick={() => setShowMatForm(false)}><X className="w-5 h-5 text-slate-400" /></button>
             </div>
             <div className="space-y-3">
               <input value={newMat.nom} onChange={e => setNewMat(p => ({ ...p, nom: e.target.value }))}
@@ -175,7 +209,7 @@ export default function SaisieNotesPage() {
                 placeholder="Coefficient"
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
               <button onClick={handleAddMatiere}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors">
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg px-4 py-2.5 text-sm">
                 Ajouter
               </button>
             </div>
@@ -183,42 +217,40 @@ export default function SaisieNotesPage() {
         </div>
       )}
 
-      {/* Grille de saisie */}
       {!classeId ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 text-sm">
-          Sélectionnez une classe pour commencer la saisie
-        </div>
+        <div className="card p-12 text-center text-slate-400 text-sm">Sélectionnez une classe pour commencer la saisie</div>
       ) : !matiereId ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 text-sm">
-          Sélectionnez une matière
-        </div>
-      ) : eleves.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 text-sm">
-          Aucun élève dans cette classe
-        </div>
+        <div className="card p-12 text-center text-slate-400 text-sm">Sélectionnez une matière</div>
+      ) : filteredEleves.length === 0 ? (
+        <EmptyState
+          icon={ClipboardList}
+          title="Aucun élève trouvé"
+          description="Sélectionnez une classe et une période, ou ajustez votre recherche."
+        />
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="card overflow-hidden">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">#</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Élève</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-500 uppercase tracking-wide w-32">
-                  Note /{noteMax || 20}
-                </th>
+                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-500 uppercase tracking-wide w-32">Note /{noteMax || 20}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Mention</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {eleves.map((eleve, i) => {
+              {filteredEleves.map((eleve, i) => {
                 const noteVal = parseFloat(notes[eleve.id] || '')
                 const mention = !isNaN(noteVal) ? getMentionLabel(noteVal) : null
                 return (
                   <tr key={eleve.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 text-sm text-slate-400">{i + 1}</td>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-slate-800 text-sm">{eleve.nom} {eleve.prenom}</p>
-                      <p className="text-xs text-slate-400">{eleve.numero_matricule}</p>
+                      <Link href={studentLinks(slug, { id: eleve.id, nom: eleve.nom, prenom: eleve.prenom, numero_matricule: eleve.numero_matricule }).fiche}
+                        className="group block">
+                        <p className="font-medium text-slate-800 text-sm group-hover:text-emerald-700">{eleve.nom} {eleve.prenom}</p>
+                        <p className="text-xs text-slate-400">{eleve.numero_matricule}</p>
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
                       <input
@@ -230,11 +262,7 @@ export default function SaisieNotesPage() {
                       />
                     </td>
                     <td className="px-4 py-3">
-                      {mention && (
-                        <span className={`text-xs font-semibold ${mention.color}`}>
-                          {mention.label}
-                        </span>
-                      )}
+                      {mention && <span className={`text-xs font-semibold ${mention.color}`}>{mention.label}</span>}
                     </td>
                   </tr>
                 )

@@ -22,13 +22,13 @@ export function AuthButton({
   className = '',
 }: AuthButtonProps) {
   const base =
-    'relative inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40'
+    'relative inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] disabled:pointer-events-none'
 
   const variants = {
     primary:
-      'bg-emerald-500 text-white shadow-[0_4px_24px_rgba(16,185,129,0.25)] hover:bg-emerald-400 hover:shadow-[0_6px_32px_rgba(16,185,129,0.35)]',
+      'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-600/25 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none',
     ghost:
-      'border border-white/[0.1] bg-transparent text-zinc-300 hover:border-white/[0.18] hover:bg-white/[0.04] hover:text-white',
+      'border border-gray-200 bg-white text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50',
   }
 
   return (

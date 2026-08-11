@@ -1,8 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
-import { Plus, Trash2, Save, ChevronDown, Settings, X, Check, Printer } from 'lucide-react'
+import { Plus, Trash2, Save, ChevronDown, Settings, X, Check, Printer, Sprout } from 'lucide-react'
+import SmartFilterBar from '@/components/filters/SmartFilterBar'
+import StudentContextBanner from '@/components/students/StudentContextBanner'
+import EmptyState from '@/components/ui/EmptyState'
+import { useSmartFilters } from '@/hooks/useSmartFilters'
+import { useStudentDeepLink } from '@/hooks/useStudentDeepLink'
 
 interface Eleve {
   id: string
@@ -47,6 +52,14 @@ const STATUTS = [
 ]
 
 export default function MaternellePage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-slate-400">Chargement...</div>}>
+      <MaternellePageContent />
+    </Suspense>
+  )
+}
+
+function MaternellePageContent() {
   const { slug } = useParams() as { slug: string }
 
   const [eleves, setEleves] = useState<Eleve[]>([])
@@ -56,9 +69,48 @@ export default function MaternellePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
 
-  const [classeId, setClasseId] = useState('')
-  const [eleveId, setEleveId] = useState('')
-  const [periode, setPeriode] = useState('sequence1')
+  const filterFields = useMemo(() => [
+    {
+      key: 'classe',
+      type: 'select' as const,
+      label: 'Classe',
+      options: [
+        { value: '', label: 'Toutes les classes maternelle' },
+        ...classes.map(c => ({ value: c.id, label: c.nom })),
+      ],
+      defaultValue: '',
+    },
+    {
+      key: 'eleve',
+      type: 'select' as const,
+      label: 'Élève',
+      options: [
+        { value: '', label: 'Tous les élèves' },
+        ...eleves.map(e => ({ value: e.id, label: `${e.nom} ${e.prenom}` })),
+      ],
+      defaultValue: '',
+    },
+    {
+      key: 'periode',
+      type: 'pills' as const,
+      label: 'Séquence',
+      options: PERIODES.map(p => ({ value: p.value, label: p.label })),
+      defaultValue: 'sequence1',
+    },
+  ], [classes, eleves])
+
+  const { values, setFilter, setFilters, reset, activeFilters } = useSmartFilters(filterFields)
+  const { student } = useStudentDeepLink(setFilters, {
+    apply: s => {
+      const patch: Record<string, string> = { eleve: s.id }
+      if (s.classe_id) patch.classe = s.classe_id
+      return patch
+    },
+  })
+
+  const classeId = values.classe ?? ''
+  const eleveId = values.eleve ?? ''
+  const periode = values.periode || 'sequence1'
 
   const [showSettings, setShowSettings] = useState(false)
   const [domainesEdit, setDomainesEdit] = useState<Domaine[]>([])
@@ -66,6 +118,15 @@ export default function MaternellePage() {
   const [newDomaine, setNewDomaine] = useState('')
   const [newCompetences, setNewCompetences] = useState<{ [key: number]: string }>({})
   const [domainesOpen, setDomainesOpen] = useState<{ [key: number]: boolean }>({})
+
+  const handleClasseChange = (key: string, value: string) => {
+    if (key === 'classe') {
+      setFilter('classe', value)
+      setFilter('eleve', '')
+      return
+    }
+    setFilter(key, value)
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -222,38 +283,30 @@ export default function MaternellePage() {
         </div>
       </div>
 
-      {/* Filtres */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex flex-wrap gap-3">
-        <select value={classeId} onChange={e => { setClasseId(e.target.value); setEleveId('') }}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400">
-          <option value="">Toutes les classes maternelle</option>
-          {classes.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-        </select>
+      <SmartFilterBar
+        fields={filterFields}
+        values={values}
+        onChange={handleClasseChange}
+        onReset={reset}
+        activeFilters={activeFilters}
+        resultCount={elevesFiltres.length}
+        resultLabel="élève(s)"
+        loading={loading}
+        className="mb-6"
+      />
 
-        <select value={eleveId} onChange={e => setEleveId(e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400">
-          <option value="">Tous les élèves</option>
-          {eleves.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
-        </select>
-
-        <div className="flex gap-1 bg-slate-100 p-1 rounded-lg ml-auto">
-          {PERIODES.map(p => (
-            <button key={p.value} onClick={() => setPeriode(p.value)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                periode === p.value ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {student && (
+        <StudentContextBanner slug={slug} student={student} className="mb-6" />
+      )}
 
       {loading ? (
         <div className="p-12 text-center text-slate-400 text-sm">Chargement...</div>
       ) : elevesFiltres.length === 0 ? (
-        <div className="p-12 text-center text-slate-400 text-sm">
-          Aucun élève maternelle trouvé. Inscrivez des élèves en section maternelle.
-        </div>
+        <EmptyState
+          icon={Sprout}
+          title="Aucun élève maternelle"
+          description="Inscrivez des élèves en section maternelle ou modifiez vos filtres."
+        />
       ) : eleveId ? (
         /* Vue détaillée un élève */
         <div className="space-y-4 print-area" id="livret-print">

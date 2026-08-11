@@ -16,11 +16,12 @@ export async function proxy(request: NextRequest) {
   const publicPaths = [
     '/login',
     '/register',
+    '/mot-de-passe-oublie',
     '/licence-expiree',
     '/api/auth',
     '/api/licences',
-    '/admin-licences',  // ← ajoute ça
-    '/api/admin-licences',  // ← ajoute ça
+    '/admin-licences',
+    '/api/admin-licences',
   ]
 
   if (publicPaths.some(p => pathname.startsWith(p))) {
