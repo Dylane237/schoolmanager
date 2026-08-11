@@ -148,7 +148,7 @@ export default function AppUpdates() {
         )}
 
         <div className="flex flex-wrap gap-3">
-          {(status === 'idle' || status === 'not-available' || status === 'error') && (
+          {(status === 'idle' || status === 'not-available' || status === 'error' || status === 'checking') && (
             <button
               type="button"
               onClick={handleCheck}

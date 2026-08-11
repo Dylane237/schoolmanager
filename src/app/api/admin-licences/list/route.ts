@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-admin'
 import { isAdminLicencesAuthed } from '@/lib/admin-licences-auth'
 
 export async function GET(request: NextRequest) {
@@ -7,13 +7,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !supabaseKey) {
+  if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: 'Configuration Supabase manquante' }, { status: 503 })
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey)
+  const supabase = getSupabaseAdmin()!
 
   const { data: licences, error } = await supabase
     .from('licences')
@@ -22,20 +20,42 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const ecoleIds = (licences || [])
-    .map(l => l.ecole_id)
-    .filter(Boolean)
+  const rows = licences || []
+  const ecoleIds = [...new Set(rows.map(l => l.ecole_id).filter(Boolean))] as string[]
+  const ecoleSlugs = [...new Set(rows.map(l => l.ecole_slug).filter(Boolean))] as string[]
 
-  const { data: ecoles } = ecoleIds.length > 0
-    ? await supabase.from('ecoles').select('id, nom').in('id', ecoleIds)
-    : { data: [] }
+  let ecolesById: Record<string, { id: string; nom: string; slug?: string }> = {}
+  let ecolesBySlug: Record<string, { id: string; nom: string; slug?: string }> = {}
 
-  const ecolesMap = Object.fromEntries((ecoles || []).map(e => [e.id, e]))
+  if (ecoleIds.length > 0) {
+    const { data: byId } = await supabase.from('ecoles').select('id, nom, slug').in('id', ecoleIds)
+    for (const e of byId || []) {
+      ecolesById[e.id] = e
+      if (e.slug) ecolesBySlug[e.slug] = e
+    }
+  }
 
-  const licencesWithEcoles = (licences || []).map(l => ({
-    ...l,
-    ecoles: l.ecole_id ? (ecolesMap[l.ecole_id] ?? null) : null
-  }))
+  const missingSlugs = ecoleSlugs.filter(s => !ecolesBySlug[s])
+  if (missingSlugs.length > 0) {
+    const { data: bySlug } = await supabase.from('ecoles').select('id, nom, slug').in('slug', missingSlugs)
+    for (const e of bySlug || []) {
+      if (e.slug) ecolesBySlug[e.slug] = e
+      ecolesById[e.id] = e
+    }
+  }
+
+  const licencesWithEcoles = rows.map(l => {
+    const fromId = l.ecole_id ? ecolesById[l.ecole_id] : null
+    const fromSlug = l.ecole_slug ? ecolesBySlug[l.ecole_slug] : null
+    const fromEcoleIdAsSlug = l.ecole_id ? ecolesBySlug[l.ecole_id] : null
+    const ecole = fromId || fromSlug || fromEcoleIdAsSlug
+    return {
+      ...l,
+      ecoles: ecole ? { nom: ecole.nom, slug: ecole.slug } : null,
+      ecole_nom: l.ecole_nom || ecole?.nom || null,
+      ecole_slug: l.ecole_slug || ecole?.slug || (fromEcoleIdAsSlug ? l.ecole_id : null),
+    }
+  })
 
   return NextResponse.json({ licences: licencesWithEcoles })
 }

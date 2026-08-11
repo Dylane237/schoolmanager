@@ -1,161 +1,215 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { Copy, Check, Plus, Building2, KeyRound, Gift } from 'lucide-react'
+import { AdminLicencesShell, AdminBadge } from '@/components/admin-licences/AdminShell'
+import {
+  type AdminLicence,
+  PLAN_COLORS,
+  isLicenceAssigned,
+  ecoleDisplayName,
+  ecoleSlug,
+  licenceStatus,
+  formatDateFr,
+} from '@/lib/admin-licences-types'
 
-type Licence = {
-  id: string
-  cle_licence: string
-  type: string
-  date_debut: string
-  date_fin: string
-  is_active: number
-  created_at: string
-  ecole_id: string | null
-  ecoles: { nom: string } | null
-  ecole_slug?: string | null
-  ecole_nom?: string | null
-  parrain_code?: string | null
-}
+type Filter = 'toutes' | 'disponibles' | 'attribuees'
 
-function isAssigned(l: Licence) {
-  return !!(l.ecole_id || l.ecoles || l.ecole_nom || l.ecole_slug)
-}
+function CreateKeyModal({
+  open,
+  onClose,
+  onCreated,
+}: {
+  open: boolean
+  onClose: () => void
+  onCreated: () => void
+}) {
+  const [form, setForm] = useState({ plan: 'standard', date_fin: '' })
+  const [creating, setCreating] = useState(false)
+  const [newKey, setNewKey] = useState('')
+  const [copied, setCopied] = useState(false)
 
-function ecoleLabel(l: Licence) {
-  return l.ecole_nom || l.ecoles?.nom || l.ecole_slug || null
-}
+  if (!open) return null
 
-const PLANS = ['starter', 'standard', 'premium']
-const PLAN_COLOR: Record<string, string> = { starter: '#6366f1', standard: '#3b82f6', premium: '#10b981' }
+  const create = async () => {
+    if (!form.date_fin) return
+    setCreating(true)
+    setNewKey('')
+    const res = await fetch('/api/admin-licences/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setNewKey(data.cle)
+      onCreated()
+    }
+    setCreating(false)
+  }
 
-function Badge({ color, children }: { color: string; children: React.ReactNode }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: color + '22', color, border: `1px solid ${color}44` }}>
-      {children}
-    </span>
-  )
-}
-
-function StatusBadge({ l }: { l: Licence }) {
-  if (!l.is_active) return <Badge color="#ef4444">Révoquée</Badge>
-  const days = Math.floor((new Date(l.date_fin).getTime() - Date.now()) / 86400000)
-  if (days < 0) return <Badge color="#ef4444">Expirée</Badge>
-  if (days <= 30) return <Badge color="#f59e0b">Expire dans {days}j</Badge>
-  return <Badge color="#10b981">Active</Badge>
-}
-
-function Header({ onLogout }: { onLogout: () => void }) {
-  const pathname = usePathname()
-  const navItems = [
-    { label: 'Tableau de bord', href: '/admin-licences' },
-    { label: 'Licences', href: '/admin-licences/licences' },
-    { label: 'Parrainages', href: '/admin-licences/parrainages' },
-  ]
-  return (
-    <header style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 32px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 32, height: 32, background: '#10b981', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, color: '#fff' }}>S</div>
-        <span style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>SchoolManager</span>
-        <span style={{ color: '#475569', fontSize: 13, marginLeft: 4 }}>Administration éditeur</span>
-      </div>
-      <nav style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        {navItems.map(item => (
-          <Link key={item.href} href={item.href} style={{ padding: '6px 14px', borderRadius: 8, fontSize: 14, fontWeight: 500, textDecoration: 'none', background: pathname === item.href ? '#334155' : 'transparent', color: pathname === item.href ? '#fff' : '#94a3b8' }}>
-            {item.label}
-          </Link>
-        ))}
-        <button onClick={onLogout} style={{ marginLeft: 12, padding: '6px 14px', background: 'transparent', color: '#64748b', border: 'none', fontSize: 14, cursor: 'pointer' }}>
-          ⎋ Déconnexion
-        </button>
-      </nav>
-    </header>
-  )
-}
-
-function LoginScreen({ onAuth }: { onAuth: () => void }) {
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const handleLogin = async () => {
-    setLoading(true)
-    const res = await fetch('/api/admin-licences/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) })
-    if (res.ok) onAuth()
-    else setError('Mot de passe incorrect')
-    setLoading(false)
+  const copy = async () => {
+    if (!newKey) return
+    await navigator.clipboard.writeText(newKey)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-      <div style={{ background: '#1e293b', borderRadius: 16, border: '1px solid #334155', padding: 36, width: 360 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
-          <div style={{ width: 36, height: 36, background: '#10b981', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: '#fff' }}>S</div>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60" onClick={onClose}>
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <h2 className="text-lg font-bold text-white mb-5">Nouvelle clé d&apos;activation</h2>
+        <div className="space-y-4">
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>SchoolManager</div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>Administration éditeur</div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Plan</label>
+            <select
+              value={form.plan}
+              onChange={e => setForm(f => ({ ...f, plan: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-slate-100 text-sm"
+            >
+              {['starter', 'standard', 'premium'].map(p => (
+                <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+              ))}
+            </select>
           </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Date de fin</label>
+            <input
+              type="date"
+              value={form.date_fin}
+              onChange={e => setForm(f => ({ ...f, date_fin: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-slate-100 text-sm"
+            />
+          </div>
+          {newKey && (
+            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/25 p-4">
+              <p className="text-[10px] uppercase tracking-wide text-emerald-400 font-semibold mb-2">Clé générée</p>
+              <div className="flex items-start gap-2">
+                <code className="flex-1 text-xs font-mono text-slate-200 break-all">{newKey}</code>
+                <button type="button" onClick={copy} className="p-1.5 rounded-lg hover:bg-emerald-500/20 text-emerald-400">
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-        <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 6, fontWeight: 500 }}>Mot de passe</label>
-        <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} placeholder="••••••••"
-          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: 14, boxSizing: 'border-box', outline: 'none', marginBottom: 8 }} />
-        {error && <p style={{ color: '#ef4444', fontSize: 13, margin: '4px 0 8px' }}>{error}</p>}
-        <button onClick={handleLogin} disabled={loading || !password}
-          style={{ width: '100%', padding: '10px 0', background: '#10b981', color: '#fff', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 8, opacity: loading || !password ? 0.6 : 1 }}>
-          {loading ? 'Connexion...' : 'Se connecter'}
-        </button>
+        <div className="flex gap-2 mt-6">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm">
+            Fermer
+          </button>
+          <button
+            type="button"
+            onClick={create}
+            disabled={creating || !form.date_fin}
+            className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm disabled:opacity-50"
+          >
+            {creating ? 'Génération...' : 'Générer'}
+          </button>
+        </div>
       </div>
     </div>
   )
 }
 
-export default function LicencesPage() {
-  const [authed, setAuthed] = useState(false)
-  const [checking, setChecking] = useState(true)
-  const [licences, setLicences] = useState<Licence[]>([])
-  const [loading, setLoading] = useState(false)
-  const [filter, setFilter] = useState<'toutes' | 'disponibles' | 'attribuees'>('toutes')
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ plan: 'standard', date_fin: '' })
-  const [creating, setCreating] = useState(false)
-  const [newKey, setNewKey] = useState('')
-  const [copied, setCopied] = useState('')
-  const [search, setSearch] = useState('')
+function LicenceCard({
+  l,
+  onRevoke,
+  onCopy,
+  copied,
+}: {
+  l: AdminLicence
+  onRevoke: (id: string) => void
+  onCopy: (key: string) => void
+  copied: string
+}) {
+  const assigned = isLicenceAssigned(l)
+  const school = ecoleDisplayName(l)
+  const slug = ecoleSlug(l)
+  const status = licenceStatus(l)
+  const planClass = PLAN_COLORS[l.type] ?? PLAN_COLORS.standard
 
-  const loadLicences = useCallback(async () => {
+  return (
+    <article className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${assigned ? 'bg-emerald-500/15' : 'bg-violet-500/15'}`}>
+            {assigned ? <Building2 className="w-5 h-5 text-emerald-400" /> : <KeyRound className="w-5 h-5 text-violet-400" />}
+          </div>
+          <div className="min-w-0">
+            {assigned ? (
+              <>
+                <h3 className="font-semibold text-white truncate">{school}</h3>
+                {slug && <p className="text-xs text-slate-500 font-mono truncate">{slug}</p>}
+              </>
+            ) : (
+              <>
+                <h3 className="font-semibold text-violet-300">Clé disponible</h3>
+                <p className="text-xs text-slate-500">En attente d&apos;activation</p>
+              </>
+            )}
+          </div>
+        </div>
+        <AdminBadge tone={status.tone}>{status.label}</AdminBadge>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${planClass}`}>
+          {l.type.charAt(0).toUpperCase() + l.type.slice(1)}
+        </span>
+        {l.parrain_code && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-violet-500/10 text-violet-300 border border-violet-500/25">
+            <Gift className="w-3 h-3" />
+            {l.parrain_code}
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+        <code className="flex-1 text-xs font-mono text-slate-300 break-all">{l.cle_licence}</code>
+        <button type="button" onClick={() => onCopy(l.cle_licence)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400">
+          {copied === l.cle_licence ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-slate-500">
+        <span>Expire le {formatDateFr(l.date_fin)}</span>
+        {l.activated_at && assigned && (
+          <span>Activée {formatDateFr(l.activated_at)}</span>
+        )}
+      </div>
+
+      {!!l.is_active && (
+        <button
+          type="button"
+          onClick={() => onRevoke(l.id)}
+          className="w-full py-2 rounded-xl border border-red-500/30 text-red-400 text-sm font-medium hover:bg-red-500/10"
+        >
+          Révoquer
+        </button>
+      )}
+    </article>
+  )
+}
+
+function LicencesContent() {
+  const [licences, setLicences] = useState<AdminLicence[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<Filter>('toutes')
+  const [search, setSearch] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [copied, setCopied] = useState('')
+
+  const load = useCallback(async () => {
     setLoading(true)
     const res = await fetch('/api/admin-licences/list')
-    if (res.ok) { const data = await res.json(); setLicences(data.licences || []) }
+    if (res.ok) {
+      const data = await res.json()
+      setLicences(data.licences || [])
+    }
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    fetch('/api/admin-licences/list').then(r => {
-      if (r.ok) { setAuthed(true); r.json().then(d => setLicences(d.licences || [])) }
-      setChecking(false)
-    }).catch(() => setChecking(false))
-  }, [])
-
-  const handleLogout = async () => {
-    await fetch('/api/admin-licences/auth', { method: 'DELETE' })
-    setAuthed(false)
-  }
-
-  const handleCreate = async () => {
-    if (!form.date_fin) return
-    setCreating(true); setNewKey('')
-    const res = await fetch('/api/admin-licences/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
-    const data = await res.json()
-    if (res.ok) { setNewKey(data.cle); loadLicences() }
-    setCreating(false)
-  }
-
-  const handleRevoke = async (id: string) => {
-    if (!confirm('Révoquer cette licence ?')) return
-    await fetch('/api/admin-licences/revoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
-    loadLicences()
-  }
+  useEffect(() => { load() }, [load])
 
   const copyKey = (key: string) => {
     navigator.clipboard.writeText(key)
@@ -163,164 +217,179 @@ export default function LicencesPage() {
     setTimeout(() => setCopied(''), 2000)
   }
 
+  const revoke = async (id: string) => {
+    if (!confirm('Révoquer cette licence ?')) return
+    await fetch('/api/admin-licences/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    load()
+  }
+
   const today = new Date().toISOString().split('T')[0]
-  const actives = licences.filter(l => l.is_active && l.date_fin >= today).length
-  const disponibles = licences.filter(l => !isAssigned(l) && l.is_active && l.date_fin >= today).length
+  const disponibles = licences.filter(l => !isLicenceAssigned(l) && l.is_active && l.date_fin >= today).length
+  const attribuees = licences.filter(l => isLicenceAssigned(l)).length
 
   const filtered = licences.filter(l => {
-    if (filter === 'disponibles' && isAssigned(l)) return false
-    if (filter === 'attribuees' && !isAssigned(l)) return false
-    if (search && !l.cle_licence.toLowerCase().includes(search.toLowerCase()) && !l.type.includes(search.toLowerCase())) return false
-    return true
+    if (filter === 'disponibles' && isLicenceAssigned(l)) return false
+    if (filter === 'attribuees' && !isLicenceAssigned(l)) return false
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return (
+      l.cle_licence.toLowerCase().includes(q)
+      || l.type.toLowerCase().includes(q)
+      || (ecoleDisplayName(l)?.toLowerCase().includes(q) ?? false)
+      || (ecoleSlug(l)?.toLowerCase().includes(q) ?? false)
+      || (l.parrain_code?.toLowerCase().includes(q) ?? false)
+    )
   })
 
-  if (checking) return <div style={{ minHeight: '100vh', background: '#0f172a' }} />
-  if (!authed) return <LoginScreen onAuth={() => { setAuthed(true); loadLicences() }} />
+  const filters: { id: Filter; label: string; count?: number }[] = [
+    { id: 'toutes', label: 'Toutes', count: licences.length },
+    { id: 'attribuees', label: 'Attribuées', count: attribuees },
+    { id: 'disponibles', label: 'Disponibles', count: disponibles },
+  ]
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#e2e8f0' }}>
-      <Header onLogout={handleLogout} />
-      <div style={{ padding: '32px 40px', maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>Licences</h1>
-            <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>{disponibles} clé(s) disponible(s) · {actives} licence(s) active(s)</p>
-          </div>
-          <button onClick={() => { setShowForm(true); setNewKey('') }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', background: '#10b981', color: '#fff', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-            + Clé d'activation
-          </button>
+    <>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Licences</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {attribuees} établissement(s) · {disponibles} clé(s) disponible(s)
+          </p>
         </div>
-
-        <div style={{ background: '#1e3a5f', border: '1px solid #1d4ed844', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#93c5fd', lineHeight: 1.6 }}>
-          <span style={{ fontWeight: 600, color: '#60a5fa' }}>Flux offline</span> — Générez une <span style={{ fontWeight: 600 }}>clé d'activation</span> (sans école) et remettez-la au directeur sur clé USB ou papier. Lors de l'inscription sur <code style={{ background: '#0f172a', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>/register</code>, la clé active son école localement.
-        </div>
-
-        <div style={{ background: '#1e293b', borderRadius: 12, border: '1px solid #334155', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {(['toutes', 'disponibles', 'attribuees'] as const).map(f => (
-                <button key={f} onClick={() => setFilter(f)}
-                  style={{ padding: '5px 14px', borderRadius: 999, fontSize: 13, fontWeight: 500, border: '1px solid', cursor: 'pointer', background: filter === f ? '#334155' : 'transparent', color: filter === f ? '#e2e8f0' : '#64748b', borderColor: filter === f ? '#475569' : '#334155' }}>
-                  {f === 'toutes' ? 'Toutes' : f === 'disponibles' ? 'Disponibles' : 'Attribuées'}
-                </button>
-              ))}
-            </div>
-            <input
-              placeholder="Rechercher une clé..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: 13, outline: 'none', width: 220 }}
-            />
-          </div>
-
-          {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>Chargement...</div>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #334155', background: '#0f172a44' }}>
-                  {['École', 'Parrain', 'Clé', 'Plan', 'Statut', 'Expiration', 'Actions'].map(h => (
-                    <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 13 }}>Aucune licence trouvée</td></tr>
-                ) : filtered.map(l => {
-                  const days = Math.floor((new Date(l.date_fin).getTime() - Date.now()) / 86400000)
-                  const rowBg = !l.is_active ? '#ef444408' : days < 0 ? '#ef444408' : days <= 30 ? '#f59e0b08' : 'transparent'
-                  return (
-                    <tr key={l.id} style={{ borderBottom: '1px solid #1e293b', background: rowBg }}>
-                      <td style={{ padding: '13px 16px', fontSize: 13 }}>
-                        {ecoleLabel(l) ? (
-                          <div>
-                            <p style={{ margin: 0, color: '#e2e8f0', fontWeight: 500 }}>{ecoleLabel(l)}</p>
-                            {l.ecole_slug && l.ecole_slug !== ecoleLabel(l) && (
-                              <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: 11 }}>{l.ecole_slug}</p>
-                            )}
-                          </div>
-                        ) : (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500, background: '#7c3aed22', color: '#a78bfa', border: '1px solid #7c3aed44' }}>En attente</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '13px 16px', fontSize: 12, fontFamily: 'monospace', color: l.parrain_code ? '#a78bfa' : '#475569' }}>
-                        {l.parrain_code || '—'}
-                      </td>
-                      <td style={{ padding: '13px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#e2e8f0' }}>{l.cle_licence}</span>
-                          <button onClick={() => copyKey(l.cle_licence)} title="Copier"
-                            style={{ background: 'none', border: 'none', color: copied === l.cle_licence ? '#10b981' : '#475569', cursor: 'pointer', padding: '2px 4px', fontSize: 13 }}>
-                            {copied === l.cle_licence ? '✓' : '⧉'}
-                          </button>
-                        </div>
-                      </td>
-                      <td style={{ padding: '13px 16px' }}>
-                        <Badge color={PLAN_COLOR[l.type] || '#64748b'}>{l.type.charAt(0).toUpperCase() + l.type.slice(1)}</Badge>
-                      </td>
-                      <td style={{ padding: '13px 16px' }}><StatusBadge l={l} /></td>
-                      <td style={{ padding: '13px 16px', fontSize: 13, color: days <= 30 && !!l.is_active ? '#f59e0b' : '#94a3b8', fontWeight: days <= 30 && !!l.is_active ? 600 : 400 }}>{l.date_fin}</td>
-                      <td style={{ padding: '13px 16px' }}>
-                        {!!l.is_active && (
-                          <button onClick={() => handleRevoke(l.id)}
-                            style={{ padding: '4px 10px', background: 'transparent', color: '#ef4444', border: '1px solid #ef444433', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>
-                            Révoquer
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowForm(true)}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          Clé d&apos;activation
+        </button>
       </div>
 
-      {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: '#00000099', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
-          onClick={e => e.target === e.currentTarget && setShowForm(false)}>
-          <div style={{ background: '#1e293b', borderRadius: 14, border: '1px solid #334155', padding: 28, width: 420 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 20 }}>Nouvelle clé d'activation</h2>
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 6, fontWeight: 500 }}>Plan</label>
-              <select value={form.plan} onChange={e => setForm({ ...form, plan: e.target.value })}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: 14, boxSizing: 'border-box' }}>
-                {PLANS.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
-              </select>
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 6, fontWeight: 500 }}>Date de fin</label>
-              <input type="date" value={form.date_fin} onChange={e => setForm({ ...form, date_fin: e.target.value })}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: 14, boxSizing: 'border-box' }} />
-            </div>
-            {newKey && (
-              <div style={{ background: '#10b98122', border: '1px solid #10b98144', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
-                <p style={{ fontSize: 11, color: '#10b981', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clé générée — à copier maintenant</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <code style={{ fontFamily: 'monospace', fontSize: 13, color: '#e2e8f0', flex: 1, wordBreak: 'break-all' }}>{newKey}</code>
-                  <button onClick={() => copyKey(newKey)}
-                    style={{ background: 'none', border: 'none', color: copied === newKey ? '#10b981' : '#64748b', cursor: 'pointer', fontSize: 16 }}>
-                    {copied === newKey ? '✓' : '⧉'}
-                  </button>
-                </div>
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setShowForm(false)}
-                style={{ flex: 1, padding: '9px 0', background: 'transparent', color: '#94a3b8', border: '1px solid #334155', borderRadius: 8, fontSize: 14, cursor: 'pointer' }}>
-                Fermer
-              </button>
-              <button onClick={handleCreate} disabled={creating || !form.date_fin}
-                style={{ flex: 1, padding: '9px 0', background: '#10b981', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: creating || !form.date_fin ? 0.6 : 1 }}>
-                {creating ? 'Génération...' : 'Générer la clé'}
-              </button>
+      <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 px-4 py-3 text-sm text-blue-200/90 mb-6 leading-relaxed">
+        Chaque ligne lie une <strong className="text-blue-100">clé</strong> à un <strong className="text-blue-100">établissement</strong> dès l&apos;inscription sur <code className="text-xs bg-slate-900 px-1.5 py-0.5 rounded">/register</code>.
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="flex flex-wrap gap-2">
+          {filters.map(f => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                filter === f.id
+                  ? 'bg-slate-800 border-slate-600 text-white'
+                  : 'border-slate-800 text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              {f.label}
+              {f.count !== undefined && (
+                <span className="ml-1.5 text-xs opacity-70">{f.count}</span>
+              )}
+            </button>
+          ))}
+        </div>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Rechercher école, clé, parrain..."
+          className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-200 text-sm placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-emerald-500/30"
+        />
+      </div>
+
+      {loading ? (
+        <p className="text-center text-slate-500 py-16">Chargement...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-slate-500 py-16">Aucune licence trouvée.</p>
+      ) : (
+        <>
+          {/* Mobile + tablet cards */}
+          <div className="grid gap-3 md:hidden">
+            {filtered.map(l => (
+              <LicenceCard key={l.id} l={l} onRevoke={revoke} onCopy={copyKey} copied={copied} />
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block rounded-2xl border border-slate-800 overflow-hidden bg-slate-900/50">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[880px]">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-900 text-left">
+                    {['Établissement', 'Clé de licence', 'Plan', 'Parrain', 'Statut', 'Expiration', ''].map(h => (
+                      <th key={h} className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80">
+                  {filtered.map(l => {
+                    const assigned = isLicenceAssigned(l)
+                    const school = ecoleDisplayName(l)
+                    const slug = ecoleSlug(l)
+                    const status = licenceStatus(l)
+                    const planClass = PLAN_COLORS[l.type] ?? PLAN_COLORS.standard
+                    return (
+                      <tr key={l.id} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-4 py-3.5 min-w-[200px]">
+                          {assigned ? (
+                            <div>
+                              <p className="font-semibold text-white">{school}</p>
+                              {slug && <p className="text-xs text-slate-500 font-mono mt-0.5">{slug}</p>}
+                              {l.activated_at && (
+                                <p className="text-[10px] text-slate-600 mt-1">Activée {formatDateFr(l.activated_at)}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-violet-300 font-medium">— Disponible —</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-1.5 max-w-[220px]">
+                            <code className="text-xs font-mono text-slate-300 truncate">{l.cle_licence}</code>
+                            <button type="button" onClick={() => copyKey(l.cle_licence)} className="p-1 rounded hover:bg-slate-800 text-slate-500 shrink-0">
+                              {copied === l.cle_licence ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${planClass}`}>
+                            {l.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 font-mono text-xs text-violet-300">{l.parrain_code || '—'}</td>
+                        <td className="px-4 py-3.5"><AdminBadge tone={status.tone}>{status.label}</AdminBadge></td>
+                        <td className="px-4 py-3.5 text-sm text-slate-400 tabular-nums whitespace-nowrap">{formatDateFr(l.date_fin)}</td>
+                        <td className="px-4 py-3.5">
+                          {!!l.is_active && (
+                            <button type="button" onClick={() => revoke(l.id)} className="text-xs text-red-400 hover:text-red-300 font-medium">
+                              Révoquer
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
+        </>
       )}
-    </div>
+
+      <CreateKeyModal open={showForm} onClose={() => setShowForm(false)} onCreated={load} />
+    </>
+  )
+}
+
+export default function AdminLicencesPage() {
+  return (
+    <AdminLicencesShell>
+      <LicencesContent />
+    </AdminLicencesShell>
   )
 }

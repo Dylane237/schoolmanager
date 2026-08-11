@@ -121,7 +121,7 @@ export default function EncaissementsChart({ slug }: { slug: string }) {
                 width={40}
               />
               <Tooltip
-                formatter={(value: number) => [`${value.toLocaleString('fr-FR')} FCFA`, 'Montant']}
+                formatter={(value) => [`${Number(value ?? 0).toLocaleString('fr-FR')} FCFA`, 'Montant']}
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
                 labelStyle={{ color: '#1e293b', fontWeight: 600 }}
               />

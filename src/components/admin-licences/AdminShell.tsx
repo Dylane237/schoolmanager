@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Menu, X, Shield, LogOut } from 'lucide-react'
 
 const NAV = [
   { label: 'Tableau de bord', href: '/admin-licences' },
@@ -29,32 +30,35 @@ function LoginScreen({ onAuth }: { onAuth: () => void }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
-      <div style={{ background: '#1e293b', borderRadius: 16, border: '1px solid #334155', padding: 36, width: 360 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
-          <div style={{ width: 36, height: 36, background: '#10b981', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: '#fff' }}>S</div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-950">
+      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
+            <Shield className="w-5 h-5 text-white" />
+          </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>SchoolManager</div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>Administration éditeur (cloud)</div>
+            <p className="font-bold text-white">SchoolManager</p>
+            <p className="text-xs text-slate-500">Administration éditeur</p>
           </div>
         </div>
-        <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: 20 }}>
-          Connexion requise — licences et parrainages centralisés sur Supabase.
+        <p className="text-sm text-slate-400 mb-6">
+          Connexion cloud — licences et parrainages centralisés.
         </p>
-        <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 6, fontWeight: 500 }}>Mot de passe</label>
+        <label className="block text-xs font-medium text-slate-400 mb-1.5">Mot de passe</label>
         <input
           type="password"
           value={password}
           onChange={e => setPassword(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleLogin()}
           placeholder="••••••••"
-          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', fontSize: 14, boxSizing: 'border-box', outline: 'none', marginBottom: 8 }}
+          className="w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-slate-100 text-sm outline-none focus:ring-2 focus:ring-emerald-500/40 mb-2"
         />
-        {error && <p style={{ color: '#ef4444', fontSize: 13, margin: '4px 0 8px' }}>{error}</p>}
+        {error && <p className="text-sm text-red-400 mb-2">{error}</p>}
         <button
+          type="button"
           onClick={handleLogin}
           disabled={loading || !password}
-          style={{ width: '100%', padding: '10px 0', background: '#10b981', color: '#fff', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 8, opacity: loading || !password ? 0.6 : 1 }}
+          className="w-full mt-3 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm disabled:opacity-50 transition-colors"
         >
           {loading ? 'Connexion...' : 'Se connecter'}
         </button>
@@ -65,23 +69,81 @@ function LoginScreen({ onAuth }: { onAuth: () => void }) {
 
 function Header({ onLogout }: { onLogout: () => void }) {
   const pathname = usePathname()
+  const [open, setOpen] = useState(false)
+
+  const isActive = (href: string) =>
+    href === '/admin-licences' ? pathname === href : pathname.startsWith(href)
+
   return (
-    <header style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 32px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 32, height: 32, background: '#10b981', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, color: '#fff' }}>S</div>
-        <span style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>SchoolManager</span>
-        <span style={{ color: '#475569', fontSize: 13, marginLeft: 4 }}>Administration éditeur</span>
-      </div>
-      <nav style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        {NAV.map(item => (
-          <Link key={item.href} href={item.href} style={{ padding: '6px 14px', borderRadius: 8, fontSize: 14, fontWeight: 500, textDecoration: 'none', background: pathname === item.href ? '#334155' : 'transparent', color: pathname === item.href ? '#fff' : '#94a3b8' }}>
-            {item.label}
-          </Link>
-        ))}
-        <button onClick={onLogout} type="button" style={{ marginLeft: 12, padding: '6px 14px', background: 'transparent', color: '#64748b', border: 'none', fontSize: 14, cursor: 'pointer' }}>
-          Déconnexion
+    <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center shrink-0">
+            <Shield className="w-4 h-4 text-white" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-bold text-sm text-white truncate">SchoolManager</p>
+            <p className="text-[10px] text-slate-500 hidden sm:block">Administration éditeur</p>
+          </div>
+        </div>
+
+        <nav className="hidden md:flex items-center gap-1">
+          {NAV.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive(item.href)
+                  ? 'bg-slate-800 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+          <button
+            type="button"
+            onClick={onLogout}
+            className="ml-2 flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-500 hover:text-slate-300"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden lg:inline">Déconnexion</span>
+          </button>
+        </nav>
+
+        <button
+          type="button"
+          onClick={() => setOpen(v => !v)}
+          className="md:hidden p-2 rounded-lg text-slate-400 hover:bg-slate-800"
+          aria-label="Menu"
+        >
+          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
-      </nav>
+      </div>
+
+      {open && (
+        <nav className="md:hidden border-t border-slate-800 px-4 py-3 space-y-1 bg-slate-900">
+          {NAV.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              className={`block px-3 py-2.5 rounded-xl text-sm font-medium ${
+                isActive(item.href) ? 'bg-slate-800 text-white' : 'text-slate-400'
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onLogout() }}
+            className="w-full text-left px-3 py-2.5 rounded-xl text-sm text-slate-500"
+          >
+            Déconnexion
+          </button>
+        </nav>
+      )}
     </header>
   )
 }
@@ -108,7 +170,11 @@ export function AdminLicencesShell({ children }: { children: ReactNode }) {
   const { authed, checkAuth, logout, setAuthed } = useAdminLicencesAuth()
 
   if (authed === null) {
-    return <div style={{ minHeight: '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>Chargement...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-500 text-sm">
+        Chargement...
+      </div>
+    )
   }
 
   if (!authed) {
@@ -116,28 +182,41 @@ export function AdminLicencesShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a' }}>
+    <div className="min-h-screen bg-slate-950">
       <Header onLogout={logout} />
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
+      <main className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
         {children}
       </main>
     </div>
   )
 }
 
-export function Badge({ color, children }: { color: string; children: React.ReactNode }) {
+const TONE_CLASS = {
+  success: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  warning: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  danger: 'bg-red-500/15 text-red-300 border-red-500/30',
+  neutral: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
+}
+
+export function AdminBadge({
+  children,
+  tone = 'neutral',
+}: {
+  children: ReactNode
+  tone?: keyof typeof TONE_CLASS
+}) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: color + '22', color, border: `1px solid ${color}44` }}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${TONE_CLASS[tone]}`}>
       {children}
     </span>
   )
 }
 
-export const STATUT_COLORS: Record<string, string> = {
-  en_cours: '#64748b',
-  abonnement_actif: '#10b981',
-  commission_versee: '#8b5cf6',
-  annule: '#ef4444',
+export const STATUT_COLORS: Record<string, keyof typeof TONE_CLASS> = {
+  en_cours: 'neutral',
+  abonnement_actif: 'success',
+  commission_versee: 'success',
+  annule: 'danger',
 }
 
 export const STATUT_LABELS: Record<string, string> = {

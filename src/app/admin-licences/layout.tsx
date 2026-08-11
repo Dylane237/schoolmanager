@@ -1,16 +1,14 @@
-import { cookies } from 'next/headers'
+import type { Metadata } from 'next'
 
-export default async function AdminLicencesLayout({ children }: { children: React.ReactNode }) {
+export const metadata: Metadata = {
+  title: 'SchoolManager — Administration éditeur',
+  description: 'Gestion des licences et parrainages SchoolManager',
+}
+
+export default function AdminLicencesLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>SchoolManager — Administration</title>
-      </head>
-      <body style={{ margin: 0, padding: 0, background: '#0f172a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-        {children}
-      </body>
-    </html>
+    <div className="admin-editor min-h-screen bg-slate-950 text-slate-100 antialiased">
+      {children}
+    </div>
   )
 }

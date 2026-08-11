@@ -380,7 +380,7 @@ function MaternellePageContent() {
                       <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500 w-48">Compétence</th>
                       {elevesFiltres.map(e => (
                         <th key={e.id} className="text-center px-2 py-2 text-xs font-medium text-slate-600 min-w-28">
-                          <button onClick={() => setEleveId(e.id)} className="hover:text-emerald-600 transition-colors">
+                          <button onClick={() => setFilter('eleve', e.id)} className="hover:text-emerald-600 transition-colors">
                             {e.nom} {e.prenom.charAt(0)}.
                           </button>
                         </th>

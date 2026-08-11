@@ -65,9 +65,10 @@ export default function ClassesPaiementChart({ data, slug }: { data: ClasseData[
               <Tooltip
                 cursor={{ fill: '#f8fafc' }}
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
-                formatter={(value: number, _name, item) => {
+                formatter={(value, _name, item) => {
                   const p = item.payload as ClasseData
-                  return [`${p.payes}/${p.effectif} élèves (${value}%)`, 'À jour']
+                  const v = Number(value ?? 0)
+                  return [`${p.payes}/${p.effectif} élèves (${v}%)`, 'À jour']
                 }}
               />
               <Bar dataKey="pct" radius={[0, 4, 4, 0]} maxBarSize={16}>
