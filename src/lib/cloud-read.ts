@@ -1,9 +1,9 @@
 import { isSupabaseConfigured } from './supabase-admin'
 import { fetchCloudSyncStatus, type CloudSyncStatus } from './cloud-data-store'
 
-/** Lecture cloud activée sur Vercel quand Supabase est configuré. */
+/** @deprecated Parité complète — toujours false. */
 export function isCloudReadMode(): boolean {
-  return process.env.VERCEL === '1' && isSupabaseConfigured()
+  return false
 }
 
 export async function getCloudSyncStatus(ecoleSlug: string): Promise<CloudSyncStatus> {

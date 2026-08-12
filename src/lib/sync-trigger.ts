@@ -2,6 +2,7 @@ import { getDb } from './db-server'
 import { getMachineFingerprint } from './paths'
 import { buildSchoolSyncPayload } from './sync-payload'
 import { pushSchoolDataToCloud } from './data-cloud-sync'
+import { pushSchoolDbFromLocal } from './school-db'
 
 /** Sync non bloquante des données école vers le cloud (desktop uniquement). */
 export function pushSchoolDataFromEcoleId(ecoleId: string): void {
@@ -30,6 +31,7 @@ export function pushSchoolDataFromEcoleId(ecoleId: string): void {
     )
 
     pushSchoolDataToCloud(payload).catch(() => {})
+    pushSchoolDbFromLocal(ecole.slug).catch(() => {})
   } catch {
     // non bloquant
   }

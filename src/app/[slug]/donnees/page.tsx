@@ -52,7 +52,7 @@ export default function DonneesPage() {
     synced_at: string | null
     eleves_count: number
     classes_count: number
-    cloudReadMode: boolean
+    db_synced?: boolean
   } | null>(null)
   const [syncing, setSyncing] = useState(false)
 
@@ -67,7 +67,7 @@ export default function DonneesPage() {
   const handleSyncNow = async () => {
     setSyncing(true)
     try {
-      const res = await fetch('/api/sync/trigger', { method: 'POST' })
+      const res = await fetch('/api/sync/db', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) {
         toast.error(data.error || t('sync.error'))
@@ -150,26 +150,24 @@ export default function DonneesPage() {
                       <div className="p-3 bg-slate-50 rounded-lg">
                         <p className="text-slate-400 text-xs">{t('sync.mode')}</p>
                         <p className="font-medium text-slate-700 mt-0.5">
-                          {syncStatus.cloudReadMode ? t('sync.modeCloud') : t('sync.modeDesktop')}
+                          {syncStatus.db_synced ? t('sync.modeSynced') : t('sync.modePending')}
                         </p>
                       </div>
                     </div>
                   )}
                 </div>
-                {!syncStatus?.cloudReadMode && (
-                  <button
-                    onClick={handleSyncNow}
-                    disabled={syncing}
-                    className="btn-primary flex items-center gap-2 shrink-0"
-                  >
-                    {syncing ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <CloudUpload className="w-4 h-4" />
-                    )}
-                    {syncing ? t('sync.syncing') : t('sync.action')}
-                  </button>
-                )}
+                <button
+                  onClick={handleSyncNow}
+                  disabled={syncing}
+                  className="btn-primary flex items-center gap-2 shrink-0"
+                >
+                  {syncing ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CloudUpload className="w-4 h-4" />
+                  )}
+                  {syncing ? t('sync.syncing') : t('sync.action')}
+                </button>
               </div>
             </div>
           </section>

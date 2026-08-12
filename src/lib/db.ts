@@ -3,8 +3,10 @@ import { getDbPath, ensureUserDataDir } from './paths'
 import { getDefaultAnneeScolaireLabel, getDefaultAnneeScolaireBounds, getLegacyAnneeScolaireLabel } from './school-year'
 import { ensureSuperAdminCredentials } from './super-admin-credentials'
 import { runVersionedMigrations } from './migrations/runner'
+import { getVercelActiveSlug } from './school-db-context'
 
 let _db: InstanceType<typeof Database> | null = null
+let _dbsBySlug = new Map<string, InstanceType<typeof Database>>()
 let _testDbOverride: InstanceType<typeof Database> | null = null
 
 /** Injecte une base SQLite de test (Vitest). */
@@ -23,18 +25,60 @@ export function createMemoryDb(): InstanceType<typeof Database> {
   return db
 }
 
-export function getDb() {
-  if (_testDbOverride) return _testDbOverride
-  if (_db) return _db
+function openDatabaseAtPath(dbPath: string): InstanceType<typeof Database> {
   ensureUserDataDir()
-  _db = new Database(getDbPath())
-  _db.pragma('journal_mode = WAL')
-  _db.pragma('foreign_keys = ON')
-  initSchema(_db)
-  runMigrations(_db)
-  runVersionedMigrations(_db)
-  seedInitialData(_db)
+  const db = new Database(dbPath)
+  db.pragma('journal_mode = WAL')
+  db.pragma('foreign_keys = ON')
+  initSchema(db)
+  runMigrations(db)
+  runVersionedMigrations(db)
+  seedInitialData(db)
+  return db
+}
+
+/** Desktop : singleton. Web (Vercel) : base par slug si fourni. */
+export function getDb(ecoleSlug?: string) {
+  if (_testDbOverride) return _testDbOverride
+
+  if (process.env.VERCEL) {
+    const slug = ecoleSlug ?? getVercelActiveSlug() ?? undefined
+    if (!slug) {
+      throw new Error('[getDb] ecoleSlug requis sur Vercel — appelez prepareSchoolDb() avant.')
+    }
+    const cached = _dbsBySlug.get(slug)
+    if (cached) return cached
+    const db = openDatabaseAtPath(getDbPath(slug))
+    _dbsBySlug.set(slug, db)
+    return db
+  }
+
+  if (_db) return _db
+  _db = openDatabaseAtPath(getDbPath())
   return _db
+}
+
+export function getDbForSlug(ecoleSlug?: string) {
+  return getDb(ecoleSlug)
+}
+
+export function closeDbForSlug(ecoleSlug?: string): void {
+  if (process.env.VERCEL && ecoleSlug) {
+    const db = _dbsBySlug.get(ecoleSlug)
+    if (db) {
+      try { db.close() } catch { /* ignore */ }
+      _dbsBySlug.delete(ecoleSlug)
+    }
+    return
+  }
+  if (_db) {
+    try { _db.close() } catch { /* ignore */ }
+    _db = null
+  }
+}
+
+export function resetDesktopDbSingleton(): void {
+  _db = null
 }
 
 function initSchema(db: InstanceType<typeof Database>) {

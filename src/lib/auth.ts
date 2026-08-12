@@ -5,6 +5,12 @@ import { getDb } from './db-server'
 import { getJwtSecret, getJwtSecretKey } from './secrets'
 import { getMachineFingerprint } from './paths'
 import { runtimeEnv } from './runtime-env'
+import {
+  prepareSchoolDb,
+  markSchoolDbDirty,
+  scheduleSchoolDbFlush,
+  resolveEcoleId,
+} from './school-db'
 
 export const JWT_EXPIRY = '8h'
 export const COOKIE_NAME = 'sm_token'
@@ -41,10 +47,25 @@ export async function verifyToken(token: string): Promise<JwtPayload | null> {
   }
 }
 
-export async function getUserFromRequest(request: NextRequest): Promise<JwtPayload | null> {
-  const token = request.cookies.get(COOKIE_NAME)?.value
+export async function getUserFromRequest(request?: NextRequest): Promise<JwtPayload | null> {
+  const token = request?.cookies.get(COOKIE_NAME)?.value
   if (!token) return null
-  return verifyToken(token)
+  const user = await verifyToken(token)
+  if (!user) return null
+
+  if (process.env.VERCEL && user.ecole_slug) {
+    await prepareSchoolDb(user.ecole_slug)
+    const db = getDb(user.ecole_slug)
+    const resolved = resolveEcoleId(db, user.ecole_slug, user.ecole_id)
+    if (resolved) user.ecole_id = resolved
+
+    if (request && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      markSchoolDbDirty(user.ecole_slug)
+    }
+    scheduleSchoolDbFlush(user.ecole_slug)
+  }
+
+  return user
 }
 
 export async function requireUser(request: NextRequest): Promise<JwtPayload | NextResponse> {
@@ -99,13 +120,23 @@ export async function loginUser(email: string, password: string) {
 
   const { isCloudAuthAvailable, loginCloudUser, cloudAuthErrorMessage } = await import('./cloud-auth')
 
-  // ── Web (Vercel) : auth cloud uniquement ──
+  // ── Web (Vercel) : auth cloud + base SQLite synchronisée ──
   if (process.env.VERCEL && isCloudAuthAvailable()) {
     const cloud = await loginCloudUser(normalizedEmail, password)
     if (!cloud.ok) {
       return { error: cloudAuthErrorMessage(cloud.error) as 'Email introuvable' | 'Mot de passe incorrect' | 'Licence expirée' }
     }
-    const user: AuthUser = { ...cloud.result.user, auth_source: 'cloud' }
+
+    const slug = cloud.result.user.ecole_slug!
+    await prepareSchoolDb(slug)
+    const db = getDb(slug)
+    const ecoleId = resolveEcoleId(db, slug, cloud.result.user.ecole_id)
+
+    const user: AuthUser = {
+      ...cloud.result.user,
+      ecole_id: ecoleId,
+      auth_source: 'cloud',
+    }
     const token = await signToken(user)
     return { token, user }
   }

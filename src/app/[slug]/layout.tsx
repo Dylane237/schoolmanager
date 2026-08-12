@@ -2,13 +2,9 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyToken } from '@/lib/auth'
 import { getDb, getActiveAnneeScolaire } from '@/lib/db-server'
+import { prepareSchoolDb } from '@/lib/school-db'
 import { SchoolProvider } from '@/components/layout/SchoolProvider'
 import AppShell from '@/components/layout/AppShell'
-import {
-  fetchCloudEcole,
-  fetchCloudLicenceForSlug,
-  fetchCloudAnneeScolaire,
-} from '@/lib/cloud-auth'
 
 export default async function SlugLayout({
   children,
@@ -37,41 +33,8 @@ export default async function SlugLayout({
     }
   }
 
-  const isCloudSession = payload.auth_source === 'cloud'
-    || (process.env.VERCEL === '1' && payload.role !== 'super_admin')
-
-  if (isCloudSession) {
-    const ecole = await fetchCloudEcole(slug)
-    if (!ecole) redirect('/login')
-
-    const licence = payload.role !== 'super_admin'
-      ? await fetchCloudLicenceForSlug(slug)
-      : { type: 'premium', date_fin: '2099-12-31' }
-
-    if (!licence && payload.role !== 'super_admin') {
-      redirect('/licence-expiree')
-    }
-
-    const anneeScolaire = await fetchCloudAnneeScolaire(slug)
-    const nom = (payload.nom as string) || 'Admin'
-    const prenom = payload.prenom as string | undefined
-    const initials = ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase() || 'AD'
-
-    return (
-      <SchoolProvider value={{
-        slug,
-        ecoleNom: ecole.nom,
-        anneeScolaire,
-        licenceType: licence?.type ?? null,
-        licenceFin: licence?.date_fin ?? null,
-        logoUrl: ecole.logo_url,
-        userInitials: initials,
-        userNom: prenom ? `${prenom} ${nom}` : nom,
-        userRole: payload.role,
-      }}>
-        <AppShell>{children}</AppShell>
-      </SchoolProvider>
-    )
+  if (process.env.VERCEL && payload.ecole_slug) {
+    await prepareSchoolDb(payload.ecole_slug)
   }
 
   const db = getDb()

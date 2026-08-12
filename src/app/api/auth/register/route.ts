@@ -77,10 +77,19 @@ async function registerOnCloud(body: Record<string, unknown>) {
     return NextResponse.json({ error: 'Erreur lors de la création du compte cloud' }, { status: 500 })
   }
 
+  const { prepareSchoolDb, markSchoolDbDirty, flushSchoolDb } = await import('../../../../lib/school-db')
+  await prepareSchoolDb(finalSlug)
+  markSchoolDbDirty(finalSlug)
+  await flushSchoolDb(finalSlug)
+
+  const { getDb, resolveEcoleId } = await import('../../../../lib/db-server')
+  const db = getDb()
+  const ecoleId = resolveEcoleId(db, finalSlug, finalSlug)
+
   const token = await signToken({
     id: created.user_id,
     role: 'admin',
-    ecole_id: finalSlug,
+    ecole_id: ecoleId ?? finalSlug,
     ecole_slug: finalSlug,
     nom: directeur_nom,
     auth_source: 'cloud',

@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { verifyToken } from '@/lib/auth'
+import { prepareSchoolDb } from '@/lib/school-db'
 import { getDb } from '@/lib/db-server'
 import { getElevesSituation } from '@/lib/paiements-utils'
 import { studentLinks } from '@/lib/student-context-links'
@@ -67,12 +68,8 @@ export default async function DashboardPage({
   const payload = await verifyToken(token)
   if (!payload) return null
 
-  const isCloudSession = payload.auth_source === 'cloud'
-    || (process.env.VERCEL === '1' && payload.role !== 'super_admin')
-
-  if (isCloudSession) {
-    const CloudDashboard = (await import('./CloudDashboard')).default
-    return <CloudDashboard slug={slug} />
+  if (process.env.VERCEL && payload.ecole_slug) {
+    await prepareSchoolDb(payload.ecole_slug)
   }
 
   const nom    = payload.nom as string

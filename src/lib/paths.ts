@@ -51,8 +51,23 @@ export function ensureUserDataDir(): string {
   return dir
 }
 
-export function getDbPath(): string {
+export function getDbPath(ecoleSlug?: string): string {
+  if (process.env.VERCEL && ecoleSlug) {
+    return path.join('/tmp', SCHOOL_MANAGER_FOLDER, ecoleSlug, 'schoolmanager.db')
+  }
   return path.join(ensureUserDataDir(), 'schoolmanager.db')
+}
+
+/** Alias explicite pour la sync par école (web) ou desktop (sans slug). */
+export function getDbPathForSlug(ecoleSlug?: string): string {
+  return getDbPath(ecoleSlug)
+}
+
+export function getLocalSyncVersionPath(ecoleSlug: string): string {
+  if (process.env.VERCEL) {
+    return path.join('/tmp', SCHOOL_MANAGER_FOLDER, ecoleSlug, '.sync-version')
+  }
+  return path.join(ensureUserDataDir(), `.sync-version-${ecoleSlug}`)
 }
 
 export function getUploadsDir(subdir?: string): string {

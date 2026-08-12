@@ -2,21 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
 import { getDb, getActiveAnneeScolaire } from '../../../lib/db-server'
 import { requireModule } from '../../../lib/rbac.server'
-import { isCloudReadMode, fetchCloudClasses } from '../../../lib/cloud-read'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id && !user?.ecole_slug) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'classes', 'GET')
   if (denied) return denied
-
-  if (isCloudReadMode() && user.ecole_slug) {
-    const classes = await fetchCloudClasses(user.ecole_slug)
-    return NextResponse.json({ classes, source: 'cloud' })
-  }
-
-  if (!user.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const db = getDb()
   const classes = db.prepare(`
