@@ -165,4 +165,32 @@ describe('upsertActiveLicenceInDb', () => {
     expect(active.type).toBe('premium')
     expect(active.date_fin).toBe('2028-01-01')
   })
+
+  it('réassigne une clé déjà présente sur une autre école (desktop)', () => {
+    const db = createMemoryDb()
+    setTestDb(db)
+
+    db.prepare(`INSERT INTO ecoles (nom, slug) VALUES ('Ancienne', 'old-slug')`).run()
+    db.prepare(`INSERT INTO ecoles (nom, slug) VALUES ('Nouvelle', 'new-slug')`).run()
+    const oldEcoleId = (db.prepare('SELECT id FROM ecoles WHERE slug = ?').get('old-slug') as { id: string }).id
+    const newEcoleId = (db.prepare('SELECT id FROM ecoles WHERE slug = ?').get('new-slug') as { id: string }).id
+
+    db.prepare(`
+      INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence)
+      VALUES (?, 'standard', date('now'), date('now', '+365 days'), 1, 'SHARED-KEY')
+    `).run(oldEcoleId)
+
+    upsertActiveLicenceInDb(db, newEcoleId, 'SHARED-KEY', 'premium', '2028-06-01')
+
+    const onNew = db.prepare(`
+      SELECT type, date_fin FROM licences WHERE ecole_id = ? AND cle_licence = 'SHARED-KEY' AND is_active = 1
+    `).get(newEcoleId) as { type: string; date_fin: string }
+    expect(onNew.type).toBe('premium')
+    expect(onNew.date_fin).toBe('2028-06-01')
+
+    const onOld = db.prepare(`
+      SELECT is_active FROM licences WHERE ecole_id = ? AND cle_licence = 'SHARED-KEY'
+    `).get(oldEcoleId)
+    expect(onOld).toBeUndefined()
+  })
 })

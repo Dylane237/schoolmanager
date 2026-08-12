@@ -48,23 +48,26 @@ export function upsertActiveLicenceInDb(
   date_fin: string,
 ): void {
   const cle = cle_licence.trim().toUpperCase()
-  const existingLic = db.prepare(
-    'SELECT id FROM licences WHERE ecole_id = ? AND cle_licence = ?',
-  ).get(ecoleId, cle) as { id: string } | undefined
+  const fingerprint = getMachineFingerprint()
 
-  if (!existingLic) {
+  const existingByCle = db.prepare(
+    'SELECT id FROM licences WHERE cle_licence = ?',
+  ).get(cle) as { id: string } | undefined
+
+  db.prepare(`
+    UPDATE licences SET is_active = 0 WHERE ecole_id = ? AND is_active = 1
+  `).run(ecoleId)
+
+  if (existingByCle) {
     db.prepare(`
-      UPDATE licences SET is_active = 0 WHERE ecole_id = ? AND is_active = 1
-    `).run(ecoleId)
+      UPDATE licences SET ecole_id = ?, is_active = 1, type = ?, date_fin = ?, machine_fingerprint = ?
+      WHERE id = ?
+    `).run(ecoleId, plan, date_fin, fingerprint, existingByCle.id)
+  } else {
     db.prepare(`
       INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence, machine_fingerprint)
       VALUES (?, ?, date('now'), ?, 1, ?, ?)
-    `).run(ecoleId, plan, date_fin, cle, getMachineFingerprint())
-  } else {
-    db.prepare(`
-      UPDATE licences SET is_active = 1, type = ?, date_fin = ?, machine_fingerprint = ?
-      WHERE id = ?
-    `).run(plan, date_fin, getMachineFingerprint(), existingLic.id)
+    `).run(ecoleId, plan, date_fin, cle, fingerprint)
   }
 
   db.prepare(`
