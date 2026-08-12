@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
-import { getDb } from '../../../lib/db-server'
 import { requireModule } from '../../../lib/rbac.server'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
 
 const DOMAINES_DEFAUT = [
   {
@@ -68,7 +68,7 @@ const DOMAINES_DEFAUT = [
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   const denied = requireModule(user, 'maternelle', 'GET')
   if (denied) return denied
 
@@ -77,10 +77,10 @@ export async function GET(request: NextRequest) {
   const periode = searchParams.get('periode') || 'sequence1'
   const classe_id = searchParams.get('classe_id')
 
-  const db = getDb()
+  const { db, ecoleId } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
-  // Élèves maternelle de l'école
-  let eleves: any[] = []
+  let eleves: Record<string, unknown>[] = []
   if (classe_id) {
     eleves = db.prepare(`
       SELECT e.id, e.nom, e.prenom, e.numero_matricule, c.nom as classe_nom
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN classes c ON c.id = e.classe_id
       WHERE e.ecole_id = ? AND e.classe_id = ? AND e.statut = 'actif'
       ORDER BY e.nom
-    `).all(user.ecole_id, classe_id)
+    `).all(ecoleId, classe_id) as Record<string, unknown>[]
   } else {
     eleves = db.prepare(`
       SELECT e.id, e.nom, e.prenom, e.numero_matricule, c.nom as classe_nom
@@ -96,35 +96,32 @@ export async function GET(request: NextRequest) {
       LEFT JOIN classes c ON c.id = e.classe_id
       WHERE e.ecole_id = ? AND c.section = 'maternelle' AND e.statut = 'actif'
       ORDER BY c.nom, e.nom
-    `).all(user.ecole_id)
+    `).all(ecoleId) as Record<string, unknown>[]
   }
 
-  // Classes maternelle
   const classes = db.prepare(`
     SELECT id, nom FROM classes
     WHERE ecole_id = ? AND section = 'maternelle'
     ORDER BY nom
-  `).all(user.ecole_id)
+  `).all(ecoleId)
 
-  // Domaines personnalisés (stockés en JSON dans parametres_maternelle)
   const config = db.prepare(
     'SELECT valeur FROM parametres_maternelle WHERE ecole_id = ?'
-  ).get(user.ecole_id) as any
+  ).get(ecoleId) as { valeur: string } | undefined
 
   const domaines = config ? JSON.parse(config.valeur) : DOMAINES_DEFAUT
 
-  // Compétences saisies pour la période
-  let competences: any[] = []
+  let competences: unknown[] = []
   if (eleve_id) {
     competences = db.prepare(`
       SELECT * FROM competences_maternelle
       WHERE ecole_id = ? AND eleve_id = ? AND periode = ?
-    `).all(user.ecole_id, eleve_id, periode)
+    `).all(ecoleId, eleve_id, periode)
   } else {
     competences = db.prepare(`
       SELECT * FROM competences_maternelle
       WHERE ecole_id = ? AND periode = ?
-    `).all(user.ecole_id, periode)
+    `).all(ecoleId, periode)
   }
 
   return NextResponse.json({ eleves, classes, domaines, competences })
@@ -132,55 +129,55 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   const denied = requireModule(user, 'maternelle', 'POST')
   if (denied) return denied
 
   const body = await request.json()
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
-  // Upsert compétence
   const existing = db.prepare(`
     SELECT id FROM competences_maternelle
     WHERE ecole_id = ? AND eleve_id = ? AND periode = ? AND domaine = ? AND competence = ?
-  `).get(user.ecole_id, body.eleve_id, body.periode, body.domaine, body.competence)
+  `).get(ecoleId, body.eleve_id, body.periode, body.domaine, body.competence) as { id: string } | undefined
 
   if (existing) {
     db.prepare(`
       UPDATE competences_maternelle
       SET statut = ?, observation = ?, saisie_par = ?
       WHERE id = ?
-    `).run(body.statut, body.observation || null, user.id, (existing as any).id)
+    `).run(body.statut, body.observation || null, user.id, existing.id)
   } else {
     db.prepare(`
       INSERT INTO competences_maternelle
         (ecole_id, eleve_id, periode, domaine, competence, statut, observation, saisie_par)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      user.ecole_id, body.eleve_id, body.periode,
+      ecoleId, body.eleve_id, body.periode,
       body.domaine, body.competence, body.statut,
       body.observation || null, user.id
     )
   }
 
-  return NextResponse.json({ success: true })
+  return jsonPersist(ecoleSlug, { success: true })
 }
 
 export async function PUT(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   const denied = requireModule(user, 'maternelle', 'PUT')
   if (denied) return denied
 
   const body = await request.json()
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
-  // Sauvegarde domaines personnalisés
   db.prepare(`
     INSERT INTO parametres_maternelle (ecole_id, valeur)
     VALUES (?, ?)
     ON CONFLICT(ecole_id) DO UPDATE SET valeur = excluded.valeur
-  `).run(user.ecole_id, JSON.stringify(body.domaines))
+  `).run(ecoleId, JSON.stringify(body.domaines))
 
-  return NextResponse.json({ success: true })
+  return jsonPersist(ecoleSlug, { success: true })
 }

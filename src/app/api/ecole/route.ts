@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
-import { getDb } from '../../../lib/db-server'
 import { requireModule } from '../../../lib/rbac.server'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
 
-// Liste blanche des colonnes modifiables depuis les Paramètres.
 const ALLOWED_FIELDS = [
   'nom', 'telephone', 'adresse', 'email',
   'directeur_nom', 'logo_url', 'entete_url', 'nom_caissier',
@@ -11,23 +10,26 @@ const ALLOWED_FIELDS = [
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   const denied = requireModule(user, 'parametres', 'GET')
   if (denied) return denied
 
-  const db = getDb()
-  const ecole = db.prepare('SELECT * FROM ecoles WHERE id = ?').get(user.ecole_id)
+  const { db, ecoleId } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
+
+  const ecole = db.prepare('SELECT * FROM ecoles WHERE id = ?').get(ecoleId)
   return NextResponse.json({ ecole })
 }
 
 export async function PUT(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   const denied = requireModule(user, 'parametres', 'PUT')
   if (denied) return denied
 
   const body = await request.json()
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
   const fields = ALLOWED_FIELDS.filter(f =>
     Object.prototype.hasOwnProperty.call(body, f)
@@ -47,7 +49,7 @@ export async function PUT(request: NextRequest) {
     return v === '' ? null : (v ?? null)
   })
 
-  db.prepare(`UPDATE ecoles SET ${setClause} WHERE id = ?`).run(...values, user.ecole_id)
+  db.prepare(`UPDATE ecoles SET ${setClause} WHERE id = ?`).run(...values, ecoleId)
 
-  return NextResponse.json({ success: true })
+  return jsonPersist(ecoleSlug, { success: true })
 }

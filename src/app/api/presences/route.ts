@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
-import { getDb } from '../../../lib/db-server'
 import { requireModule } from '../../../lib/rbac.server'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   const denied = requireModule(user, 'presences', 'GET')
   if (denied) return denied
 
@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
   const classe_id = searchParams.get('classe_id')
   const date = searchParams.get('date') || new Date().toISOString().split('T')[0]
 
-  const db = getDb()
+  const { db, ecoleId } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
   const eleves = db.prepare(`
     SELECT e.id, e.nom, e.prenom, e.numero_matricule,
@@ -23,30 +24,21 @@ export async function GET(request: NextRequest) {
     WHERE e.ecole_id = ? AND e.statut = 'actif'
     ${classe_id ? 'AND e.classe_id = ?' : ''}
     ORDER BY e.nom
-  `).all(...[date, user.ecole_id, ...(classe_id ? [classe_id] : [])])
+  `).all(...[date, ecoleId, ...(classe_id ? [classe_id] : [])])
 
   return NextResponse.json({ eleves, date })
 }
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   const denied = requireModule(user, 'presences', 'POST')
   if (denied) return denied
 
   const body = await request.json()
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
-  // body.presences = [{ eleve_id, statut, note }]
-  const upsert = db.prepare(`
-    INSERT INTO presences (ecole_id, eleve_id, date, statut, note)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(ecole_id, eleve_id, date) DO UPDATE SET
-      statut = excluded.statut,
-      note = excluded.note
-  `)
-
-  // SQLite ne supporte pas ON CONFLICT sans index unique — on fait upsert manuel
   const checkStmt = db.prepare(`
     SELECT id FROM presences WHERE ecole_id = ? AND eleve_id = ? AND date = ?
   `)
@@ -59,17 +51,17 @@ export async function POST(request: NextRequest) {
     WHERE ecole_id = ? AND eleve_id = ? AND date = ?
   `)
 
-  const saveAll = db.transaction((presences: any[]) => {
+  const saveAll = db.transaction((presences: { eleve_id: string; statut: string; note?: string }[]) => {
     for (const p of presences) {
-      const existing = checkStmt.get(user.ecole_id, p.eleve_id, body.date)
+      const existing = checkStmt.get(ecoleId, p.eleve_id, body.date)
       if (existing) {
-        updateStmt.run(p.statut, p.note || null, user.ecole_id, p.eleve_id, body.date)
+        updateStmt.run(p.statut, p.note || null, ecoleId, p.eleve_id, body.date)
       } else {
-        insertStmt.run(user.ecole_id, p.eleve_id, body.date, p.statut, p.note || null)
+        insertStmt.run(ecoleId, p.eleve_id, body.date, p.statut, p.note || null)
       }
     }
   })
 
   saveAll(body.presences)
-  return NextResponse.json({ success: true })
+  return jsonPersist(ecoleSlug, { success: true })
 }

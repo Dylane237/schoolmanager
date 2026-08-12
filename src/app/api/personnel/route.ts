@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
-import { getDb } from '../../../lib/db-server'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
 import { requireModule } from '../../../lib/rbac.server'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   const denied = requireModule(user, 'personnel', 'GET')
   if (denied) return denied
 
@@ -14,12 +14,11 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get('search')
   const contrat = searchParams.get('contrat')
 
-  const db = getDb()
-  let query = `
-    SELECT * FROM personnel
-    WHERE ecole_id = ?
-  `
-  const params: unknown[] = [user.ecole_id]
+  const { db, ecoleId } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
+
+  let query = `SELECT * FROM personnel WHERE ecole_id = ?`
+  const params: unknown[] = [ecoleId]
   if (type) { query += ' AND type = ?'; params.push(type) }
   if (contrat) { query += ' AND contrat = ?'; params.push(contrat) }
   if (search) {
@@ -28,36 +27,35 @@ export async function GET(request: NextRequest) {
   }
   query += ' ORDER BY nom'
 
-  const personnel = db.prepare(query).all(...params)
-
-  return NextResponse.json({ personnel })
+  return NextResponse.json({ personnel: db.prepare(query).all(...params) })
 }
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   const denied = requireModule(user, 'personnel', 'POST')
   if (denied) return denied
 
   const body = await request.json()
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
   db.prepare(`
     INSERT INTO personnel (ecole_id, nom, prenom, telephone, email, type, contrat, date_embauche, salaire)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
-    user.ecole_id, body.nom, body.prenom || null,
+    ecoleId, body.nom, body.prenom || null,
     body.telephone || null, body.email || null,
     body.type, body.contrat || null,
     body.date_embauche || null, body.salaire || null
   )
 
-  return NextResponse.json({ success: true })
+  return jsonPersist(ecoleSlug, { success: true })
 }
 
 export async function DELETE(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   const denied = requireModule(user, 'personnel', 'DELETE')
   if (denied) return denied
 
@@ -65,8 +63,9 @@ export async function DELETE(request: NextRequest) {
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
 
-  const db = getDb()
-  db.prepare('DELETE FROM personnel WHERE id = ? AND ecole_id = ?').run(id, user.ecole_id)
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
-  return NextResponse.json({ success: true })
+  db.prepare('DELETE FROM personnel WHERE id = ? AND ecole_id = ?').run(id, ecoleId)
+  return jsonPersist(ecoleSlug, { success: true })
 }

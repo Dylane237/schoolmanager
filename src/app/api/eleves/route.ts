@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
-import { getDb, getActiveAnneeScolaire } from '../../../lib/db-server'
+import { getActiveAnneeScolaire } from '../../../lib/db-server'
 import { sqlTotalAttenduEleve } from '../../../lib/paiements-utils'
 import { checkStudentLimit } from '../../../lib/licence-limits'
 import { requireModule } from '../../../lib/rbac.server'
 import { generateMatricule } from '../../../lib/matricule'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'eleves', 'GET')
   if (denied) return denied
+
+  const { db, ecoleId } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
   const { searchParams } = new URL(request.url)
   const classe_id = searchParams.get('classe_id')
@@ -19,8 +23,7 @@ export async function GET(request: NextRequest) {
   const statut_paiement = searchParams.get('statut_paiement')
   const search = searchParams.get('search')
 
-  const db = getDb()
-  const annee = getActiveAnneeScolaire(db, user.ecole_id)
+  const annee = getActiveAnneeScolaire(db, ecoleId)
   const totalAttenduSql = sqlTotalAttenduEleve('?')
 
   let query = `
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
     LEFT JOIN parents p ON p.eleve_id = e.id AND p.est_principal = 1
     WHERE e.ecole_id = ?
   `
-  const params: unknown[] = [annee, annee, user.ecole_id]
+  const params: unknown[] = [annee, annee, ecoleId]
 
   if (classe_id) {
     if (classe_id === '__none__') {
@@ -71,15 +74,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'eleves', 'POST')
   if (denied) return denied
 
   const body = await request.json()
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
-  const limitError = checkStudentLimit(db, user.ecole_id)
+  const limitError = checkStudentLimit(db, ecoleId)
   if (limitError) {
     return NextResponse.json({ error: limitError, limite_atteinte: true }, { status: 403 })
   }
@@ -87,7 +91,7 @@ export async function POST(request: NextRequest) {
   if (body.classe_id) {
     const classe = db.prepare(
       'SELECT capacite_max FROM classes WHERE id = ? AND ecole_id = ?'
-    ).get(body.classe_id, user.ecole_id) as { capacite_max: number } | undefined
+    ).get(body.classe_id, ecoleId) as { capacite_max: number } | undefined
 
     if (!classe) {
       return NextResponse.json({ error: 'Classe introuvable' }, { status: 404 })
@@ -105,20 +109,18 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Génération du matricule selon le format 26FSILA001
   const anneeArrivee = new Date().getFullYear()
   let matricule: string
 
   if (body.classe_id) {
-    matricule = generateMatricule(db, user.ecole_id, body.classe_id, anneeArrivee)
+    matricule = generateMatricule(db, ecoleId, body.classe_id, anneeArrivee)
   } else {
-    // Pas de classe assignée : matricule provisoire
     const year = anneeArrivee.toString().slice(-2)
     const last = db.prepare(`
       SELECT numero_matricule FROM eleves
       WHERE ecole_id = ? AND numero_matricule LIKE 'PROV-${year}-%'
       ORDER BY numero_matricule DESC LIMIT 1
-    `).get(user.ecole_id) as { numero_matricule: string } | undefined
+    `).get(ecoleId) as { numero_matricule: string } | undefined
 
     let nextNum = 1
     if (last) {
@@ -134,7 +136,7 @@ export async function POST(request: NextRequest) {
       date_naissance, lieu_naissance, sexe, section, annee_entree, photo_url
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
-    user.ecole_id, body.classe_id?.trim() || null, matricule,
+    ecoleId, body.classe_id?.trim() || null, matricule,
     body.nom, body.prenom, body.date_naissance || null,
     body.lieu_naissance || null, body.sexe, body.section,
     anneeArrivee.toString(),
@@ -150,5 +152,5 @@ export async function POST(request: NextRequest) {
     `).run(eleve.id, body.parent_nom, body.parent_prenom || null, body.parent_telephone, body.parent_lien || 'tuteur')
   }
 
-  return NextResponse.json({ success: true, matricule, id: eleve.id })
+  return jsonPersist(ecoleSlug, { success: true, matricule, id: eleve.id })
 }

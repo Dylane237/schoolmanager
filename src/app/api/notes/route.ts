@@ -1,35 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
-import { getDb } from '../../../lib/db-server'
 import { validateNote } from '../../../lib/notes-utils'
 import { requireModule } from '../../../lib/rbac.server'
 import { logAudit } from '../../../lib/audit-log'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'notes', 'GET')
   if (denied) return denied
+
+  const { db, ecoleId } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
   const { searchParams } = new URL(request.url)
   const classe_id = searchParams.get('classe_id')
   const matiere_id = searchParams.get('matiere_id')
   const periode = searchParams.get('periode')
 
-  const db = getDb()
-
   const matieres = db.prepare(`
     SELECT * FROM matieres WHERE ecole_id = ?
     ${classe_id ? 'AND classe_id = ?' : ''}
     ORDER BY nom
-  `).all(...[user.ecole_id, ...(classe_id ? [classe_id] : [])])
+  `).all(...[ecoleId, ...(classe_id ? [classe_id] : [])])
 
   if (!classe_id) return NextResponse.json({ matieres, notes: [] })
 
   const classe = db.prepare(
     'SELECT section FROM classes WHERE id = ? AND ecole_id = ?'
-  ).get(classe_id, user.ecole_id) as { section: string } | undefined
+  ).get(classe_id, ecoleId) as { section: string } | undefined
 
   if (!classe) {
     return NextResponse.json({ error: 'Classe introuvable' }, { status: 404 })
@@ -39,14 +40,14 @@ export async function GET(request: NextRequest) {
     SELECT id, nom, prenom, numero_matricule, section
     FROM eleves WHERE ecole_id = ? AND classe_id = ? AND statut = 'actif'
     ORDER BY nom
-  `).all(user.ecole_id, classe_id)
+  `).all(ecoleId, classe_id)
 
   let notes: unknown[] = []
   if (matiere_id && periode) {
     notes = db.prepare(`
       SELECT * FROM notes
       WHERE ecole_id = ? AND matiere_id = ? AND periode = ?
-    `).all(user.ecole_id, matiere_id, periode)
+    `).all(ecoleId, matiere_id, periode)
   }
 
   return NextResponse.json({ matieres, eleves, notes, section: classe.section })
@@ -54,16 +55,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'notes', 'POST')
   if (denied) return denied
 
   const body = await request.json()
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
   const eleve = db.prepare('SELECT section FROM eleves WHERE id = ? AND ecole_id = ?')
-    .get(body.eleve_id, user.ecole_id) as { section: string } | undefined
+    .get(body.eleve_id, ecoleId) as { section: string } | undefined
 
   if (!eleve) {
     return NextResponse.json({ error: 'Élève introuvable' }, { status: 404 })
@@ -87,7 +89,7 @@ export async function POST(request: NextRequest) {
        body.eleve_id, body.matiere_id, body.periode)
 
     logAudit(db, {
-      ecoleId: user.ecole_id,
+      ecoleId,
       userId: user.id,
       action: 'update',
       module: 'notes',
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
     db.prepare(`
       INSERT INTO notes (ecole_id, eleve_id, matiere_id, periode, note, appreciation, saisie_par)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(user.ecole_id, body.eleve_id, body.matiere_id,
+    `).run(ecoleId, body.eleve_id, body.matiere_id,
        body.periode, body.note, body.appreciation || null, user.id)
 
     const created = db.prepare(`
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
     `).get(body.eleve_id, body.matiere_id, body.periode) as { id: string }
 
     logAudit(db, {
-      ecoleId: user.ecole_id,
+      ecoleId,
       userId: user.id,
       action: 'create',
       module: 'notes',
@@ -115,5 +117,5 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  return NextResponse.json({ success: true })
+  return jsonPersist(ecoleSlug, { success: true })
 }

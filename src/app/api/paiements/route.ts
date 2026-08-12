@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../lib/auth'
-import { getDb } from '../../../lib/db-server'
 import { countImpayes, getElevesSituation } from '../../../lib/paiements-utils'
 import { requireModule } from '../../../lib/rbac.server'
 import { logAudit } from '../../../lib/audit-log'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'paiements', 'GET')
   if (denied) return denied
 
+  const { db, ecoleId } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
+
   const { searchParams } = new URL(request.url)
   const view = searchParams.get('view')
-
-  const db = getDb()
 
   if (view === 'situation') {
     const classe_id = searchParams.get('classe_id') || undefined
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     const eleve_id = searchParams.get('eleve_id') || undefined
     const statut = searchParams.get('statut') || undefined
 
-    const { situations, annee_scolaire } = getElevesSituation(db, user.ecole_id, {
+    const { situations, annee_scolaire } = getElevesSituation(db, ecoleId, {
       classeId: classe_id,
       search,
       statut,
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
     LEFT JOIN classes c ON c.id = e.classe_id
     WHERE p.ecole_id = ?
   `
-  const params: unknown[] = [user.ecole_id]
+  const params: unknown[] = [ecoleId]
 
   if (eleve_id) { query += ' AND p.eleve_id = ?'; params.push(eleve_id) }
   if (mois) { query += ` AND strftime('%Y-%m', p.date_paiement) = ?`; params.push(mois) }
@@ -76,14 +77,14 @@ export async function GET(request: NextRequest) {
   const statsToday = db.prepare(`
     SELECT COALESCE(SUM(montant), 0) as total
     FROM paiements WHERE ecole_id = ? AND date_paiement = ?
-  `).get(user.ecole_id, today) as { total: number }
+  `).get(ecoleId, today) as { total: number }
 
   const statsMois = db.prepare(`
     SELECT COALESCE(SUM(montant), 0) as total
     FROM paiements WHERE ecole_id = ? AND date_paiement >= ?
-  `).get(user.ecole_id, debutMois) as { total: number }
+  `).get(ecoleId, debutMois) as { total: number }
 
-  const statsImpaye = countImpayes(getElevesSituation(db, user.ecole_id).situations)
+  const statsImpaye = countImpayes(getElevesSituation(db, ecoleId).situations)
 
   const retards = db.prepare(`
     SELECT
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
       WHERE p.eleve_id = e.id AND p.tranche_numero = tc.tranche_numero
     ), 0) < tc.montant_attendu
     ORDER BY jours_retard DESC
-  `).all(user.ecole_id)
+  `).all(ecoleId)
 
   const retardsCritiques = (retards as { jours_retard: number }[]).filter(r => r.jours_retard >= 3)
 
@@ -130,22 +131,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'paiements', 'POST')
   if (denied) return denied
 
   const body = await request.json()
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
-  // Génération recu_numero unique
   const year = new Date().getFullYear()
 
   const lastRecu = db.prepare(`
     SELECT recu_numero FROM paiements
     WHERE ecole_id = ? AND recu_numero LIKE 'REC-${year}-%'
     ORDER BY recu_numero DESC LIMIT 1
-  `).get(user.ecole_id) as { recu_numero: string } | undefined
+  `).get(ecoleId) as { recu_numero: string } | undefined
 
   let nextNum = 1
   if (lastRecu) {
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
     SELECT e.*, c.nom as classe_nom
     FROM eleves e LEFT JOIN classes c ON c.id = e.classe_id
     WHERE e.id = ? AND e.ecole_id = ?
-  `).get(body.eleve_id, user.ecole_id) as Record<string, unknown> | undefined
+  `).get(body.eleve_id, ecoleId) as Record<string, unknown> | undefined
 
   if (!eleve) {
     return NextResponse.json({ error: 'Élève introuvable' }, { status: 404 })
@@ -175,7 +176,7 @@ export async function POST(request: NextRequest) {
     const frais = db.prepare(`
       SELECT fa.* FROM frais_annexes fa
       WHERE fa.id = ? AND fa.ecole_id = ? AND fa.type = 'examen'
-    `).get(fraisAnnexeId, user.ecole_id) as { id: string; classe_id: string; label: string; montant: number } | undefined
+    `).get(fraisAnnexeId, ecoleId) as { id: string; classe_id: string; label: string; montant: number } | undefined
 
     if (!frais) {
       return NextResponse.json({ error: 'Frais d\'examen introuvable' }, { status: 404 })
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
         date_paiement, mode_paiement, recu_numero, enregistre_par
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      user.ecole_id, body.eleve_id, fraisAnnexeId,
+      ecoleId, body.eleve_id, fraisAnnexeId,
       body.montant, body.date_paiement || new Date().toISOString().split('T')[0],
       body.mode_paiement, recu_numero, user.id
     )
@@ -199,7 +200,7 @@ export async function POST(request: NextRequest) {
       .get(recu_numero) as { id: string }
 
     logAudit(db, {
-      ecoleId: user.ecole_id,
+      ecoleId,
       userId: user.id,
       userEmail: null,
       action: 'create',
@@ -209,9 +210,9 @@ export async function POST(request: NextRequest) {
     })
 
     const ecole = db.prepare('SELECT nom, directeur_nom, entete_url FROM ecoles WHERE id = ?')
-      .get(user.ecole_id) as { nom: string; directeur_nom: string; entete_url: string | null }
+      .get(ecoleId) as { nom: string; directeur_nom: string; entete_url: string | null }
 
-    return NextResponse.json({
+    return jsonPersist(ecoleSlug, {
       success: true,
       recu_numero,
       recu: {
@@ -239,21 +240,16 @@ export async function POST(request: NextRequest) {
       date_paiement, mode_paiement, recu_numero, enregistre_par
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
-    user.ecole_id, body.eleve_id, body.tranche_numero,
+    ecoleId, body.eleve_id, body.tranche_numero,
     body.montant, body.date_paiement || new Date().toISOString().split('T')[0],
     body.mode_paiement, recu_numero, user.id
   )
 
-  // L'id du paiement est un UUID généré par SQLite à l'insertion
-  // (DEFAULT randomblob), donc inconnu à l'avance : on le retrouve via
-  // recu_numero, qui est garanti unique. Sans cet id, le frontend ne peut
-  // pas appeler /api/paiements/recu pour générer le reçu — c'est ce qui
-  // causait l'erreur "Paiement introuvable" juste après l'enregistrement.
   const inserted = db.prepare('SELECT id FROM paiements WHERE recu_numero = ?')
     .get(recu_numero) as { id: string }
 
   logAudit(db, {
-    ecoleId: user.ecole_id,
+    ecoleId,
     userId: user.id,
     action: 'create',
     module: 'paiements',
@@ -262,9 +258,9 @@ export async function POST(request: NextRequest) {
   })
 
   const ecole = db.prepare('SELECT nom, directeur_nom, entete_url FROM ecoles WHERE id = ?')
-    .get(user.ecole_id) as { nom: string; directeur_nom: string; entete_url: string | null }
+    .get(ecoleId) as { nom: string; directeur_nom: string; entete_url: string | null }
 
-  return NextResponse.json({
+  return jsonPersist(ecoleSlug, {
     success: true,
     recu_numero,
     recu: {
@@ -288,7 +284,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'paiements', 'PUT')
   if (denied) return denied
@@ -296,11 +292,12 @@ export async function PUT(request: NextRequest) {
   const body = await request.json()
   if (!body.id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
 
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
   const paiement = db.prepare(
     'SELECT id FROM paiements WHERE id = ? AND ecole_id = ?'
-  ).get(body.id, user.ecole_id)
+  ).get(body.id, ecoleId)
 
   if (!paiement) {
     return NextResponse.json({ error: 'Paiement introuvable' }, { status: 404 })
@@ -319,11 +316,11 @@ export async function PUT(request: NextRequest) {
     body.mode_paiement,
     body.date_paiement,
     body.id,
-    user.ecole_id
+    ecoleId
   )
 
   logAudit(db, {
-    ecoleId: user.ecole_id,
+    ecoleId,
     userId: user.id,
     action: 'update',
     module: 'paiements',
@@ -331,12 +328,12 @@ export async function PUT(request: NextRequest) {
     details: { montant: body.montant, tranche: body.tranche_numero },
   })
 
-  return NextResponse.json({ success: true })
+  return jsonPersist(ecoleSlug, { success: true })
 }
 
 export async function DELETE(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'paiements', 'DELETE')
   if (denied) return denied
@@ -345,25 +342,26 @@ export async function DELETE(request: NextRequest) {
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
 
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
   const paiement = db.prepare(
     'SELECT id FROM paiements WHERE id = ? AND ecole_id = ?'
-  ).get(id, user.ecole_id)
+  ).get(id, ecoleId)
 
   if (!paiement) {
     return NextResponse.json({ error: 'Paiement introuvable' }, { status: 404 })
   }
 
-  db.prepare('DELETE FROM paiements WHERE id = ? AND ecole_id = ?').run(id, user.ecole_id)
+  db.prepare('DELETE FROM paiements WHERE id = ? AND ecole_id = ?').run(id, ecoleId)
 
   logAudit(db, {
-    ecoleId: user.ecole_id,
+    ecoleId,
     userId: user.id,
     action: 'delete',
     module: 'paiements',
     entityId: id,
   })
 
-  return NextResponse.json({ success: true })
+  return jsonPersist(ecoleSlug, { success: true })
 }

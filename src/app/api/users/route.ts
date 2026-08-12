@@ -1,34 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest, hashPassword } from '../../../lib/auth'
-import { getDb } from '../../../lib/db-server'
-import { requireModule } from '../../../lib/rbac.server'
 import { logAudit } from '../../../lib/audit-log'
 import type { Role } from '@/types'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
 
 const CREATION_ROLES: Role[] = ['secretaire', 'comptable', 'enseignant']
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   if (user.role !== 'admin' && user.role !== 'super_admin') {
     return NextResponse.json({ error: 'Réservé à l\'administrateur' }, { status: 403 })
   }
 
-  const db = getDb()
+  const { db, ecoleId } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
+
   const users = db.prepare(`
     SELECT id, email, nom, prenom, role, telephone, created_at
     FROM users
     WHERE ecole_id = ?
     ORDER BY role, nom
-  `).all(user.ecole_id)
+  `).all(ecoleId)
 
   return NextResponse.json({ users })
 }
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   if (user.role !== 'admin' && user.role !== 'super_admin') {
     return NextResponse.json({ error: 'Réservé à l\'administrateur' }, { status: 403 })
@@ -49,7 +50,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Mot de passe : 8 caractères minimum' }, { status: 400 })
   }
 
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
+
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email)
   if (existing) {
     return NextResponse.json({ error: 'Cet email est déjà utilisé' }, { status: 409 })
@@ -59,14 +62,14 @@ export async function POST(request: NextRequest) {
   db.prepare(`
     INSERT INTO users (email, password_hash, nom, prenom, role, telephone, ecole_id)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(email, password_hash, nom, prenom || null, role, telephone || null, user.ecole_id)
+  `).run(email, password_hash, nom, prenom || null, role, telephone || null, ecoleId)
 
   const created = db.prepare(`
     SELECT id, email, nom, prenom, role, telephone, created_at FROM users WHERE email = ?
   `).get(email) as { id: string; email: string; role: string }
 
   logAudit(db, {
-    ecoleId: user.ecole_id,
+    ecoleId,
     userId: user.id,
     action: 'create',
     module: 'users',
@@ -74,12 +77,12 @@ export async function POST(request: NextRequest) {
     details: { email: created.email, role: created.role },
   })
 
-  return NextResponse.json({ success: true, user: created })
+  return jsonPersist(ecoleSlug, { success: true, user: created })
 }
 
 export async function DELETE(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   if (user.role !== 'admin' && user.role !== 'super_admin') {
     return NextResponse.json({ error: 'Réservé à l\'administrateur' }, { status: 403 })
@@ -93,8 +96,10 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Vous ne pouvez pas supprimer votre propre compte' }, { status: 400 })
   }
 
-  const db = getDb()
-  const target = db.prepare('SELECT id, role FROM users WHERE id = ? AND ecole_id = ?').get(id, user.ecole_id) as {
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
+
+  const target = db.prepare('SELECT id, role FROM users WHERE id = ? AND ecole_id = ?').get(id, ecoleId) as {
     id: string; role: string
   } | undefined
 
@@ -106,7 +111,7 @@ export async function DELETE(request: NextRequest) {
   db.prepare('DELETE FROM users WHERE id = ?').run(id)
 
   logAudit(db, {
-    ecoleId: user.ecole_id,
+    ecoleId,
     userId: user.id,
     action: 'delete',
     module: 'users',
@@ -114,5 +119,5 @@ export async function DELETE(request: NextRequest) {
     details: { role: target.role },
   })
 
-  return NextResponse.json({ success: true })
+  return jsonPersist(ecoleSlug, { success: true })
 }

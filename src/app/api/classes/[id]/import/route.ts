@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../../../lib/auth'
-import { getDb } from '../../../../../lib/db-server'
 import { requireModule } from '../../../../../lib/rbac.server'
 import { checkStudentLimit } from '../../../../../lib/licence-limits'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../../../lib/school-api'
 
 interface ImportRow {
   matricule?: string
@@ -39,17 +39,18 @@ function parseCsv(text: string): ImportRow[] {
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'eleves', 'POST')
   if (denied) return denied
 
   const { id: classeId } = await params
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
   const classe = db.prepare(
     'SELECT id, capacite_max, section FROM classes WHERE id = ? AND ecole_id = ?'
-  ).get(classeId, user.ecole_id) as { id: string; capacite_max: number; section: string } | undefined
+  ).get(classeId, ecoleId) as { id: string; capacite_max: number; section: string } | undefined
 
   if (!classe) return NextResponse.json({ error: 'Classe introuvable' }, { status: 404 })
 
@@ -84,17 +85,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (row.matricule) {
       const existing = db.prepare(
         'SELECT id FROM eleves WHERE numero_matricule = ? AND ecole_id = ?'
-      ).get(row.matricule.trim(), user.ecole_id) as { id: string } | undefined
+      ).get(row.matricule.trim(), ecoleId) as { id: string } | undefined
 
       if (existing) {
-        assignEleve.run(classeId, classe.section, existing.id, user.ecole_id)
+        assignEleve.run(classeId, classe.section, existing.id, ecoleId)
         assigned++
         continue
       }
     }
 
     if (row.nom && row.prenom) {
-      const limitError = checkStudentLimit(db, user.ecole_id)
+      const limitError = checkStudentLimit(db, ecoleId)
       if (limitError) {
         errors.push(limitError)
         break
@@ -103,14 +104,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const year = new Date().getFullYear().toString().slice(-2)
       const count = (db.prepare(
         'SELECT COUNT(*) as count FROM eleves WHERE ecole_id = ?'
-      ).get(user.ecole_id) as { count: number })?.count ?? 0
+      ).get(ecoleId) as { count: number })?.count ?? 0
       const matricule = row.matricule?.trim() || `ELV-${year}-${String(count + 1).padStart(4, '0')}`
 
       db.prepare(`
         INSERT INTO eleves (ecole_id, classe_id, numero_matricule, nom, prenom, sexe, section, annee_entree, statut)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'actif')
       `).run(
-        user.ecole_id, classeId, matricule, row.nom, row.prenom,
+        ecoleId, classeId, matricule, row.nom, row.prenom,
         row.sexe === 'F' || row.sexe === 'M' ? row.sexe : null,
         classe.section, new Date().getFullYear().toString()
       )
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
   }
 
-  return NextResponse.json({
+  return jsonPersist(ecoleSlug, {
     success: true,
     assigned,
     created,

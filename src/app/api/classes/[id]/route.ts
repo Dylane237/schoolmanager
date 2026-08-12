@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../../lib/auth'
-import { getDb, getActiveAnneeScolaire } from '../../../../lib/db-server'
+import { getActiveAnneeScolaire } from '../../../../lib/db-server'
 import { getEleveSituation, sqlTotalAttenduEleve } from '../../../../lib/paiements-utils'
 import { getFraisExamenResumeForClasse } from '../../../../lib/frais-examens-utils'
 import { requireModule } from '../../../../lib/rbac.server'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../../lib/school-api'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'classes', 'GET')
   if (denied) return denied
 
   const { id } = await params
-  const db = getDb()
-  const annee = getActiveAnneeScolaire(db, user.ecole_id)
+  const { db, ecoleId } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
+
+  const annee = getActiveAnneeScolaire(db, ecoleId)
 
   const classe = db.prepare(`
     SELECT c.*,
@@ -27,7 +30,7 @@ export async function GET(
     FROM classes c
     LEFT JOIN personnel p ON p.id = c.personnel_id
     WHERE c.id = ? AND c.ecole_id = ?
-  `).get(id, user.ecole_id) as Record<string, unknown> | undefined
+  `).get(id, ecoleId) as Record<string, unknown> | undefined
 
   if (!classe) {
     return NextResponse.json({ error: 'Classe introuvable' }, { status: 404 })
@@ -42,32 +45,30 @@ export async function GET(
     FROM eleves e
     WHERE e.classe_id = ? AND e.ecole_id = ? AND e.statut = 'actif'
     ORDER BY e.nom, e.prenom
-  `).all(annee, annee, id, user.ecole_id) as Record<string, unknown>[]
+  `).all(annee, annee, id, ecoleId) as Record<string, unknown>[]
 
   const matieres = db.prepare(`
     SELECT m.*
     FROM matieres m
     WHERE m.classe_id = ? AND m.ecole_id = ?
     ORDER BY m.nom
-  `).all(id, user.ecole_id)
+  `).all(id, ecoleId)
 
   const tranches = db.prepare(`
     SELECT * FROM tranches_config
     WHERE classe_id = ? AND ecole_id = ? AND annee_scolaire = ?
     ORDER BY tranche_numero
-  `).all(id, user.ecole_id, annee)
+  `).all(id, ecoleId, annee)
 
   const enseignants = db.prepare(`
     SELECT id, nom, prenom, telephone, email
     FROM personnel
     WHERE ecole_id = ? AND type = 'enseignant'
     ORDER BY nom
-  `).all(user.ecole_id)
+  `).all(ecoleId)
 
   const nbEleves = eleves.length
   const capacite = (classe.capacite_max as number) || 60
-
-  const ecoleId = user.ecole_id
 
   const fraisExamenData = getFraisExamenResumeForClasse(db, ecoleId, id, annee)
   const fraisByEleve = new Map(fraisExamenData.eleves.map(e => [e.eleve_id, e]))
@@ -115,23 +116,24 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'classes', 'PUT')
   if (denied) return denied
 
   const { id } = await params
   const body = await request.json()
-  const db = getDb()
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
-  const classe = db.prepare('SELECT id FROM classes WHERE id = ? AND ecole_id = ?').get(id, user.ecole_id)
+  const classe = db.prepare('SELECT id FROM classes WHERE id = ? AND ecole_id = ?').get(id, ecoleId)
   if (!classe) return NextResponse.json({ error: 'Classe introuvable' }, { status: 404 })
 
   if (body.personnel_id !== undefined) {
     if (body.personnel_id) {
       const pers = db.prepare(`
         SELECT id FROM personnel WHERE id = ? AND ecole_id = ? AND type = 'enseignant'
-      `).get(body.personnel_id, user.ecole_id)
+      `).get(body.personnel_id, ecoleId)
       if (!pers) return NextResponse.json({ error: 'Enseignant introuvable' }, { status: 400 })
     }
     db.prepare('UPDATE classes SET personnel_id = ? WHERE id = ?').run(body.personnel_id || null, id)
@@ -141,5 +143,5 @@ export async function PUT(
     db.prepare('UPDATE classes SET capacite_max = ? WHERE id = ?').run(body.capacite_max, id)
   }
 
-  return NextResponse.json({ success: true })
+  return jsonPersist(ecoleSlug, { success: true })
 }

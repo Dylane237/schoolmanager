@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '../../../../lib/auth'
-import { getDb } from '../../../../lib/db-server'
 import { requireModule } from '../../../../lib/rbac.server'
 import { executeStudentImport } from '../../../../lib/student-import'
 import type { StudentSection } from '../../../../lib/csv-students'
 import { parseStudentImportFile } from '../../../../lib/file-import'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../../lib/school-api'
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!hasSchoolAccess(user)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'eleves', 'POST')
   if (denied) return denied
@@ -32,13 +32,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Fichier vide' }, { status: 400 })
   }
 
-  const db = getDb()
-  const result = executeStudentImport(db, user.ecole_id, csvText, {
+  const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
+  if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
+
+  const result = executeStudentImport(db, ecoleId, csvText, {
     createMissingClasses,
     defaultSection,
   })
 
-  return NextResponse.json({
+  return jsonPersist(ecoleSlug, {
     success: true,
     ...result,
     total: result.assigned + result.created,
