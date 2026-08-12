@@ -265,6 +265,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const { markSchoolDbDirty, flushSchoolDb } = await import('../../../../lib/school-db')
+    markSchoolDbDirty(finalSlug)
+    try {
+      await flushSchoolDb(finalSlug)
+    } catch (err) {
+      console.warn('[register] sync cloud non bloquante:', err)
+    }
+
     const token = await signToken({
       id: user.id,
       role: 'admin',

@@ -608,6 +608,16 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
     const buffer = exportVercelSchoolDbBuffer(ecoleSlug)
     if (!buffer?.length) return
 
+    const { shouldSkipBlobRegression } = await import('./structured-sync')
+    if (await shouldSkipBlobRegression(ecoleSlug, buffer)) {
+      recordSyncEvent(
+        ecoleSlug,
+        'push_fail',
+        'Upload blob refusé: base locale vide alors que le cloud contient déjà des élèves',
+      )
+      return
+    }
+
     const result = await uploadSchoolDbBuffer(ecoleSlug, buffer)
     if (result.ok && result.version) {
       vercelSyncedVersions.set(ecoleSlug, result.version)
@@ -618,15 +628,12 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
       const db = getDbForSlug(ecoleSlug)
       const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
       if (ecole?.id) await pushSchoolUploads(ecoleSlug, ecole.id).catch(() => {})
+
+      const { syncStructuredAfterBlobUpload } = await import('./structured-sync')
+      await syncStructuredAfterBlobUpload(ecoleSlug, buffer)
     } else if (result.error && !result.skipped) {
       recordSyncEvent(ecoleSlug, 'push_fail', result.error)
     }
-
-    const { pushSchoolDataFromEcoleIdAsync } = await import('./sync-trigger')
-    const { getDbForSlug } = await import('./db')
-    const db = getDbForSlug(ecoleSlug)
-    const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
-    if (ecole?.id) await pushSchoolDataFromEcoleIdAsync(ecole.id, ecoleSlug)
     return
   }
 
@@ -635,6 +642,18 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
 
   const dbPath = getDbPathForSlug(ecoleSlug)
   if (!fs.existsSync(dbPath)) return
+
+  const buffer = fs.readFileSync(dbPath)
+
+  const { shouldSkipBlobRegression } = await import('./structured-sync')
+  if (await shouldSkipBlobRegression(ecoleSlug, buffer)) {
+    recordSyncEvent(
+      ecoleSlug,
+      'push_fail',
+      'Upload blob refusé: base locale vide alors que le cloud contient déjà des élèves',
+    )
+    return
+  }
 
   const result = await uploadSchoolDb(ecoleSlug, dbPath)
   if (result.ok && result.version) {
@@ -646,15 +665,12 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
     const db = getDbForSlug(ecoleSlug)
     const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
     if (ecole?.id) await pushSchoolUploads(ecoleSlug, ecole.id)
+
+    const { syncStructuredAfterBlobUpload } = await import('./structured-sync')
+    await syncStructuredAfterBlobUpload(ecoleSlug, buffer)
   } else if (result.error) {
     recordSyncEvent(ecoleSlug, 'push_fail', result.error)
   }
-
-  const { pushSchoolDataFromEcoleIdAsync } = await import('./sync-trigger')
-  const { getDbForSlug } = await import('./db')
-  const db = getDbForSlug(ecoleSlug)
-  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
-  if (ecole?.id) await pushSchoolDataFromEcoleIdAsync(ecole.id, ecoleSlug)
 }
 
 export function resolveEcoleId(

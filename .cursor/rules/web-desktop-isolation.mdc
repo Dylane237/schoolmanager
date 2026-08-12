@@ -21,7 +21,8 @@ Une seule codebase. **Ne jamais dupliquer** la logique métier. Isoler via `isSe
 | `src/lib/licence-resolver.ts` | Licence active | Supabase → blob | idem + SQLite local |
 | `src/lib/cloud-auth.ts` | Comptes cloud | ✓ | migration optionnelle |
 | `src/lib/db-blob-sync.ts` | Storage Supabase | ✓ | ✓ |
-| `src/lib/sync-trigger.ts` | Push données structurées | après mutation | si cloud dispo |
+| `src/lib/structured-sync.ts` | Sync structurée dérivée du blob | ✓ | ✓ |
+| `src/lib/sync-trigger.ts` | Push données structurées (legacy entry) | après mutation | si cloud dispo |
 
 ## Règles lors d'un correctif
 
@@ -46,15 +47,15 @@ Une seule codebase. **Ne jamais dupliquer** la logique métier. Isoler via `isSe
 
 ```
 Desktop SQLite  ←──pull/push blob──→  Supabase Storage (school-databases)
-       ↓                                      ↓
-  licence locale                    licences + ecoles + cloud_users
-       ↓                                      ↓
-              licence-resolver (source de vérité au login)
+       ↓                    ↓
+  licence locale     structured-sync → cloud_eleves / cloud_classes / cloud_sync_meta
+       ↓                    ↓
+              licence-resolver (login) + licences Supabase
 ```
 
-- **Blob** : tranches, config locale, état complet école
-- **Tables Supabase** : auth cloud, licence pool, élèves/classes sync structurée
-- **Les deux** : après fix licence ou blob, tester login **web ET** sync desktop
+- **Blob** = source de vérité (élèves, tranches, config complète)
+- **Tables structurées** = miroir dérivé du **même buffer** après chaque flush blob
+- **Garde-fous** : refus d'écraser des élèves cloud par un blob vide
 
 ## Checklist avant commit (si touché aux pivots)
 

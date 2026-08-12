@@ -32,6 +32,23 @@ async function verifyLicenceForPush(payload: SchoolSyncPayload): Promise<{ ok: b
   return { ok: true }
 }
 
+/** Refuse d'écraser des données structurées existantes par un blob vide. */
+export async function shouldSkipStructuredRegression(
+  ecoleSlug: string,
+  incomingEleveCount: number,
+): Promise<boolean> {
+  if (incomingEleveCount > 0) return false
+  if (!isSupabaseConfigured()) return false
+
+  const supabase = getSupabaseAdmin()!
+  const { count } = await supabase
+    .from('cloud_eleves')
+    .select('*', { count: 'exact', head: true })
+    .eq('ecole_slug', ecoleSlug)
+
+  return (count ?? 0) > 0
+}
+
 export async function upsertSchoolDataOnCloud(
   payload: SchoolSyncPayload,
 ): Promise<{ ok: boolean; error?: string; counts?: { eleves: number; classes: number } }> {
@@ -117,16 +134,23 @@ export async function upsertSchoolDataOnCloud(
     if (error) return { ok: false, error: error.message }
   }
 
+  const elevesTotal = payload.eleves.length
+  const elevesActif = payload.eleves.filter(e => e.statut === 'actif').length
+
   const { error: metaErr } = await supabase.from('cloud_sync_meta').upsert(
     {
       ecole_slug: slug,
       annee_scolaire: payload.annee_scolaire,
       synced_at: now,
-      eleves_count: payload.eleves.filter(e => e.statut === 'actif').length,
+      eleves_count: elevesActif,
       classes_count: payload.classes.length,
       machine_fingerprint: payload.machine_fingerprint,
       app_version: process.env.SM_APP_VERSION ?? null,
-      dashboard_stats: payload.dashboard_stats,
+      dashboard_stats: {
+        ...payload.dashboard_stats,
+        eleves_total: elevesTotal,
+        eleves_actif: elevesActif,
+      },
     },
     { onConflict: 'ecole_slug' },
   )
@@ -135,7 +159,7 @@ export async function upsertSchoolDataOnCloud(
 
   return {
     ok: true,
-    counts: { eleves: eleveRows.length, classes: classRows.length },
+    counts: { eleves: elevesTotal, classes: classRows.length },
   }
 }
 
