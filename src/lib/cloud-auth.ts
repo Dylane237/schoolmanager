@@ -333,8 +333,9 @@ export async function fetchCloudLicenceForSlug(ecoleSlug: string): Promise<{ typ
 
   if (!data?.is_active) return null
   const today = new Date().toISOString().split('T')[0]
-  if (data.date_fin < today) return null
-  return { type: data.type, date_fin: data.date_fin }
+  const dateFin = String(data.date_fin).slice(0, 10)
+  if (dateFin < today) return null
+  return { type: data.type, date_fin: dateFin }
 }
 
 export async function fetchCloudEcole(slug: string): Promise<{ id: string; nom: string; logo_url: string | null } | null> {

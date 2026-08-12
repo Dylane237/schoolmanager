@@ -22,6 +22,8 @@ export {
   ensureCloudRegisterSchoolData,
   upsertActiveLicenceInDb,
   ensureLocalLicenceFromCloud,
+  hydrateSchoolFromSupabase,
+  resolveActiveLicence,
 } from './school-db'
 
 /** Prépare la base école et retourne db + ecoleId résolus. */

@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyToken } from '@/lib/auth'
 import { getDb, getActiveAnneeScolaire } from '@/lib/db-server'
-import { prepareSchoolDb } from '@/lib/school-db'
+import { prepareSchoolDb, resolveActiveLicence } from '@/lib/school-db'
 import { SchoolProvider } from '@/components/layout/SchoolProvider'
 import AppShell from '@/components/layout/AppShell'
 
@@ -44,49 +44,9 @@ export default async function SlugLayout({
 
   if (!ecole) redirect('/login')
 
-  const licenceRow = db.prepare(`
-    SELECT type, date_fin FROM licences
-    WHERE ecole_id = ? AND is_active = 1 AND date_fin >= date('now')
-    ORDER BY date_fin DESC
-    LIMIT 1
-  `).get(ecole.id) as { type: string; date_fin: string } | undefined
-
-  let licence: { type: string; date_fin: string } | undefined = licenceRow
-    ? { type: licenceRow.type, date_fin: licenceRow.date_fin }
-    : undefined
-
-  if (!licence && payload.role !== 'super_admin') {
-    try {
-      const licenceDb = db.prepare(`
-        SELECT cle_licence FROM licences WHERE ecole_id = ?
-      `).get(ecole.id) as { cle_licence: string } | undefined
-
-      if (licenceDb?.cle_licence) {
-        const res = await fetch(
-          `https://schoolmanager-eosin.vercel.app/api/auth/verify-licence?cle=${encodeURIComponent(licenceDb.cle_licence)}`,
-          {
-            headers: { 'User-Agent': 'SchoolManager-Desktop/1.0' },
-            signal: AbortSignal.timeout(5000),
-          },
-        )
-        const data = await res.json()
-        if (data.valid) {
-          licence = { type: data.plan, date_fin: data.date_fin }
-          db.prepare(`
-            INSERT INTO licence_cache (cle, plan, date_fin, last_verified, is_active)
-            VALUES (?, ?, ?, ?, 1)
-            ON CONFLICT(cle) DO UPDATE SET
-              plan = excluded.plan,
-              date_fin = excluded.date_fin,
-              last_verified = excluded.last_verified,
-              is_active = 1
-          `).run(licenceDb.cle_licence, data.plan, data.date_fin, new Date().toISOString())
-        }
-      }
-    } catch (e) {
-      console.warn('[layout] vérification licence en ligne échouée:', e)
-    }
-  }
+  const licence = payload.role !== 'super_admin'
+    ? await resolveActiveLicence(db, slug, ecole.id)
+    : { type: 'premium', date_fin: '2099-12-31' }
 
   if (!licence && payload.role !== 'super_admin') {
     redirect('/licence-expiree')

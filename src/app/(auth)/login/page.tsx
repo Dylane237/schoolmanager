@@ -44,8 +44,10 @@ export default function LoginPage() {
           setLoading(false)
           return
         }
-        window.location.href = '/licence-expiree'
-        return
+        if (data.error?.includes('Licence expirée')) {
+          window.location.href = '/licence-expiree'
+          return
+        }
       }
       setError(data.error || t('loginError'))
       setLoading(false)

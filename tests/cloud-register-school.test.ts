@@ -112,6 +112,29 @@ describe('ensureCloudLoginSchoolData', () => {
   })
 })
 
+describe('resolveActiveLicence', () => {
+  beforeEach(() => {
+    setTestDb(null)
+  })
+
+  it('retourne la licence active déjà en base', async () => {
+    const db = createMemoryDb()
+    setTestDb(db)
+
+    db.prepare(`INSERT INTO ecoles (nom, slug) VALUES ('Test', 'azs')`).run()
+    const ecoleId = (db.prepare('SELECT id FROM ecoles WHERE slug = ?').get('azs') as { id: string }).id
+    db.prepare(`
+      INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence)
+      VALUES (?, 'standard', date('now'), '2028-01-01', 1, 'KEY-1')
+    `).run(ecoleId)
+
+    const { resolveActiveLicence } = await import('../src/lib/school-db')
+    const licence = await resolveActiveLicence(db, 'azs', ecoleId)
+    expect(licence?.type).toBe('standard')
+    expect(licence?.date_fin).toBe('2028-01-01')
+  })
+})
+
 describe('upsertActiveLicenceInDb', () => {
   beforeEach(() => {
     setTestDb(null)

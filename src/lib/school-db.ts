@@ -202,80 +202,167 @@ export function ensureCloudLoginSchoolData(
   return ecoleId
 }
 
-/** Complète la licence locale depuis Supabase si absente ou expirée (buffer cloud obsolète). */
-export async function ensureLocalLicenceFromCloud(
+/** Complète école + licence + admin depuis Supabase (idempotent, Vercel). */
+export async function hydrateSchoolFromSupabase(
   db: Database.Database,
   ecoleSlug: string,
 ): Promise<boolean> {
   if (!isSupabaseConfigured()) return false
 
-  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
-  if (!ecole) return false
-
-  const localLicence = db.prepare(`
-    SELECT id FROM licences
-    WHERE ecole_id = ? AND is_active = 1 AND date_fin >= date('now')
-    LIMIT 1
-  `).get(ecole.id)
-  if (localLicence) return false
-
   const { getSupabaseAdmin } = await import('./supabase-admin')
   const supabase = getSupabaseAdmin()!
 
-  const { data: licence } = await supabase
-    .from('licences')
-    .select('cle_licence, type, date_fin, is_active')
-    .eq('ecole_slug', ecoleSlug)
-    .eq('is_active', true)
-    .order('date_fin', { ascending: false })
-    .limit(1)
+  const { data: ecoleCloud } = await supabase
+    .from('ecoles')
+    .select('nom, directeur_nom, telephone')
+    .eq('slug', ecoleSlug)
     .maybeSingle()
 
-  if (!licence?.cle_licence || !licence.date_fin) return false
+  if (!ecoleCloud) return false
 
-  const today = new Date().toISOString().split('T')[0]
-  if (licence.date_fin < today) return false
+  let changed = false
+  let ecoleRow = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecoleRow) {
+    db.prepare(`
+      INSERT INTO ecoles (nom, slug, telephone, directeur_nom, sections)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      ecoleCloud.nom,
+      ecoleSlug,
+      ecoleCloud.telephone ?? null,
+      ecoleCloud.directeur_nom ?? null,
+      JSON.stringify(['francophone']),
+    )
+    ecoleRow = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string }
+    changed = true
+  }
 
-  upsertActiveLicenceInDb(
-    db,
-    ecole.id,
-    licence.cle_licence,
-    licence.type ?? 'standard',
-    licence.date_fin,
-  )
-  return true
+  ensureAnneeScolaireInDb(db, ecoleRow.id)
+
+  const localActive = db.prepare(`
+    SELECT id FROM licences
+    WHERE ecole_id = ? AND is_active = 1 AND date_fin >= date('now')
+    LIMIT 1
+  `).get(ecoleRow.id)
+
+  if (!localActive) {
+    const { data: licence } = await supabase
+      .from('licences')
+      .select('cle_licence, type, date_fin, is_active')
+      .eq('ecole_slug', ecoleSlug)
+      .eq('is_active', true)
+      .order('date_fin', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const today = new Date().toISOString().split('T')[0]
+    if (licence?.cle_licence && licence.date_fin && licence.date_fin >= today) {
+      upsertActiveLicenceInDb(
+        db,
+        ecoleRow.id,
+        licence.cle_licence,
+        licence.type ?? 'standard',
+        licence.date_fin.slice(0, 10),
+      )
+      changed = true
+    }
+  }
+
+  const { data: cloudUsers } = await supabase
+    .from('cloud_users')
+    .select('nom, account_id')
+    .eq('ecole_slug', ecoleSlug)
+    .limit(1)
+
+  if (cloudUsers?.[0]) {
+    const { data: account } = await supabase
+      .from('cloud_accounts')
+      .select('email, password_hash')
+      .eq('id', cloudUsers[0].account_id)
+      .maybeSingle()
+
+    if (account) {
+      const hasAdmin = db.prepare(`
+        SELECT id FROM users WHERE ecole_id = ? AND role = 'admin' LIMIT 1
+      `).get(ecoleRow.id)
+      if (!hasAdmin) {
+        db.prepare(`
+          INSERT INTO users (email, password_hash, nom, role, ecole_id)
+          VALUES (?, ?, ?, 'admin', ?)
+        `).run(account.email, account.password_hash, cloudUsers[0].nom ?? 'Admin', ecoleRow.id)
+        changed = true
+      }
+    }
+  }
+
+  return changed
+}
+
+/** Lit la licence active locale ou la reconstruit depuis Supabase. */
+export async function resolveActiveLicence(
+  db: Database.Database,
+  ecoleSlug: string,
+  ecoleId: string,
+): Promise<{ type: string; date_fin: string } | null> {
+  const readLocal = () => db.prepare(`
+    SELECT type, date_fin FROM licences
+    WHERE ecole_id = ? AND is_active = 1 AND date_fin >= date('now')
+    ORDER BY date_fin DESC
+    LIMIT 1
+  `).get(ecoleId) as { type: string; date_fin: string } | undefined
+
+  let row = readLocal()
+  if (row) return row
+
+  await hydrateSchoolFromSupabase(db, ecoleSlug)
+  row = readLocal()
+  if (row) return row
+
+  const { fetchCloudLicenceForSlug } = await import('./cloud-auth')
+  const cloud = await fetchCloudLicenceForSlug(ecoleSlug)
+  return cloud
+}
+
+/** Complète la licence locale depuis Supabase si absente ou expirée (buffer cloud obsolète). */
+export async function ensureLocalLicenceFromCloud(
+  db: Database.Database,
+  ecoleSlug: string,
+): Promise<boolean> {
+  return hydrateSchoolFromSupabase(db, ecoleSlug)
 }
 
 /** Ouvre / télécharge la base école (web ou desktop après pull). */
 export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
   if (process.env.VERCEL) {
     setVercelActiveSlug(ecoleSlug)
-    if (preparedSlugs.has(ecoleSlug)) return
 
-    const { openVercelSchoolDb } = await import('./db')
-    const cloudMeta = isSupabaseConfigured() ? await fetchCloudDbMeta(ecoleSlug) : null
-    let buffer: Buffer | null = null
+    if (!preparedSlugs.has(ecoleSlug)) {
+      const { openVercelSchoolDb } = await import('./db')
+      const cloudMeta = isSupabaseConfigured() ? await fetchCloudDbMeta(ecoleSlug) : null
+      let buffer: Buffer | null = null
 
-    if (cloudMeta) {
-      buffer = await downloadSchoolDbBuffer(ecoleSlug)
+      if (cloudMeta) {
+        buffer = await downloadSchoolDbBuffer(ecoleSlug)
+      }
+
+      if (buffer && buffer.length > 0) {
+        await openVercelSchoolDb(ecoleSlug, { buffer })
+        if (cloudMeta) markLocalSynced(ecoleSlug, cloudMeta.version)
+      } else {
+        await openVercelSchoolDb(ecoleSlug, {
+          provision: async (provisionDb) => {
+            await provisionSchoolDbFromCloud(provisionDb, ecoleSlug)
+          },
+        })
+      }
+      preparedSlugs.add(ecoleSlug)
     }
 
-    let db: Database.Database
-    if (buffer && buffer.length > 0) {
-      db = await openVercelSchoolDb(ecoleSlug, { buffer })
-      if (cloudMeta) markLocalSynced(ecoleSlug, cloudMeta.version)
-    } else {
-      db = await openVercelSchoolDb(ecoleSlug, {
-        provision: async (provisionDb) => {
-          await provisionSchoolDbFromCloud(provisionDb, ecoleSlug)
-        },
-      })
-    }
+    const { getDbForSlug } = await import('./db')
+    const db = getDbForSlug(ecoleSlug)
+    const hydrated = await hydrateSchoolFromSupabase(db, ecoleSlug)
+    if (hydrated) markSchoolDbDirty(ecoleSlug)
 
-    const licenceSynced = await ensureLocalLicenceFromCloud(db, ecoleSlug)
-    if (licenceSynced) markSchoolDbDirty(ecoleSlug)
-
-    preparedSlugs.add(ecoleSlug)
     return
   }
 
@@ -320,81 +407,7 @@ async function provisionSchoolDbFromCloud(
   runMigrations(db)
   runVersionedMigrations(db)
   seedInitialData(db)
-
-  if (!isSupabaseConfigured()) return
-
-  const { getSupabaseAdmin } = await import('./supabase-admin')
-  const supabase = getSupabaseAdmin()!
-
-  const { data: ecole } = await supabase
-    .from('ecoles')
-    .select('nom, directeur_nom, telephone')
-    .eq('slug', ecoleSlug)
-    .maybeSingle()
-
-  const { data: licence } = await supabase
-    .from('licences')
-    .select('cle_licence, type, date_fin, is_active')
-    .eq('ecole_slug', ecoleSlug)
-    .eq('is_active', true)
-    .order('date_fin', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (!ecole) return
-
-  let ecoleRow = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
-  if (!ecoleRow) {
-    db.prepare(`
-      INSERT INTO ecoles (nom, slug, telephone, directeur_nom, sections)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(
-      ecole.nom,
-      ecoleSlug,
-      ecole.telephone ?? null,
-      ecole.directeur_nom ?? null,
-      JSON.stringify(['francophone']),
-    )
-    ecoleRow = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string }
-  }
-
-  ensureAnneeScolaireInDb(db, ecoleRow.id)
-
-  if (licence?.cle_licence && licence.date_fin) {
-    upsertActiveLicenceInDb(
-      db,
-      ecoleRow.id,
-      licence.cle_licence,
-      licence.type ?? 'standard',
-      licence.date_fin,
-    )
-  }
-
-  const { data: cloudUsers } = await supabase
-    .from('cloud_users')
-    .select('nom, telephone, account_id')
-    .eq('ecole_slug', ecoleSlug)
-    .limit(1)
-
-  if (cloudUsers?.[0]) {
-    const { data: account } = await supabase
-      .from('cloud_accounts')
-      .select('email, password_hash')
-      .eq('id', cloudUsers[0].account_id)
-      .maybeSingle()
-
-    if (account) {
-      const hasAdmin = db.prepare(`
-        SELECT id FROM users WHERE ecole_id = ? AND role = 'admin' LIMIT 1
-      `).get(ecoleRow.id)
-      if (!hasAdmin) {
-        db.prepare(`
-          INSERT INTO users (email, password_hash, nom, role, ecole_id)
-          VALUES (?, ?, ?, 'admin', ?)
-        `).run(account.email, account.password_hash, cloudUsers[0].nom ?? 'Admin', ecoleRow.id)
-      }
-    }
-  }
+  await hydrateSchoolFromSupabase(db, ecoleSlug)
 }
 
 async function provisionEmptySchoolDb(ecoleSlug: string, dbPath: string): Promise<void> {
