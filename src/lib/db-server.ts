@@ -24,6 +24,7 @@ export {
   upsertActiveLicenceInDb,
   ensureLocalLicenceFromCloud,
   hydrateSchoolFromSupabase,
+  hydrateStructuredSchoolData,
   resolveActiveLicence,
 } from './school-db'
 

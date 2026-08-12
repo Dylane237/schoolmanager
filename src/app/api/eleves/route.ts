@@ -5,7 +5,7 @@ import { sqlTotalAttenduEleve } from '../../../lib/paiements-utils'
 import { checkStudentLimit } from '../../../lib/licence-limits'
 import { requireModule } from '../../../lib/rbac.server'
 import { generateMatricule } from '../../../lib/matricule'
-import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
+import { hasSchoolAccess, getSchoolDbContext, jsonPersist, persistSchoolWrite } from '../../../lib/school-api'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
@@ -58,6 +58,15 @@ export async function GET(request: NextRequest) {
   query += ' ORDER BY e.nom ASC'
 
   let eleves = db.prepare(query).all(...params) as Record<string, unknown>[]
+
+  if (eleves.length === 0 && user.ecole_slug && process.env.VERCEL) {
+    const { hydrateStructuredSchoolData } = await import('../../../lib/school-db')
+    const hydrated = await hydrateStructuredSchoolData(db, user.ecole_slug)
+    if (hydrated) {
+      await persistSchoolWrite(user.ecole_slug)
+      eleves = db.prepare(query).all(...params) as Record<string, unknown>[]
+    }
+  }
 
   if (statut_paiement && statut_paiement !== 'tous') {
     eleves = eleves.filter((el) => {

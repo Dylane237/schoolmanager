@@ -12,6 +12,8 @@ import {
   resolveEcoleId,
   ensureCloudLoginSchoolData,
   flushSchoolDb,
+  hydrateSchoolFromSupabase,
+  pullSchoolDbToLocal,
 } from './school-db'
 
 export const JWT_EXPIRY = '8h'
@@ -150,10 +152,10 @@ export async function loginUser(email: string, password: string) {
     return { token, user }
   }
 
-  // ── Desktop : SQLite d'abord, puis cloud si email absent localement ──
+  // ── Desktop : SQLite d'abord, puis cloud (compte web ou licence locale expirée) ──
   const localResult = await loginLocalUser(normalizedEmail, password)
   if (!('error' in localResult)) return localResult
-  if (localResult.error === 'Mot de passe incorrect' || localResult.error === 'Licence expirée' || localResult.error === 'Licence utilisée sur un autre ordinateur') {
+  if (localResult.error === 'Mot de passe incorrect' || localResult.error === 'Licence utilisée sur un autre ordinateur') {
     return localResult
   }
 
@@ -162,8 +164,39 @@ export async function loginUser(email: string, password: string) {
     if (!cloud.ok) {
       return { error: cloudAuthErrorMessage(cloud.error) as 'Email introuvable' | 'Mot de passe incorrect' | 'Licence expirée' }
     }
-    const { buildLocalAuthFromCloudLogin } = await import('./local-provision')
-    const user = buildLocalAuthFromCloudLogin(cloud.result, normalizedEmail)
+
+    const slug = cloud.result.user.ecole_slug!
+    const db = getDb()
+    const ecoleId = ensureCloudLoginSchoolData(db, slug, cloud.result, normalizedEmail)
+    const { provisionLocalUser } = await import('./local-provision')
+    const localUserId = provisionLocalUser(
+      db,
+      ecoleId,
+      normalizedEmail,
+      cloud.result.password_hash,
+      cloud.result.user.nom ?? 'Admin',
+      cloud.result.user.account_id,
+      slug,
+      cloud.result.user.id,
+    )
+
+    await hydrateSchoolFromSupabase(db, slug)
+    try {
+      await pullSchoolDbToLocal(slug)
+    } catch (err) {
+      console.warn('[login] pull cloud db non bloquant:', err)
+    }
+
+    const user: AuthUser = {
+      id: localUserId,
+      role: cloud.result.user.role,
+      ecole_id: ecoleId,
+      ecole_slug: slug,
+      nom: cloud.result.user.nom,
+      prenom: cloud.result.user.prenom ?? null,
+      auth_source: 'local',
+      account_id: cloud.result.user.account_id,
+    }
     const token = await signToken(user)
     return { token, user }
   }

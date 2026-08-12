@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyToken } from '@/lib/auth'
 import { getDb, getActiveAnneeScolaire } from '@/lib/db-server'
-import { prepareSchoolDb, resolveActiveLicence } from '@/lib/school-db'
+import { prepareSchoolDb, resolveActiveLicence, ensureLocalLicenceFromCloud } from '@/lib/school-db'
 import { SchoolProvider } from '@/components/layout/SchoolProvider'
 import AppShell from '@/components/layout/AppShell'
 
@@ -33,8 +33,13 @@ export default async function SlugLayout({
     }
   }
 
-  if (process.env.VERCEL && payload.ecole_slug) {
-    await prepareSchoolDb(payload.ecole_slug)
+  if (payload.ecole_slug) {
+    if (process.env.VERCEL) {
+      await prepareSchoolDb(payload.ecole_slug)
+    } else {
+      const dbPre = getDb(slug)
+      await ensureLocalLicenceFromCloud(dbPre, payload.ecole_slug)
+    }
   }
 
   const db = getDb(slug)

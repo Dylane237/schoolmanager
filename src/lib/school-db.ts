@@ -366,6 +366,9 @@ export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
     const classesHydrated = await hydrateClassesFromCloud(db, ecoleSlug)
     if (classesHydrated) markSchoolDbDirty(ecoleSlug)
 
+    const elevesHydrated = await hydrateElevesFromCloud(db, ecoleSlug)
+    if (elevesHydrated) markSchoolDbDirty(ecoleSlug)
+
     return
   }
 
@@ -458,6 +461,72 @@ async function hydrateClassesFromCloud(
     )
   }
   return true
+}
+
+/** Restaure les élèves depuis cloud_eleves si la base locale est vide (web). */
+async function hydrateElevesFromCloud(
+  db: Database.Database,
+  ecoleSlug: string,
+): Promise<boolean> {
+  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecole) return false
+
+  const localCount = (db.prepare(
+    'SELECT COUNT(*) as c FROM eleves WHERE ecole_id = ?',
+  ).get(ecole.id) as { c: number }).c
+  if (localCount > 0) return false
+
+  const { fetchCloudEleves } = await import('./cloud-read')
+  const cloudEleves = await fetchCloudEleves(ecoleSlug)
+  if (!cloudEleves.length) return false
+
+  const insertEleve = db.prepare(`
+    INSERT OR IGNORE INTO eleves (
+      id, ecole_id, classe_id, numero_matricule, nom, prenom,
+      sexe, section, statut, date_naissance
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  const insertParent = db.prepare(`
+    INSERT OR IGNORE INTO parents (eleve_id, nom, telephone, lien, est_principal)
+    VALUES (?, ?, ?, 'tuteur', 1)
+  `)
+
+  for (const e of cloudEleves) {
+    let classeId = e.classe_id
+    if (classeId) {
+      const classe = db.prepare(
+        'SELECT id FROM classes WHERE id = ? AND ecole_id = ?',
+      ).get(classeId, ecole.id)
+      if (!classe) classeId = null
+    }
+
+    insertEleve.run(
+      e.id,
+      ecole.id,
+      classeId,
+      e.numero_matricule,
+      e.nom,
+      e.prenom,
+      e.sexe,
+      e.section,
+      e.statut ?? 'actif',
+      e.date_naissance,
+    )
+    if (e.parent_nom && e.parent_telephone) {
+      insertParent.run(e.id, e.parent_nom, e.parent_telephone)
+    }
+  }
+  return true
+}
+
+/** Hydrate classes + élèves depuis les tables cloud_* si la base locale est vide. */
+export async function hydrateStructuredSchoolData(
+  db: Database.Database,
+  ecoleSlug: string,
+): Promise<boolean> {
+  const classes = await hydrateClassesFromCloud(db, ecoleSlug)
+  const eleves = await hydrateElevesFromCloud(db, ecoleSlug)
+  return classes || eleves
 }
 
 /** Marque la base dirty, flush blob + sync structurée (web/desktop). */
