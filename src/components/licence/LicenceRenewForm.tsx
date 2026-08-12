@@ -31,7 +31,7 @@ export default function LicenceRenewForm() {
       }
       toast.success(t('toasts.success'))
       router.refresh()
-      window.location.href = '/'
+      window.location.href = data.redirectTo || '/'
     } catch {
       toast.error(t('toasts.networkError'))
     } finally {

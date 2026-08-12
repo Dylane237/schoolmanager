@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify, SignJWT } from 'jose'
 import bcrypt from 'bcryptjs'
 import { getDb } from './db-server'
-import { getJwtSecret, getJwtSecretKey } from './secrets'
+import { getJwtSecretKey } from './secrets'
 import { getMachineFingerprint } from './paths'
 import { runtimeEnv } from './runtime-env'
 import {
@@ -10,6 +10,8 @@ import {
   markSchoolDbDirty,
   scheduleSchoolDbFlush,
   resolveEcoleId,
+  ensureCloudLoginSchoolData,
+  flushSchoolDb,
 } from './school-db'
 
 export const JWT_EXPIRY = '8h'
@@ -130,7 +132,14 @@ export async function loginUser(email: string, password: string) {
     const slug = cloud.result.user.ecole_slug!
     await prepareSchoolDb(slug)
     const db = getDb(slug)
-    const ecoleId = resolveEcoleId(db, slug, cloud.result.user.ecole_id)
+    const ecoleId = ensureCloudLoginSchoolData(db, slug, cloud.result, normalizedEmail)
+
+    markSchoolDbDirty(slug)
+    try {
+      await flushSchoolDb(slug)
+    } catch (err) {
+      console.warn('[login] sync cloud non bloquante:', err)
+    }
 
     const user: AuthUser = {
       ...cloud.result.user,

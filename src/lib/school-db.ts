@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { after } from 'next/server'
 import type Database from 'better-sqlite3'
+import type { CloudLoginResult } from './cloud-auth'
 import { getDbPathForSlug, getLocalSyncVersionPath } from './paths'
 import {
   downloadSchoolDb,
@@ -36,6 +37,58 @@ export interface CloudRegisterSchoolData {
   password_hash: string
 }
 
+/** Insère ou met à jour la licence active locale (SQLite mémoire / desktop). */
+export function upsertActiveLicenceInDb(
+  db: Database.Database,
+  ecoleId: string,
+  cle_licence: string,
+  plan: string,
+  date_fin: string,
+): void {
+  const cle = cle_licence.trim().toUpperCase()
+  const existingLic = db.prepare(
+    'SELECT id FROM licences WHERE ecole_id = ? AND cle_licence = ?',
+  ).get(ecoleId, cle) as { id: string } | undefined
+
+  if (!existingLic) {
+    db.prepare(`
+      UPDATE licences SET is_active = 0 WHERE ecole_id = ? AND is_active = 1
+    `).run(ecoleId)
+    db.prepare(`
+      INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence, machine_fingerprint)
+      VALUES (?, ?, date('now'), ?, 1, ?, ?)
+    `).run(ecoleId, plan, date_fin, cle, getMachineFingerprint())
+  } else {
+    db.prepare(`
+      UPDATE licences SET is_active = 1, type = ?, date_fin = ?, machine_fingerprint = ?
+      WHERE id = ?
+    `).run(plan, date_fin, getMachineFingerprint(), existingLic.id)
+  }
+
+  db.prepare(`
+    INSERT INTO licence_cache (cle, plan, date_fin, last_verified, is_active)
+    VALUES (?, ?, ?, ?, 1)
+    ON CONFLICT(cle) DO UPDATE SET
+      plan = excluded.plan,
+      date_fin = excluded.date_fin,
+      last_verified = excluded.last_verified,
+      is_active = 1
+  `).run(cle, plan, date_fin, new Date().toISOString())
+}
+
+function ensureAnneeScolaireInDb(db: Database.Database, ecoleId: string): void {
+  const hasAnnee = db.prepare(
+    'SELECT id FROM annees_scolaires WHERE ecole_id = ? LIMIT 1',
+  ).get(ecoleId)
+  if (hasAnnee) return
+
+  const { label, date_debut, date_fin } = getDefaultAnneeScolaireBounds()
+  db.prepare(`
+    INSERT INTO annees_scolaires (ecole_id, label, date_debut, date_fin, is_active)
+    VALUES (?, ?, ?, ?, 1)
+  `).run(ecoleId, label, date_debut, date_fin)
+}
+
 /** Garantit école + licence + admin dans la base locale après inscription cloud (Vercel). */
 export function ensureCloudRegisterSchoolData(
   db: Database.Database,
@@ -62,28 +115,20 @@ export function ensureCloudRegisterSchoolData(
     ecoleId = (db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string }).id
   }
 
-  const hasAnnee = db.prepare('SELECT id FROM annees_scolaires WHERE ecole_id = ? LIMIT 1').get(ecoleId)
-  if (!hasAnnee) {
-    const { label, date_debut, date_fin } = getDefaultAnneeScolaireBounds()
-    db.prepare(`
-      INSERT INTO annees_scolaires (ecole_id, label, date_debut, date_fin, is_active)
-      VALUES (?, ?, ?, ?, 1)
-    `).run(ecoleId, label, date_debut, date_fin)
-  }
+  ensureAnneeScolaireInDb(db, ecoleId)
 
-  const hasLicence = db.prepare(`
-    SELECT id FROM licences WHERE ecole_id = ? AND is_active = 1 LIMIT 1
+  const hasActiveLicence = db.prepare(`
+    SELECT id FROM licences
+    WHERE ecole_id = ? AND is_active = 1 AND date_fin >= date('now')
+    LIMIT 1
   `).get(ecoleId)
-  if (!hasLicence && data.cle_licence && data.date_fin) {
-    db.prepare(`
-      INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence, machine_fingerprint)
-      VALUES (?, ?, date('now'), ?, 1, ?, ?)
-    `).run(
+  if (!hasActiveLicence && data.cle_licence && data.date_fin) {
+    upsertActiveLicenceInDb(
+      db,
       ecoleId,
+      data.cle_licence,
       data.plan ?? 'standard',
       data.date_fin,
-      data.cle_licence.trim().toUpperCase(),
-      getMachineFingerprint(),
     )
   }
 
@@ -100,6 +145,107 @@ export function ensureCloudRegisterSchoolData(
   return ecoleId
 }
 
+/** Garantit école + licence + admin dans la base mémoire après connexion cloud (Vercel). */
+export function ensureCloudLoginSchoolData(
+  db: Database.Database,
+  ecoleSlug: string,
+  login: CloudLoginResult,
+  email: string,
+): string {
+  let ecoleId: string
+
+  const existing = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (existing) {
+    ecoleId = existing.id
+  } else {
+    db.prepare(`
+      INSERT INTO ecoles (nom, slug, telephone, directeur_nom, sections, email)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      login.ecole_nom,
+      ecoleSlug,
+      login.telephone ?? null,
+      login.directeur_nom ?? login.user.nom,
+      JSON.stringify(login.sections ?? ['francophone']),
+      email,
+    )
+    ecoleId = (db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string }).id
+  }
+
+  ensureAnneeScolaireInDb(db, ecoleId)
+
+  if (login.cle_licence && login.licence_plan && login.licence_date_fin) {
+    upsertActiveLicenceInDb(
+      db,
+      ecoleId,
+      login.cle_licence,
+      login.licence_plan,
+      login.licence_date_fin,
+    )
+  }
+
+  const hasAdmin = db.prepare(`
+    SELECT id FROM users WHERE ecole_id = ? AND role = 'admin' LIMIT 1
+  `).get(ecoleId)
+  if (!hasAdmin) {
+    db.prepare(`
+      INSERT INTO users (email, password_hash, nom, role, ecole_id)
+      VALUES (?, ?, ?, 'admin', ?)
+    `).run(
+      email,
+      login.password_hash,
+      login.user.nom ?? login.directeur_nom ?? 'Admin',
+      ecoleId,
+    )
+  }
+
+  return ecoleId
+}
+
+/** Complète la licence locale depuis Supabase si absente ou expirée (buffer cloud obsolète). */
+export async function ensureLocalLicenceFromCloud(
+  db: Database.Database,
+  ecoleSlug: string,
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false
+
+  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecole) return false
+
+  const localLicence = db.prepare(`
+    SELECT id FROM licences
+    WHERE ecole_id = ? AND is_active = 1 AND date_fin >= date('now')
+    LIMIT 1
+  `).get(ecole.id)
+  if (localLicence) return false
+
+  const { getSupabaseAdmin } = await import('./supabase-admin')
+  const supabase = getSupabaseAdmin()!
+
+  const { data: licence } = await supabase
+    .from('licences')
+    .select('cle_licence, type, date_fin, is_active')
+    .eq('ecole_slug', ecoleSlug)
+    .eq('is_active', true)
+    .order('date_fin', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!licence?.cle_licence || !licence.date_fin) return false
+
+  const today = new Date().toISOString().split('T')[0]
+  if (licence.date_fin < today) return false
+
+  upsertActiveLicenceInDb(
+    db,
+    ecole.id,
+    licence.cle_licence,
+    licence.type ?? 'standard',
+    licence.date_fin,
+  )
+  return true
+}
+
 /** Ouvre / télécharge la base école (web ou desktop après pull). */
 export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
   if (process.env.VERCEL) {
@@ -114,16 +260,20 @@ export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
       buffer = await downloadSchoolDbBuffer(ecoleSlug)
     }
 
+    let db: Database.Database
     if (buffer && buffer.length > 0) {
-      await openVercelSchoolDb(ecoleSlug, { buffer })
+      db = await openVercelSchoolDb(ecoleSlug, { buffer })
       if (cloudMeta) markLocalSynced(ecoleSlug, cloudMeta.version)
     } else {
-      await openVercelSchoolDb(ecoleSlug, {
-        provision: async (db) => {
-          await provisionSchoolDbFromCloud(db, ecoleSlug)
+      db = await openVercelSchoolDb(ecoleSlug, {
+        provision: async (provisionDb) => {
+          await provisionSchoolDbFromCloud(provisionDb, ecoleSlug)
         },
       })
     }
+
+    const licenceSynced = await ensureLocalLicenceFromCloud(db, ecoleSlug)
+    if (licenceSynced) markSchoolDbDirty(ecoleSlug)
 
     preparedSlugs.add(ecoleSlug)
     return
@@ -193,37 +343,30 @@ async function provisionSchoolDbFromCloud(
 
   if (!ecole) return
 
-  const existing = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug)
-  if (existing) return
-
-  db.prepare(`
-    INSERT INTO ecoles (nom, slug, telephone, directeur_nom, sections)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(
-    ecole.nom,
-    ecoleSlug,
-    ecole.telephone ?? null,
-    ecole.directeur_nom ?? null,
-    JSON.stringify(['francophone']),
-  )
-
-  const ecoleRow = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string }
-  const { label, date_debut, date_fin } = getDefaultAnneeScolaireBounds()
-  db.prepare(`
-    INSERT INTO annees_scolaires (ecole_id, label, date_debut, date_fin, is_active)
-    VALUES (?, ?, ?, ?, 1)
-  `).run(ecoleRow.id, label, date_debut, date_fin)
-
-  if (licence?.cle_licence) {
+  let ecoleRow = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecoleRow) {
     db.prepare(`
-      INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence, machine_fingerprint)
-      VALUES (?, ?, date('now'), ?, 1, ?, ?)
+      INSERT INTO ecoles (nom, slug, telephone, directeur_nom, sections)
+      VALUES (?, ?, ?, ?, ?)
     `).run(
+      ecole.nom,
+      ecoleSlug,
+      ecole.telephone ?? null,
+      ecole.directeur_nom ?? null,
+      JSON.stringify(['francophone']),
+    )
+    ecoleRow = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string }
+  }
+
+  ensureAnneeScolaireInDb(db, ecoleRow.id)
+
+  if (licence?.cle_licence && licence.date_fin) {
+    upsertActiveLicenceInDb(
+      db,
       ecoleRow.id,
+      licence.cle_licence,
       licence.type ?? 'standard',
       licence.date_fin,
-      licence.cle_licence,
-      getMachineFingerprint(),
     )
   }
 
@@ -241,10 +384,15 @@ async function provisionSchoolDbFromCloud(
       .maybeSingle()
 
     if (account) {
-      db.prepare(`
-        INSERT INTO users (email, password_hash, nom, role, ecole_id)
-        VALUES (?, ?, ?, 'admin', ?)
-      `).run(account.email, account.password_hash, cloudUsers[0].nom ?? 'Admin', ecoleRow.id)
+      const hasAdmin = db.prepare(`
+        SELECT id FROM users WHERE ecole_id = ? AND role = 'admin' LIMIT 1
+      `).get(ecoleRow.id)
+      if (!hasAdmin) {
+        db.prepare(`
+          INSERT INTO users (email, password_hash, nom, role, ecole_id)
+          VALUES (?, ?, ?, 'admin', ?)
+        `).run(account.email, account.password_hash, cloudUsers[0].nom ?? 'Admin', ecoleRow.id)
+      }
     }
   }
 }

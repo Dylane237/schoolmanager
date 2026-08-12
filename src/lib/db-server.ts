@@ -18,6 +18,10 @@ export {
   resolveEcoleId,
   pullSchoolDbToLocal,
   pushSchoolDbFromLocal,
+  ensureCloudLoginSchoolData,
+  ensureCloudRegisterSchoolData,
+  upsertActiveLicenceInDb,
+  ensureLocalLicenceFromCloud,
 } from './school-db'
 
 /** Prépare la base école et retourne db + ecoleId résolus. */

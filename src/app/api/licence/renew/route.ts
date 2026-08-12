@@ -4,10 +4,11 @@ import { getDb } from '@/lib/db-server'
 import { requireModule } from '@/lib/rbac.server'
 import { getMachineFingerprint } from '@/lib/paths'
 import { LICENCE_SERVER_URL } from '@/lib/licence-server'
+import { markSchoolDbDirty, flushSchoolDb, resolveEcoleId, upsertActiveLicenceInDb } from '@/lib/school-db'
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!user?.ecole_slug) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'parametres', 'POST')
   if (denied) return denied
@@ -22,8 +23,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Clé de licence requise' }, { status: 400 })
   }
 
-  const db = getDb()
-  const ecole = db.prepare('SELECT id, slug, nom FROM ecoles WHERE id = ?').get(user.ecole_id) as {
+  const slug = user.ecole_slug
+  const db = getDb(slug)
+  const ecoleId = resolveEcoleId(db, slug, user.ecole_id)
+  if (!ecoleId) {
+    return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
+  }
+
+  const ecole = db.prepare('SELECT id, slug, nom FROM ecoles WHERE id = ?').get(ecoleId) as {
     id: string
     slug: string
     nom: string
@@ -62,29 +69,7 @@ export async function POST(request: NextRequest) {
 
   const fingerprint = getMachineFingerprint()
 
-  db.prepare(`
-    UPDATE licences SET is_active = 0 WHERE ecole_id = ? AND is_active = 1
-  `).run(ecole.id)
-
-  db.prepare(`
-    UPDATE licence_cache SET is_active = 0
-    WHERE cle IN (SELECT cle_licence FROM licences WHERE ecole_id = ?)
-  `).run(ecole.id)
-
-  db.prepare(`
-    INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence, machine_fingerprint)
-    VALUES (?, ?, date('now'), ?, 1, ?, ?)
-  `).run(ecole.id, verifyData.plan, verifyData.date_fin, cle, fingerprint)
-
-  db.prepare(`
-    INSERT INTO licence_cache (cle, plan, date_fin, last_verified, is_active)
-    VALUES (?, ?, ?, ?, 1)
-    ON CONFLICT(cle) DO UPDATE SET
-      plan = excluded.plan,
-      date_fin = excluded.date_fin,
-      last_verified = excluded.last_verified,
-      is_active = 1
-  `).run(cle, verifyData.plan, verifyData.date_fin, new Date().toISOString())
+  upsertActiveLicenceInDb(db, ecole.id, cle, verifyData.plan, verifyData.date_fin)
 
   try {
     await fetch(`${LICENCE_SERVER_URL}/api/auth/use-licence`, {
@@ -105,10 +90,20 @@ export async function POST(request: NextRequest) {
     console.warn('[licence/renew] use-licence failed (non bloquant):', e)
   }
 
+  markSchoolDbDirty(slug)
+  if (process.env.VERCEL) {
+    try {
+      await flushSchoolDb(slug)
+    } catch (err) {
+      console.warn('[licence/renew] sync cloud non bloquante:', err)
+    }
+  }
+
   return NextResponse.json({
     success: true,
     plan: verifyData.plan,
     dateFin: verifyData.date_fin,
     message: verifyData.message,
+    redirectTo: `/${slug}/dashboard`,
   })
 }
