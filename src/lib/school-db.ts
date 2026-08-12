@@ -789,6 +789,17 @@ export async function pushSchoolDbFromLocal(
 
   if (!fs.existsSync(dbPath)) return { ok: false, error: 'Base locale introuvable' }
 
+  const buffer = fs.readFileSync(dbPath)
+  const { shouldSkipBlobRegression, syncStructuredAfterBlobUpload } = await import('./structured-sync')
+  if (await shouldSkipBlobRegression(ecoleSlug, buffer)) {
+    recordSyncEvent(
+      ecoleSlug,
+      'push_fail',
+      'Upload blob refusé: base locale vide alors que le cloud contient déjà des élèves',
+    )
+    return { ok: false, error: 'Base locale vide — utilisez « Garder le cloud » ou restaurez une sauvegarde' }
+  }
+
   const result = await uploadSchoolDb(ecoleSlug, dbPath)
   if (result.ok && result.version) {
     fs.writeFileSync(getLocalSyncVersionPath(ecoleSlug), String(result.version))
@@ -800,6 +811,8 @@ export async function pushSchoolDbFromLocal(
     const dbReloaded = getDbForSlug(ecoleSlug)
     const ecole = dbReloaded.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
     if (ecole?.id) await pushSchoolUploads(ecoleSlug, ecole.id).catch(() => {})
+
+    await syncStructuredAfterBlobUpload(ecoleSlug, buffer)
   } else if (result.error && !result.skipped) {
     recordSyncError(ecoleSlug, result.error)
     recordSyncEvent(ecoleSlug, 'push_fail', result.error)
