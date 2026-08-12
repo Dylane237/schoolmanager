@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
   }
 
-  let body: { decisions: MergeDecision[] }
+  let body: { decisions: MergeDecision[]; allow_destructive?: boolean }
   try {
     body = await request.json()
   } catch {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     choices[`${d.entity_type}:${d.entity_id}`] = d.choice
   }
 
-  const preview = computeMergePreview(diff.items, choices)
+  const preview = computeMergePreview(diff.items, choices, body.allow_destructive === true)
 
   return NextResponse.json({ preview, diff_summary: diff.summary })
 }

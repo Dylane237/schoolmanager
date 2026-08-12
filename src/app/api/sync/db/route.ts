@@ -21,9 +21,19 @@ type SyncStrategy = 'keep_local' | 'keep_cloud'
 async function runSchoolDbSync(
   slug: string,
   ecoleId: string | null | undefined,
-  body: { strategy?: SyncStrategy },
+  body: { strategy?: SyncStrategy; allow_destructive?: boolean },
 ) {
   let strategy = body.strategy
+
+  if (strategy && !body.allow_destructive) {
+    return {
+      status: 400 as const,
+      body: {
+        error: 'Sync globale bloquée en mode additif. Utilisez le merge granulaire dans Données, ou confirmez allow_destructive.',
+        use_granular_merge: true,
+      },
+    }
+  }
 
   const force = strategy === 'keep_local'
   const pullForce = strategy === 'keep_cloud'
@@ -116,7 +126,7 @@ export async function POST(request: NextRequest) {
   if (denied) return denied
 
   const slug = user.ecole_slug
-  let body: { strategy?: SyncStrategy } = {}
+  let body: { strategy?: SyncStrategy; allow_destructive?: boolean } = {}
   try {
     body = await request.json()
   } catch {

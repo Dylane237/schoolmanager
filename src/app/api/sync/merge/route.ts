@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
   }
 
-  let body: { decisions: MergeDecision[] }
+  let body: { decisions: MergeDecision[]; allow_destructive?: boolean }
   try {
     body = await request.json()
   } catch {
@@ -32,7 +32,14 @@ export async function POST(request: NextRequest) {
   }
 
   const result = await withSchoolSyncLock(ecoleSlug, async () => {
-    const merge = await applyMergeDecisions(db, ecoleId, ecoleSlug, body.decisions)
+    const merge = await applyMergeDecisions(
+      db,
+      ecoleId,
+      ecoleSlug,
+      body.decisions,
+      undefined,
+      { allowDestructive: body.allow_destructive === true },
+    )
     const diff = await computeSyncDiff(db, ecoleId, ecoleSlug)
     return { ...merge, diff }
   })
@@ -41,6 +48,7 @@ export async function POST(request: NextRequest) {
     success: result.errors.length === 0 && result.applied > 0,
     applied: result.applied,
     skipped: result.skipped,
+    blocked: result.blocked,
     errors: result.errors,
     diff: result.diff,
   })

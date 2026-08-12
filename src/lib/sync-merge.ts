@@ -233,16 +233,24 @@ function removeLocalClasse(db: Database.Database, ecoleId: string, entityId: str
   db.prepare('DELETE FROM classes WHERE id = ? AND ecole_id = ?').run(entityId, ecoleId)
 }
 
+export type MergeApplyOptions = {
+  /** false par défaut — aucune suppression locale sans opt-in explicite */
+  allowDestructive?: boolean
+}
+
 export async function applyMergeDecisions(
   db: Database.Database,
   ecoleId: string,
   ecoleSlug: string,
   decisions: MergeDecision[],
   kindByKey?: Map<string, SyncDiffKind>,
-): Promise<{ applied: number; skipped: number; errors: string[] }> {
+  options: MergeApplyOptions = {},
+): Promise<{ applied: number; skipped: number; errors: string[]; blocked: number }> {
   let applied = 0
   let skipped = 0
+  let blocked = 0
   const errors: string[] = []
+  const allowDestructive = options.allowDestructive ?? false
 
   if (!kindByKey) {
     const { computeSyncDiff } = await import('./sync-diff')
@@ -270,21 +278,43 @@ export async function applyMergeDecisions(
       let err: string | null = null
 
       if (isBlobEntityType(d.entity_type)) {
+        if (kind === 'local_only' && d.choice === 'cloud' && !allowDestructive) {
+          blocked += 1
+          skipped += 1
+          continue
+        }
         err = await applyBlobMergeDecision(
           db, cloudDb, ecoleId, cloudEcoleId,
           d.entity_type, d.entity_id, d.choice, kind,
+          allowDestructive,
         )
       } else if (d.entity_type === 'eleve') {
         if (d.choice === 'cloud') {
-          if (kind === 'local_only') removeLocalEleve(db, ecoleId, d.entity_id)
-          else err = await applyCloudEleveToLocal(db, ecoleId, ecoleSlug, d.entity_id)
+          if (kind === 'local_only') {
+            if (!allowDestructive) {
+              blocked += 1
+              skipped += 1
+              continue
+            }
+            removeLocalEleve(db, ecoleId, d.entity_id)
+          } else {
+            err = await applyCloudEleveToLocal(db, ecoleId, ecoleSlug, d.entity_id)
+          }
         } else if (d.choice === 'local') {
           if (kind !== 'cloud_only') err = await applyLocalEleveToCloud(db, ecoleId, ecoleSlug, d.entity_id)
         }
       } else if (d.entity_type === 'classe') {
         if (d.choice === 'cloud') {
-          if (kind === 'local_only') removeLocalClasse(db, ecoleId, d.entity_id)
-          else err = await applyCloudClasseToLocal(db, ecoleId, ecoleSlug, d.entity_id)
+          if (kind === 'local_only') {
+            if (!allowDestructive) {
+              blocked += 1
+              skipped += 1
+              continue
+            }
+            removeLocalClasse(db, ecoleId, d.entity_id)
+          } else {
+            err = await applyCloudClasseToLocal(db, ecoleId, ecoleSlug, d.entity_id)
+          }
         } else if (d.choice === 'local') {
           if (kind !== 'cloud_only') err = await applyLocalClasseToCloud(db, ecoleId, ecoleSlug, d.entity_id)
         }
@@ -304,5 +334,5 @@ export async function applyMergeDecisions(
     await pushSchoolDataFromEcoleIdAsync(ecoleId, ecoleSlug)
   }
 
-  return { applied, skipped, errors }
+  return { applied, skipped, errors, blocked }
 }

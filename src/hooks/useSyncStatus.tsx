@@ -29,7 +29,7 @@ type SyncStatusContextValue = {
   lastError: string | null
   lastSyncAt: string | null
   refresh: () => Promise<void>
-  runSync: (strategy?: 'keep_local' | 'keep_cloud', options?: { silent?: boolean }) => Promise<boolean>
+  runSync: (strategy?: 'keep_local' | 'keep_cloud', options?: { silent?: boolean; allowDestructive?: boolean }) => Promise<boolean>
   setSyncing: (syncing: boolean) => void
 }
 
@@ -84,7 +84,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
 
   const runSync = useCallback(async (
     strategy?: 'keep_local' | 'keep_cloud',
-    options?: { silent?: boolean },
+    options?: { silent?: boolean; allowDestructive?: boolean },
   ) => {
     if (!canSync) return false
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -97,7 +97,9 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
       const res = await fetch('/api/sync/db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(strategy ? { strategy } : {}),
+        body: JSON.stringify(strategy
+          ? { strategy, allow_destructive: options?.allowDestructive === true }
+          : {}),
       })
       const data = await res.json()
 

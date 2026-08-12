@@ -72,15 +72,25 @@ export default function DonneesPage() {
   }, [canSync])
 
   const handleSyncNow = async (strategy?: 'keep_local' | 'keep_cloud') => {
+    if (strategy) {
+      const confirmed = window.confirm(
+        strategy === 'keep_cloud'
+          ? tSync('confirmKeepCloudDestructive')
+          : tSync('confirmKeepLocalDestructive'),
+      )
+      if (!confirmed) return
+    }
     setSyncing(true)
     try {
       const ok = syncContext
-        ? await syncContext.runSync(strategy)
+        ? await syncContext.runSync(strategy, { allowDestructive: Boolean(strategy) })
         : await (async () => {
           const res = await fetch('/api/sync/db', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(strategy ? { strategy } : {}),
+            body: JSON.stringify(strategy
+              ? { strategy, allow_destructive: true }
+              : {}),
           })
           const data = await res.json()
           if (!res.ok) {
@@ -188,20 +198,28 @@ export default function DonneesPage() {
                 </button>
                 {(syncStatus?.conflict || syncStatus?.sync_state === 'conflict') && (
                   <div className="flex flex-col gap-2 w-full sm:w-auto">
-                    <button
-                      onClick={() => handleSyncNow('keep_local')}
-                      disabled={syncing}
-                      className="btn-secondary text-sm"
-                    >
-                      {tSync('resolveKeepLocal')}
-                    </button>
-                    <button
-                      onClick={() => handleSyncNow('keep_cloud')}
-                      disabled={syncing}
-                      className="btn-secondary text-sm"
-                    >
-                      {tSync('resolveKeepCloud')}
-                    </button>
+                    <p className="text-xs text-amber-700">{tSync('preferGranular')}</p>
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-slate-500 hover:text-slate-700">
+                        {tSync('advancedGlobalSync')}
+                      </summary>
+                      <div className="flex flex-col gap-2 mt-2">
+                        <button
+                          onClick={() => handleSyncNow('keep_local')}
+                          disabled={syncing}
+                          className="btn-secondary text-sm"
+                        >
+                          {tSync('resolveKeepLocal')}
+                        </button>
+                        <button
+                          onClick={() => handleSyncNow('keep_cloud')}
+                          disabled={syncing}
+                          className="btn-secondary text-sm"
+                        >
+                          {tSync('resolveKeepCloud')}
+                        </button>
+                      </div>
+                    </details>
                   </div>
                 )}
               </div>

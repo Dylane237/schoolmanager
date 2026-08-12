@@ -51,6 +51,7 @@ export default function SyncConflictPanel({
   const [loading, setLoading] = useState(true)
   const [merging, setMerging] = useState(false)
   const [choices, setChoices] = useState<Record<string, MergeChoice>>({})
+  const [allowDestructive, setAllowDestructive] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -81,8 +82,8 @@ export default function SyncConflictPanel({
 
   const preview = useMemo(() => {
     if (!data?.diff.items.length) return null
-    return computeMergePreview(data.diff.items, choices)
-  }, [data?.diff.items, choices])
+    return computeMergePreview(data.diff.items, choices, allowDestructive)
+  }, [data?.diff.items, choices, allowDestructive])
 
   const applyMerge = async () => {
     setMerging(true)
@@ -124,7 +125,7 @@ export default function SyncConflictPanel({
         return
       }
 
-      const previewFresh = computeMergePreview(items, freshChoices)
+      const previewFresh = computeMergePreview(items, freshChoices, allowDestructive)
       if (previewFresh.desktop_losses > 0) {
         const ok = window.confirm(t('confirmLosses', { count: previewFresh.desktop_losses }))
         if (!ok) return
@@ -133,14 +134,17 @@ export default function SyncConflictPanel({
       const res = await fetch('/api/sync/merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decisions }),
+        body: JSON.stringify({ decisions, allow_destructive: allowDestructive }),
       })
       const json = await res.json()
       const hasHardErrors = json.errors?.length > 0
       if (!res.ok || (hasHardErrors && !json.applied)) {
         toast.error(json.errors?.[0] ?? t('mergeError'))
       } else {
-        toast.success(t('mergeSuccess', { count: json.applied ?? 0 }))
+        const msg = json.blocked > 0
+          ? t('mergePartial', { applied: json.applied ?? 0, blocked: json.blocked })
+          : t('mergeSuccess', { count: json.applied ?? 0 })
+        toast.success(msg)
         await load()
         onResolved?.()
       }
@@ -176,6 +180,7 @@ export default function SyncConflictPanel({
           <div>
             <p className="font-medium text-amber-900">{t('title')}</p>
             <p className="text-sm text-amber-800 mt-1">{t('subtitle')}</p>
+            <p className="text-xs text-emerald-700 mt-1 font-medium">{t('additiveMode')}</p>
             <p className="text-xs text-amber-700 mt-2">
               {t('summary', {
                 local: data.diff.summary.local_only,
@@ -206,8 +211,17 @@ export default function SyncConflictPanel({
 
       {data.diff.items.length > 0 && (
         <div className="border border-slate-200 rounded-lg overflow-hidden">
-          <div className="px-4 py-2 bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
-            {t('diffTitle')}
+          <div className="px-4 py-2 bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide flex flex-wrap items-center justify-between gap-2">
+            <span>{t('diffTitle')}</span>
+            <label className="normal-case font-normal flex items-center gap-1.5 text-slate-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allowDestructive}
+                onChange={e => setAllowDestructive(e.target.checked)}
+                className="rounded border-slate-300"
+              />
+              {t('allowDestructive')}
+            </label>
           </div>
           <ul className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
             {data.diff.items.map(item => {
@@ -228,7 +242,11 @@ export default function SyncConflictPanel({
                       <ChoiceButton active={choice === 'local'} onClick={() => setChoice(item, 'local')}>
                         {t('keepLocal')}
                       </ChoiceButton>
-                      <ChoiceButton active={choice === 'cloud'} onClick={() => setChoice(item, 'cloud')}>
+                      <ChoiceButton
+                        active={choice === 'cloud'}
+                        disabled={item.kind === 'local_only' && !allowDestructive}
+                        onClick={() => setChoice(item, 'cloud')}
+                      >
                         {t('keepCloud')}
                       </ChoiceButton>
                       <ChoiceButton active={choice === 'skip'} onClick={() => setChoice(item, 'skip')}>
@@ -336,10 +354,12 @@ function JournalColumn({
 
 function ChoiceButton({
   active,
+  disabled,
   onClick,
   children,
 }: {
   active: boolean
+  disabled?: boolean
   onClick: () => void
   children: React.ReactNode
 }) {
@@ -347,7 +367,8 @@ function ChoiceButton({
     <button
       type="button"
       onClick={onClick}
-      className={`px-2 py-1 rounded text-xs border transition-colors ${
+      disabled={disabled}
+      className={`px-2 py-1 rounded text-xs border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
         active
           ? 'bg-slate-800 text-white border-slate-800'
           : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'

@@ -128,6 +128,7 @@ export async function applyBlobMergeDecision(
   entity_id: string,
   choice: 'local' | 'cloud',
   kind: 'local_only' | 'cloud_only' | 'both_modified',
+  allowDestructive = false,
 ): Promise<string | null> {
   if (choice === 'local') {
     if (kind === 'cloud_only') return null
@@ -136,6 +137,7 @@ export async function applyBlobMergeDecision(
 
   // choice === 'cloud'
   if (kind === 'local_only') {
+    if (!allowDestructive) return null
     if (entity_type === 'paiement') removeLocalPaiement(localDb, ecoleId, entity_id)
     else if (entity_type === 'note') removeLocalNote(localDb, ecoleId, entity_id)
     else if (entity_type === 'tranche') return removeLocalTranche(localDb, ecoleId, entity_id)

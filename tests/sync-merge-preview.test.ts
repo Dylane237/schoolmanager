@@ -15,9 +15,16 @@ describe('computeMergePreview', () => {
   }
 
   it('prévient la perte bureau si cloud choisi sur local_only', () => {
-    const preview = computeMergePreview([item], { 'paiement:p1': 'cloud' })
+    const preview = computeMergePreview([item], { 'paiement:p1': 'cloud' }, true)
     expect(preview.desktop_losses).toBeGreaterThan(0)
     expect(preview.lines[0].desktop_will).toContain('Perdra')
+  })
+
+  it('mode additif : pas de perte si cloud sur local_only', () => {
+    const preview = computeMergePreview([item], { 'paiement:p1': 'cloud' }, false)
+    expect(preview.desktop_losses).toBe(0)
+    expect(preview.blocked).toBe(1)
+    expect(preview.lines[0].blocked).toBe(true)
   })
 
   it('prévient push web si local choisi sur local_only', () => {
