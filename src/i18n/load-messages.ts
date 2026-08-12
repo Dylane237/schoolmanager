@@ -1,4 +1,4 @@
-import type { Locale } from '../config'
+import type { Locale } from './config'
 import frMessages from '@/i18n/catalogs/fr'
 import enMessages from '@/i18n/catalogs/en'
 
