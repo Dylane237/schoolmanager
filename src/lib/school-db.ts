@@ -204,6 +204,33 @@ export function ensureCloudLoginSchoolData(
   return ecoleId
 }
 
+/** ID utilisateur SQLite pour les FK (JWT cloud ≠ users.id local). */
+export function resolveLocalUserId(
+  db: Database.Database,
+  ecoleId: string,
+  user: { id: string; role: string },
+): string {
+  const byId = db.prepare('SELECT id FROM users WHERE id = ?').get(user.id) as { id: string } | undefined
+  if (byId) return byId.id
+
+  const byRole = db.prepare(`
+    SELECT id FROM users
+    WHERE ecole_id = ? AND role = ?
+    ORDER BY created_at ASC
+    LIMIT 1
+  `).get(ecoleId, user.role) as { id: string } | undefined
+  if (byRole) return byRole.id
+
+  const anyUser = db.prepare(`
+    SELECT id FROM users WHERE ecole_id = ?
+    ORDER BY created_at ASC
+    LIMIT 1
+  `).get(ecoleId) as { id: string } | undefined
+  if (anyUser) return anyUser.id
+
+  return user.id
+}
+
 /** Complète école + licence + admin depuis Supabase (idempotent, Vercel). */
 export async function hydrateSchoolFromSupabase(
   db: Database.Database,

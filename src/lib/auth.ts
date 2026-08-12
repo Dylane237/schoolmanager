@@ -10,6 +10,7 @@ import {
   markSchoolDbDirty,
   scheduleSchoolDbFlush,
   resolveEcoleId,
+  resolveLocalUserId,
   ensureCloudLoginSchoolData,
   flushSchoolDb,
   hydrateSchoolFromSupabase,
@@ -57,12 +58,19 @@ export async function getUserFromRequest(request?: NextRequest): Promise<JwtPayl
   const user = await verifyToken(token)
   if (!user) return null
 
-  if (process.env.VERCEL === '1' && user.ecole_slug) {
-    await prepareSchoolDb(user.ecole_slug)
+  if (user.ecole_slug) {
+    if (process.env.VERCEL === '1') {
+      await prepareSchoolDb(user.ecole_slug)
+    }
     const db = getDb(user.ecole_slug)
     const resolved = resolveEcoleId(db, user.ecole_slug, user.ecole_id)
-    if (resolved) user.ecole_id = resolved
-    scheduleSchoolDbFlush(user.ecole_slug)
+    if (resolved) {
+      user.ecole_id = resolved
+      user.id = resolveLocalUserId(db, resolved, user)
+    }
+    if (process.env.VERCEL === '1') {
+      scheduleSchoolDbFlush(user.ecole_slug)
+    }
   }
 
   if (user.ecole_slug && request && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
@@ -136,6 +144,18 @@ export async function loginUser(email: string, password: string) {
     const db = getDb(slug)
     const ecoleId = ensureCloudLoginSchoolData(db, slug, cloud.result, normalizedEmail)
 
+    const { provisionLocalUser } = await import('./local-provision')
+    const localUserId = provisionLocalUser(
+      db,
+      ecoleId,
+      normalizedEmail,
+      cloud.result.password_hash,
+      cloud.result.user.nom ?? 'Admin',
+      cloud.result.user.account_id,
+      slug,
+      cloud.result.user.id,
+    )
+
     markSchoolDbDirty(slug)
     try {
       await flushSchoolDb(slug)
@@ -145,6 +165,7 @@ export async function loginUser(email: string, password: string) {
 
     const user: AuthUser = {
       ...cloud.result.user,
+      id: localUserId,
       ecole_id: ecoleId,
       auth_source: 'cloud',
     }

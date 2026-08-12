@@ -42,6 +42,37 @@ describe('API POST /api/paiements (intégration SQLite)', () => {
     setTestDb(null)
   })
 
+  it('accepte un JWT cloud id en mappant vers users.id local', async () => {
+    const cloudUserId = 'cloud-user-uuid-not-in-sqlite'
+    const token = await signToken({
+      id: cloudUserId,
+      role: 'admin',
+      ecole_id: TEST_ECOLE_ID,
+      ecole_slug: TEST_SLUG,
+      nom: 'Admin Test',
+      auth_source: 'cloud',
+    })
+    const res = await POST(new NextRequest('http://localhost/api/paiements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: `${COOKIE_NAME}=${token}`,
+      },
+      body: JSON.stringify({
+        eleve_id: TEST_ELEVE_ID,
+        tranche_numero: 1,
+        montant: 25000,
+        mode_paiement: 'especes',
+      }),
+    }))
+
+    expect(res.status).toBe(200)
+    const paiement = testDb.prepare(
+      'SELECT enregistre_par FROM paiements WHERE ecole_id = ?',
+    ).get(TEST_ECOLE_ID) as { enregistre_par: string }
+    expect(paiement.enregistre_par).toBe(TEST_USER_ID)
+  })
+
   it('enregistre un paiement tranche et crée une entrée audit', async () => {
     const res = await postPaiement({
       eleve_id: TEST_ELEVE_ID,

@@ -101,8 +101,20 @@ async function registerOnCloud(body: Record<string, unknown>) {
     console.warn('[register] sync cloud non bloquante:', err)
   }
 
+  const { provisionLocalUser } = await import('../../../../lib/local-provision')
+  const localUserId = provisionLocalUser(
+    db,
+    ecoleId,
+    email,
+    passwordHash,
+    directeur_nom,
+    created.account_id,
+    finalSlug,
+    created.user_id,
+  )
+
   const token = await signToken({
-    id: created.user_id,
+    id: localUserId,
     role: 'admin',
     ecole_id: ecoleId,
     ecole_slug: finalSlug,
