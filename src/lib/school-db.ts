@@ -16,6 +16,7 @@ import { isSupabaseConfigured } from './supabase-admin'
 import { getDefaultAnneeScolaireBounds } from './school-year'
 import { getMachineFingerprint } from './paths'
 import { setVercelActiveSlug } from './school-db-context'
+import { isVercelRuntime } from './runtime-env'
 import { markLocalEdited, markLocalSynced, recordSyncError } from './sync-meta'
 import { detectSyncConflict } from './sync-conflict'
 import { recordSyncEvent } from './sync-monitor'
@@ -362,7 +363,7 @@ export async function ensureLocalLicenceFromCloud(
 
 /** Ouvre / télécharge la base école (web ou desktop après pull). */
 export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
-  if (process.env.VERCEL) {
+  if (isVercelRuntime()) {
     setVercelActiveSlug(ecoleSlug)
 
     const cloudMeta = isSupabaseConfigured() ? await fetchCloudDbMeta(ecoleSlug) : null
@@ -585,7 +586,7 @@ export function markSchoolDbDirty(ecoleSlug: string): void {
 }
 
 export function scheduleSchoolDbFlush(ecoleSlug: string): void {
-  if (process.env.VERCEL !== '1' || flushScheduled.has(ecoleSlug)) return
+  if (!isVercelRuntime() || flushScheduled.has(ecoleSlug)) return
   flushScheduled.add(ecoleSlug)
 
   try {
@@ -603,7 +604,7 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
   if (!dirtySlugs.has(ecoleSlug)) return
   dirtySlugs.delete(ecoleSlug)
 
-  if (process.env.VERCEL) {
+  if (isVercelRuntime()) {
     const { exportVercelSchoolDbBuffer } = await import('./db')
     const buffer = exportVercelSchoolDbBuffer(ecoleSlug)
     if (!buffer?.length) return
@@ -741,7 +742,7 @@ export async function pushSchoolDbFromLocal(
     }
   }
 
-  if (process.env.VERCEL) {
+  if (isVercelRuntime()) {
     const { exportVercelSchoolDbBuffer } = await import('./db')
     const buffer = exportVercelSchoolDbBuffer(ecoleSlug)
     if (!buffer?.length) return { ok: false, error: 'Base mémoire introuvable' }
