@@ -10,10 +10,10 @@ import {
   markSchoolDbDirty,
 } from '@/lib/db-server'
 import { pushSchoolDataFromEcoleIdAsync } from '@/lib/sync-trigger'
-import { detectSyncConflict, describeSyncSides, resolveAutoSyncStrategy } from '@/lib/sync-conflict'
+import { detectSyncConflict, describeSyncSides } from '@/lib/sync-conflict'
 import { fetchCloudDbMeta } from '@/lib/db-blob-sync'
-import { readLocalSyncMeta, recordAutoResolve } from '@/lib/sync-meta'
-import { getLastSyncEvent, recordSyncEvent } from '@/lib/sync-monitor'
+import { readLocalSyncMeta } from '@/lib/sync-meta'
+import { getLastSyncEvent } from '@/lib/sync-monitor'
 import { withSchoolSyncLock } from '@/lib/sync-lock'
 
 type SyncStrategy = 'keep_local' | 'keep_cloud'
@@ -25,30 +25,11 @@ async function runSchoolDbSync(
 ) {
   let strategy = body.strategy
 
-  if (!strategy && !process.env.VERCEL) {
-    const initial = await detectSyncConflict(slug)
-    if (initial.hasConflict) {
-      const cloudMeta = await fetchCloudDbMeta(slug)
-      strategy = resolveAutoSyncStrategy(initial, cloudMeta?.updated_at ?? null)
-      const localMeta = readLocalSyncMeta(slug)
-      const sides = describeSyncSides(
-        initial,
-        cloudMeta?.updated_at ?? null,
-        localMeta.lastEditAt,
-        localMeta.lastEditSource,
-      )
-      const detail = `${sides.localSummary} | ${sides.cloudSummary} → ${strategy}`
-      recordAutoResolve(slug, strategy, detail)
-      recordSyncEvent(slug, 'conflict', `Auto-résolution: ${detail}`)
-    }
-  }
-
   const force = strategy === 'keep_local'
   const pullForce = strategy === 'keep_cloud'
 
   let pulled = false
   let pullVersion: number | undefined
-  let autoResolved = strategy && !body.strategy ? strategy : undefined
 
   if (!process.env.VERCEL) {
     const pullResult = await pullSchoolDbToLocal(slug, { force: pullForce })
@@ -115,7 +96,6 @@ async function runSchoolDbSync(
       pullVersion,
       pushVersion: pushResult.version,
       synced_at: new Date().toISOString(),
-      auto_resolved: autoResolved,
       conflict,
     },
   }
