@@ -37,7 +37,7 @@ export default async function SlugLayout({
     await prepareSchoolDb(payload.ecole_slug)
   }
 
-  const db = getDb()
+  const db = getDb(slug)
   const ecole = db.prepare('SELECT id, nom, logo_url FROM ecoles WHERE slug = ?').get(slug) as {
     id: string; nom: string; logo_url: string | null
   } | undefined

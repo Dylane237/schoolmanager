@@ -2,7 +2,7 @@ import { describe, it } from 'vitest'
 import { getDb } from '@/lib/db'
 
 describe('db migrate once', () => {
-  it('applies schema and versioned migrations', () => {
+  it.skipIf(Boolean(process.env.VERCEL))('applies schema and versioned migrations', () => {
     const db = getDb()
     const rows = db.prepare('SELECT version, name FROM schema_migrations ORDER BY version').all() as {
       version: number

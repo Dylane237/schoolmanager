@@ -34,34 +34,38 @@ export async function fetchCloudDbMeta(ecoleSlug: string): Promise<CloudDbSnapsh
   return data as CloudDbSnapshotMeta
 }
 
-export async function downloadSchoolDb(ecoleSlug: string, targetPath: string): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false
+export async function downloadSchoolDbBuffer(ecoleSlug: string): Promise<Buffer | null> {
+  if (!isSupabaseConfigured()) return null
 
   const meta = await fetchCloudDbMeta(ecoleSlug)
-  if (!meta) return false
+  if (!meta) return null
 
   const supabase = getSupabaseAdmin()!
   const { data, error } = await supabase.storage
     .from(DB_STORAGE_BUCKET)
     .download(meta.storage_path)
 
-  if (error || !data) return false
+  if (error || !data) return null
+  return Buffer.from(await data.arrayBuffer())
+}
 
-  const buffer = Buffer.from(await data.arrayBuffer())
+export async function downloadSchoolDb(ecoleSlug: string, targetPath: string): Promise<boolean> {
+  const buffer = await downloadSchoolDbBuffer(ecoleSlug)
+  if (!buffer) return false
+
   fs.mkdirSync(path.dirname(targetPath), { recursive: true })
   fs.writeFileSync(targetPath, buffer)
   return true
 }
 
-export async function uploadSchoolDb(
+export async function uploadSchoolDbBuffer(
   ecoleSlug: string,
-  sourcePath: string,
-): Promise<{ ok: boolean; version?: number; error?: string }> {
+  buffer: Buffer,
+): Promise<{ ok: boolean; version?: number; error?: string; skipped?: boolean }> {
   if (!isSupabaseConfigured()) return { ok: false, error: 'Supabase non configuré' }
-  if (!fs.existsSync(sourcePath)) return { ok: false, error: 'Fichier introuvable' }
+  if (!buffer.length) return { ok: false, error: 'Buffer vide' }
 
   const supabase = getSupabaseAdmin()!
-  const buffer = fs.readFileSync(sourcePath)
   const storagePath = storagePathForSlug(ecoleSlug)
   const version = Date.now()
   const checksum = crypto.createHash('sha256').update(buffer).digest('hex')
@@ -71,8 +75,10 @@ export async function uploadSchoolDb(
     .upload(storagePath, buffer, { upsert: true, contentType: 'application/octet-stream' })
 
   if (uploadError) {
-    recordSyncEvent(ecoleSlug, 'push_fail', uploadError.message)
-    return { ok: false, error: uploadError.message }
+    const msg = uploadError.message
+    const bucketMissing = /bucket not found/i.test(msg)
+    recordSyncEvent(ecoleSlug, 'push_fail', msg)
+    return { ok: false, error: msg, skipped: bucketMissing }
   }
 
   const { error: metaError } = await supabase
@@ -93,4 +99,15 @@ export async function uploadSchoolDb(
 
   recordSyncEvent(ecoleSlug, 'push_ok', undefined, version)
   return { ok: true, version }
+}
+
+export async function uploadSchoolDb(
+  ecoleSlug: string,
+  sourcePath: string,
+): Promise<{ ok: boolean; version?: number; error?: string; skipped?: boolean }> {
+  if (!isSupabaseConfigured()) return { ok: false, error: 'Supabase non configuré' }
+  if (!fs.existsSync(sourcePath)) return { ok: false, error: 'Fichier introuvable' }
+
+  const buffer = fs.readFileSync(sourcePath)
+  return uploadSchoolDbBuffer(ecoleSlug, buffer)
 }

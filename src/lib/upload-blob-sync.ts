@@ -50,6 +50,10 @@ export async function pushSchoolUploads(
       .upload(remotePath, buffer, { upsert: true, contentType: 'application/octet-stream' })
 
     if (error) {
+      if (/bucket not found/i.test(error.message)) {
+        recordSyncEvent(ecoleSlug, 'upload_push_fail', 'Bucket school-uploads absent — créez-le dans Supabase Storage')
+        return { ok: false, uploaded: 0, errors: [error.message] }
+      }
       errors.push(`${file.relativePath}: ${error.message}`)
       continue
     }

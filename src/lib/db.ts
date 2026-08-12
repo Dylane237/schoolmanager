@@ -25,16 +25,61 @@ export function createMemoryDb(): InstanceType<typeof Database> {
   return db
 }
 
+function configureDbPragmas(db: InstanceType<typeof Database>): void {
+  if (process.env.VERCEL) {
+    db.pragma('journal_mode = MEMORY')
+  } else {
+    db.pragma('journal_mode = WAL')
+  }
+  db.pragma('foreign_keys = ON')
+}
+
 function openDatabaseAtPath(dbPath: string): InstanceType<typeof Database> {
   ensureUserDataDir()
   const db = new Database(dbPath)
-  db.pragma('journal_mode = WAL')
-  db.pragma('foreign_keys = ON')
+  configureDbPragmas(db)
   initSchema(db)
   runMigrations(db)
   runVersionedMigrations(db)
   seedInitialData(db)
   return db
+}
+
+/** Ouvre une base école en mémoire sur Vercel (pas de fichier /tmp persistant). */
+export async function openVercelSchoolDb(
+  ecoleSlug: string,
+  options?: { buffer?: Buffer | null; provision?: (db: InstanceType<typeof Database>) => Promise<void> },
+): Promise<InstanceType<typeof Database>> {
+  const cached = _dbsBySlug.get(ecoleSlug)
+  if (cached) return cached
+
+  const { loadBufferIntoMemoryDb } = await import('./db-vercel')
+  let db: InstanceType<typeof Database>
+
+  if (options?.buffer && options.buffer.length > 0) {
+    db = loadBufferIntoMemoryDb(options.buffer)
+    runVersionedMigrations(db)
+  } else {
+    db = loadBufferIntoMemoryDb(Buffer.alloc(0))
+    if (options?.provision) {
+      await options.provision(db)
+    } else {
+      initSchema(db)
+      runMigrations(db)
+      runVersionedMigrations(db)
+      seedInitialData(db)
+    }
+  }
+
+  _dbsBySlug.set(ecoleSlug, db)
+  return db
+}
+
+export function exportVercelSchoolDbBuffer(ecoleSlug: string): Buffer | null {
+  const db = _dbsBySlug.get(ecoleSlug)
+  if (!db) return null
+  const { exportMemoryDbToBuffer } = require('./db-vercel') as typeof import('./db-vercel')
+  return exportMemoryDbToBuffer(db)
 }
 
 /** Desktop : singleton. Web (Vercel) : base par slug si fourni. */
@@ -48,9 +93,7 @@ export function getDb(ecoleSlug?: string) {
     }
     const cached = _dbsBySlug.get(slug)
     if (cached) return cached
-    const db = openDatabaseAtPath(getDbPath(slug))
-    _dbsBySlug.set(slug, db)
-    return db
+    throw new Error(`[getDb] Base Vercel non préparée pour "${slug}" — appelez prepareSchoolDb() avant.`)
   }
 
   if (_db) return _db
@@ -81,7 +124,7 @@ export function resetDesktopDbSingleton(): void {
   _db = null
 }
 
-function initSchema(db: InstanceType<typeof Database>) {
+export function initSchema(db: InstanceType<typeof Database>) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS ecoles (
       id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -336,7 +379,7 @@ function initSchema(db: InstanceType<typeof Database>) {
   `)
 }
 
-function runMigrations(db: InstanceType<typeof Database>) {
+export function runMigrations(db: InstanceType<typeof Database>) {
   const demoEcole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get('demo') as { id: string } | undefined
   if (demoEcole) {
     db.prepare('DELETE FROM users WHERE ecole_id = ?').run(demoEcole.id)
@@ -376,7 +419,7 @@ function migrateAnneeScolaireDefault(db: InstanceType<typeof Database>) {
   }
 }
 
-function seedInitialData(db: InstanceType<typeof Database>) {
+export function seedInitialData(db: InstanceType<typeof Database>) {
   const existing = db.prepare('SELECT id FROM users WHERE role = ?').get('super_admin')
   if (existing) return
 

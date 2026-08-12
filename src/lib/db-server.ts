@@ -6,6 +6,8 @@ export {
   getActiveAnneeScolaire,
   setTestDb,
   createMemoryDb,
+  openVercelSchoolDb,
+  exportVercelSchoolDbBuffer,
 } from './db'
 
 export {

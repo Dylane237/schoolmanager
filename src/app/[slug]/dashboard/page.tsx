@@ -76,7 +76,7 @@ export default async function DashboardPage({
   const prenom = payload.prenom as string | undefined
   const initials = ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase() || 'AD'
 
-  const db = getDb()
+  const db = getDb(slug)
 
   const ecole = db.prepare('SELECT * FROM ecoles WHERE slug = ?').get(slug) as { id: string; nom: string } | undefined
   if (!ecole) return null

@@ -53,7 +53,7 @@ export async function getUserFromRequest(request?: NextRequest): Promise<JwtPayl
   const user = await verifyToken(token)
   if (!user) return null
 
-  if (process.env.VERCEL && user.ecole_slug) {
+  if (process.env.VERCEL === '1' && user.ecole_slug) {
     await prepareSchoolDb(user.ecole_slug)
     const db = getDb(user.ecole_slug)
     const resolved = resolveEcoleId(db, user.ecole_slug, user.ecole_id)

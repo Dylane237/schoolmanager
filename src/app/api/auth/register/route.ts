@@ -83,7 +83,7 @@ async function registerOnCloud(body: Record<string, unknown>) {
   await flushSchoolDb(finalSlug)
 
   const { getDb, resolveEcoleId } = await import('../../../../lib/db-server')
-  const db = getDb()
+  const db = getDb(finalSlug)
   const ecoleId = resolveEcoleId(db, finalSlug, finalSlug)
 
   const token = await signToken({
