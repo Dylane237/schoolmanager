@@ -5,6 +5,7 @@ import classes from '../../../messages/en/classes.json'
 import common from '../../../messages/en/common.json'
 import components from '../../../messages/en/components.json'
 import dashboard from '../../../messages/en/dashboard.json'
+import donnees from '../../../messages/en/donnees.json'
 import eleves from '../../../messages/en/eleves.json'
 import enums from '../../../messages/en/enums.json'
 import filters from '../../../messages/en/filters.json'
@@ -29,6 +30,7 @@ const enMessages = {
   common,
   components,
   dashboard,
+  donnees,
   eleves,
   enums,
   filters,

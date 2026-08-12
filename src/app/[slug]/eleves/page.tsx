@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Plus, UserX } from 'lucide-react'
+import { Plus, Upload, UserX } from 'lucide-react'
 import PageShell from '@/components/layout/PageShell'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -138,10 +138,16 @@ function ElevesPageContent() {
       subtitle={t('list.subtitle', { count: eleves.length })}
       breadcrumb={t('list.breadcrumb')}
       actions={
-        <button onClick={() => router.push(`/${slug}/eleves/nouveau`)}
-          className="btn-primary flex items-center gap-2 py-2.5">
-          <Plus className="w-5 h-5" /> {t('list.newStudent')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.push(`/${slug}/donnees`)}
+            className="btn-secondary flex items-center gap-2 py-2.5">
+            <Upload className="w-5 h-5" /> {t('list.importCsv')}
+          </button>
+          <button onClick={() => router.push(`/${slug}/eleves/nouveau`)}
+            className="btn-primary flex items-center gap-2 py-2.5">
+            <Plus className="w-5 h-5" /> {t('list.newStudent')}
+          </button>
+        </div>
       }
     >
       <SmartFilterBar

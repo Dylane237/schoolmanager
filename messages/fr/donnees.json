@@ -1,0 +1,69 @@
+{
+  "title": "Données & exports",
+  "subtitle": "Importez, exportez et sauvegardez les données de votre établissement",
+  "breadcrumb": "Données",
+  "sections": {
+    "import": "Import",
+    "export": "Export",
+    "documents": "Documents imprimables",
+    "backup": "Sauvegarde"
+  },
+  "import": {
+    "title": "Importer des élèves",
+    "description": "Migration depuis Excel, CSV ou JSON — avec aperçu et création automatique des classes.",
+    "formats": "CSV · Excel (.xlsx) · JSON",
+    "action": "Ouvrir l'assistant d'import",
+    "perClass": "Import par classe disponible depuis la fiche de chaque classe."
+  },
+  "export": {
+    "description": "Téléchargez vos données dans le format de votre choix.",
+    "empty": "Aucune donnée exportable avec votre profil.",
+    "downloading": "Téléchargement…",
+    "error": "Erreur lors de l'export",
+    "formats": {
+      "csv": "CSV",
+      "xlsx": "Excel",
+      "json": "JSON",
+      "pdf": "PDF"
+    }
+  },
+  "entities": {
+    "eleves": {
+      "title": "Élèves",
+      "description": "Liste complète avec classe, section et contacts parents"
+    },
+    "classes": {
+      "title": "Classes",
+      "description": "Classes, effectifs et enseignants titulaires"
+    },
+    "paiements": {
+      "title": "Paiements",
+      "description": "Journal des encaissements et reçus"
+    },
+    "notes": {
+      "title": "Notes",
+      "description": "Notes par matière, période et élève"
+    },
+    "presences": {
+      "title": "Présences",
+      "description": "Historique des présences et absences"
+    },
+    "personnel": {
+      "title": "Personnel",
+      "description": "Liste du personnel administratif et enseignant"
+    }
+  },
+  "documents": {
+    "bulletins": "Bulletins scolaires",
+    "bulletinsDesc": "Impression PDF via le navigateur",
+    "receipts": "Reçus de paiement",
+    "receiptsDesc": "Réimpression depuis la liste des paiements",
+    "classLists": "Listes de classe",
+    "classListsDesc": "Export HTML/PDF depuis chaque classe"
+  },
+  "backup": {
+    "title": "Sauvegarde complète",
+    "description": "Exportez ou restaurez la base SQLite depuis les paramètres.",
+    "action": "Gérer les sauvegardes"
+  }
+}

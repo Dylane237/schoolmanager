@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, CreditCard, School,
   BookOpen, FileText, CheckSquare, Sprout, UserCheck,
   Settings, LogOut, Megaphone, ClipboardList,
-  Menu, X, Sun, Moon,
+  Menu, X, Sun, Moon, Database,
 } from 'lucide-react'
 import { useSchool } from './SchoolProvider'
 import { hasModuleAccess, NAV_MODULE_MAP, type Module } from '@/lib/rbac'
@@ -57,6 +57,7 @@ const NAV_GROUPS = (slug: string, t: ReturnType<typeof useTranslations<'nav'>>) 
     items: [
       { key: 'personnel', labelKey: 'items.staff' as const, icon: UserCheck, href: `/${slug}/personnel`, match: 'prefix' as const },
       { key: 'annonces', labelKey: 'items.announcements' as const, icon: Megaphone, href: `/${slug}/annonces`, match: 'prefix' as const },
+      { key: 'donnees', labelKey: 'items.data' as const, icon: Database, href: `/${slug}/donnees`, match: 'prefix' as const },
       { key: 'parametres', labelKey: 'items.settings' as const, icon: Settings, href: `/${slug}/parametres`, match: 'prefix' as const },
     ]
   },

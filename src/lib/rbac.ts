@@ -33,7 +33,7 @@ const MODULE_API_PREFIX: Record<Module, string[]> = {
   maternelle: ['/api/maternelle'],
   personnel: ['/api/personnel'],
   annonces: ['/api/annonces'],
-  parametres: ['/api/ecole', '/api/annees-scolaires', '/api/backup', '/api/tranches-config', '/api/users', '/api/licence', '/api/audit'],
+  parametres: ['/api/ecole', '/api/annees-scolaires', '/api/backup', '/api/tranches-config', '/api/users', '/api/licence', '/api/audit', '/api/data'],
 }
 
 export function hasModuleAccess(role: string, module: Module): boolean {
@@ -70,6 +70,7 @@ export function getModuleForPagePath(pathname: string, slug: string): Module | n
   if (rest.startsWith('eleves/')) return 'eleves'
   if (rest.startsWith('paiements/')) return 'paiements'
   if (rest === 'licence' || rest.startsWith('licence/')) return 'parametres'
+  if (rest === 'donnees' || rest.startsWith('donnees/')) return 'parametres'
 
   const first = rest.split('/')[0]
   const map: Record<string, Module> = {
@@ -106,4 +107,5 @@ export const NAV_MODULE_MAP: Record<string, Module> = {
   annonces: 'annonces',
   licence: 'parametres',
   parametres: 'parametres',
+  donnees: 'parametres',
 }

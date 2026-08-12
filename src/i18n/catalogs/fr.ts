@@ -5,6 +5,7 @@ import classes from '../../../messages/fr/classes.json'
 import common from '../../../messages/fr/common.json'
 import components from '../../../messages/fr/components.json'
 import dashboard from '../../../messages/fr/dashboard.json'
+import donnees from '../../../messages/fr/donnees.json'
 import eleves from '../../../messages/fr/eleves.json'
 import enums from '../../../messages/fr/enums.json'
 import filters from '../../../messages/fr/filters.json'
@@ -29,6 +30,7 @@ const frMessages = {
   common,
   components,
   dashboard,
+  donnees,
   eleves,
   enums,
   filters,

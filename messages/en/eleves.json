@@ -4,6 +4,7 @@
     "subtitle": "{count} student(s) enrolled",
     "breadcrumb": "Students",
     "newStudent": "New student",
+    "importCsv": "Import CSV",
     "searchPlaceholder": "Search by name, first name, ID, parent...",
     "resultLabel": "student(s)",
     "loadingFilters": "Loading filters...",
@@ -147,6 +148,74 @@
     "submit": "Enroll student",
     "errors": {
       "enrollFailed": "Error during enrolment"
+    }
+  },
+  "migration": {
+    "title": "Student migration",
+    "subtitle": "Import students from a CSV file (Excel, legacy software…)",
+    "breadcrumb": "CSV migration",
+    "backToList": "Back to list",
+    "back": "Back",
+    "import": "Run import",
+    "steps": {
+      "upload": "File",
+      "preview": "Preview",
+      "done": "Done"
+    },
+    "upload": {
+      "title": "Import a CSV file",
+      "description": "Prepare your student list with the columns below. Existing students (recognized ID) will be reassigned to their class.",
+      "dropzone": "Drop your file here or click to browse",
+      "formats": "CSV, Excel (.xlsx) or JSON — comma or semicolon separator",
+      "downloadTemplate": "Download template",
+      "columnsTitle": "Supported columns",
+      "columnsHint": "Only first and last name are required for new students. The class column enables automatic assignment.",
+      "analyze": "Analyze file"
+    },
+    "summary": {
+      "total": "Rows",
+      "create": "To create",
+      "assign": "Reassign",
+      "missingClass": "Missing class",
+      "invalid": "Invalid",
+      "duplicate": "Duplicates"
+    },
+    "options": {
+      "missingClassesTitle": "Classes not found",
+      "createMissingClasses": "Automatically create missing classes",
+      "defaultSection": "Default section (new classes)",
+      "sectionFrancophone": "Francophone",
+      "sectionAnglophone": "Anglophone",
+      "sectionMaternelle": "Preschool"
+    },
+    "table": {
+      "status": "Status",
+      "name": "Name",
+      "matricule": "Student ID",
+      "class": "Class",
+      "note": "Note"
+    },
+    "status": {
+      "create": "Create",
+      "assign": "Reassign",
+      "missing_class": "Missing class",
+      "invalid": "Invalid",
+      "duplicate": "Duplicate"
+    },
+    "done": {
+      "title": "Import complete",
+      "subtitle": "{total} student(s) processed successfully",
+      "created": "Created",
+      "assigned": "Reassigned",
+      "classesCreated": "Classes created",
+      "parentsAdded": "Parents added",
+      "warnings": "Warnings",
+      "viewStudents": "View student list"
+    },
+    "errors": {
+      "previewFailed": "Failed to analyze file",
+      "importFailed": "Import failed",
+      "cannotImport": "Fix errors or enable class creation before importing"
     }
   }
 }

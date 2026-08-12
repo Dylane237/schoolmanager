@@ -4,6 +4,7 @@
     "subtitle": "{count} élève(s) inscrit(s)",
     "breadcrumb": "Élèves",
     "newStudent": "Nouvel élève",
+    "importCsv": "Importer CSV",
     "searchPlaceholder": "Rechercher par nom, prénom, matricule, parent...",
     "resultLabel": "élève(s)",
     "loadingFilters": "Chargement des filtres...",
@@ -147,6 +148,74 @@
     "submit": "Inscrire l'élève",
     "errors": {
       "enrollFailed": "Erreur lors de l'inscription"
+    }
+  },
+  "migration": {
+    "title": "Migration des élèves",
+    "subtitle": "Importez vos élèves depuis un fichier CSV (Excel, ancien logiciel…)",
+    "breadcrumb": "Migration CSV",
+    "backToList": "Retour à la liste",
+    "back": "Retour",
+    "import": "Lancer l'import",
+    "steps": {
+      "upload": "Fichier",
+      "preview": "Aperçu",
+      "done": "Terminé"
+    },
+    "upload": {
+      "title": "Importer un fichier CSV",
+      "description": "Préparez votre liste d'élèves avec les colonnes ci-dessous. Les élèves existants (matricule reconnu) seront réaffectés à leur classe.",
+      "dropzone": "Glissez votre fichier ici ou cliquez pour parcourir",
+      "formats": "CSV, Excel (.xlsx) ou JSON — séparateur virgule ou point-virgule",
+      "downloadTemplate": "Télécharger le modèle",
+      "columnsTitle": "Colonnes supportées",
+      "columnsHint": "Seuls nom et prénom sont obligatoires pour les nouveaux élèves. La colonne classe permet l'affectation automatique.",
+      "analyze": "Analyser le fichier"
+    },
+    "summary": {
+      "total": "Lignes",
+      "create": "À créer",
+      "assign": "Réaffecter",
+      "missingClass": "Classe manquante",
+      "invalid": "Invalides",
+      "duplicate": "Doublons"
+    },
+    "options": {
+      "missingClassesTitle": "Classes introuvables",
+      "createMissingClasses": "Créer automatiquement les classes manquantes",
+      "defaultSection": "Section par défaut (nouvelles classes)",
+      "sectionFrancophone": "Francophone",
+      "sectionAnglophone": "Anglophone",
+      "sectionMaternelle": "Maternelle"
+    },
+    "table": {
+      "status": "Statut",
+      "name": "Nom",
+      "matricule": "Matricule",
+      "class": "Classe",
+      "note": "Note"
+    },
+    "status": {
+      "create": "Création",
+      "assign": "Réaffectation",
+      "missing_class": "Classe manquante",
+      "invalid": "Invalide",
+      "duplicate": "Doublon"
+    },
+    "done": {
+      "title": "Import terminé",
+      "subtitle": "{total} élève(s) traité(s) avec succès",
+      "created": "Créés",
+      "assigned": "Réaffectés",
+      "classesCreated": "Classes créées",
+      "parentsAdded": "Parents ajoutés",
+      "warnings": "Avertissements",
+      "viewStudents": "Voir la liste des élèves"
+    },
+    "errors": {
+      "previewFailed": "Erreur lors de l'analyse du fichier",
+      "importFailed": "Erreur lors de l'import",
+      "cannotImport": "Corrigez les erreurs ou activez la création de classes avant d'importer"
     }
   }
 }
