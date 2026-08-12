@@ -161,5 +161,11 @@ export async function POST(request: NextRequest) {
     `).run(eleve.id, body.parent_nom, body.parent_prenom || null, body.parent_telephone, body.parent_lien || 'tuteur')
   }
 
-  return jsonPersist(ecoleSlug, { success: true, matricule, id: eleve.id })
+  return jsonPersist(ecoleSlug, { success: true, matricule, id: eleve.id }, undefined, {
+    entity_type: 'eleve',
+    entity_id: eleve.id,
+    action: 'create',
+    label: `Élève ajouté : ${body.prenom} ${body.nom}`,
+    source: 'eleves',
+  })
 }

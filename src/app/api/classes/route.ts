@@ -63,7 +63,16 @@ export async function POST(request: NextRequest) {
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(ecoleId, body.nom, body.section, body.niveau || null, annee, body.capacite_max || 60)
 
-  return jsonPersist(ecoleSlug, { success: true })
+  const created = db.prepare('SELECT id FROM classes WHERE ecole_id = ? ORDER BY rowid DESC LIMIT 1')
+    .get(ecoleId) as { id: string }
+
+  return jsonPersist(ecoleSlug, { success: true, id: created?.id }, undefined, {
+    entity_type: 'classe',
+    entity_id: created?.id ?? null,
+    action: 'create',
+    label: `Classe ajoutée : ${body.nom}`,
+    source: 'classes',
+  })
 }
 
 export async function PUT(request: NextRequest) {

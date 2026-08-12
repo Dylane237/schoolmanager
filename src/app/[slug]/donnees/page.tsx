@@ -14,6 +14,7 @@ import { useSyncStatusOptional } from '@/hooks/useSyncStatus'
 import { hasModuleAccess, type Module } from '@/lib/rbac'
 import { ENTITY_MODULES, type ExportEntity, type ExportFormat } from '@/lib/data-export/types'
 import toast from 'react-hot-toast'
+import SyncConflictPanel from '@/components/donnees/SyncConflictPanel'
 
 const ENTITIES: ExportEntity[] = ['eleves', 'classes', 'paiements', 'notes', 'presences', 'personnel']
 
@@ -204,6 +205,11 @@ export default function DonneesPage() {
                   </div>
                 )}
               </div>
+              <SyncConflictPanel onResolved={async () => {
+                const statusRes = await fetch('/api/sync/status')
+                setSyncStatus(await statusRes.json())
+                await syncContext?.refresh()
+              }} />
             </div>
           </section>
         )}

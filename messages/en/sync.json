@@ -1,6 +1,6 @@
 {
   "state": {
-    "synced": "In sync",
+    "synced": "Up to date",
     "syncing": "Syncing…",
     "pending": "Sync pending",
     "conflict": "Sync conflict",
@@ -8,5 +8,27 @@
     "offline": "Offline"
   },
   "resolveKeepLocal": "Keep my local changes",
-  "resolveKeepCloud": "Use cloud version"
+  "resolveKeepCloud": "Use cloud version",
+  "changelog": {
+    "loading": "Analyzing differences…",
+    "title": "Divergent changes detected",
+    "subtitle": "Compare what each platform changed, then choose row by row which version to keep.",
+    "summary": "{local} desktop-only · {cloud} web-only · {both} modified on both sides",
+    "journalDesktop": "Desktop log",
+    "journalWeb": "Web changes (inferred)",
+    "journalEmpty": "No recent entries",
+    "diffTitle": "Difference details",
+    "kindLocalOnly": "Desktop only",
+    "kindCloudOnly": "Web only",
+    "kindBothModified": "Modified on both sides",
+    "keepLocal": "Keep desktop",
+    "keepCloud": "Keep web",
+    "skip": "Skip",
+    "desktopState": "Desktop",
+    "webState": "Web",
+    "applyMerge": "Apply selected choices",
+    "merging": "Applying…",
+    "mergeSuccess": "{count} item(s) synced",
+    "mergeError": "Merge failed"
+  }
 }

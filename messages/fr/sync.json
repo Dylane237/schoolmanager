@@ -8,5 +8,27 @@
     "offline": "Hors ligne"
   },
   "resolveKeepLocal": "Garder mes modifications locales",
-  "resolveKeepCloud": "Récupérer la version cloud"
+  "resolveKeepCloud": "Récupérer la version cloud",
+  "changelog": {
+    "loading": "Analyse des différences…",
+    "title": "Modifications divergentes détectées",
+    "subtitle": "Comparez ce que chaque plateforme a changé, puis choisissez ligne par ligne quelle version garder.",
+    "summary": "{local} ajout(s) bureau · {cloud} ajout(s) web · {both} modifié(s) des deux côtés",
+    "journalDesktop": "Journal bureau",
+    "journalWeb": "Changements web (inférés)",
+    "journalEmpty": "Aucune entrée récente",
+    "diffTitle": "Détail des différences",
+    "kindLocalOnly": "Uniquement sur le bureau",
+    "kindCloudOnly": "Uniquement sur le web",
+    "kindBothModified": "Modifié des deux côtés",
+    "keepLocal": "Garder bureau",
+    "keepCloud": "Garder web",
+    "skip": "Ignorer",
+    "desktopState": "Bureau",
+    "webState": "Web",
+    "applyMerge": "Appliquer les choix sélectionnés",
+    "merging": "Application…",
+    "mergeSuccess": "{count} élément(s) synchronisé(s)",
+    "mergeError": "Erreur lors de la fusion"
+  }
 }

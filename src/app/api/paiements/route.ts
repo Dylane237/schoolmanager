@@ -231,6 +231,12 @@ export async function POST(request: NextRequest) {
         date: body.date_paiement || new Date().toISOString().split('T')[0],
         entete_url: ecole?.entete_url || null,
       },
+    }, undefined, {
+      entity_type: 'paiement',
+      entity_id: inserted.id,
+      action: 'create',
+      label: `Paiement ${body.montant} F — ${eleve.prenom} ${eleve.nom}`,
+      source: 'paiements',
     })
   }
 
@@ -279,6 +285,12 @@ export async function POST(request: NextRequest) {
       date: body.date_paiement || new Date().toISOString().split('T')[0],
       entete_url: ecole?.entete_url || null,
     },
+  }, undefined, {
+    entity_type: 'paiement',
+    entity_id: inserted.id,
+    action: 'create',
+    label: `Paiement ${body.montant} F — ${eleve.prenom} ${eleve.nom}`,
+    source: 'paiements',
   })
 }
 

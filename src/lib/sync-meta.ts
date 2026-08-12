@@ -2,6 +2,7 @@ import 'server-only'
 import fs from 'fs'
 import path from 'path'
 import { getLocalSyncMetaPath } from './paths'
+import type { SyncChangeEntry } from './sync-changelog'
 
 export interface LocalSyncMeta {
   syncedVersion: number
@@ -13,6 +14,7 @@ export interface LocalSyncMeta {
   lastError: string | null
   lastEvent: string | null
   lastAutoResolve: string | null
+  pendingLocalChanges: SyncChangeEntry[]
 }
 
 const DEFAULT_META: LocalSyncMeta = {
@@ -24,6 +26,7 @@ const DEFAULT_META: LocalSyncMeta = {
   lastError: null,
   lastEvent: null,
   lastAutoResolve: null,
+  pendingLocalChanges: [],
 }
 
 export function readLocalSyncMeta(ecoleSlug: string): LocalSyncMeta {
@@ -67,6 +70,7 @@ export function markLocalSynced(ecoleSlug: string, cloudVersion: number): void {
     localEditVersion: cloudVersion,
     lastSyncAt: new Date().toISOString(),
     lastError: null,
+    pendingLocalChanges: [],
   })
 }
 
