@@ -25,6 +25,7 @@ export async function proxy(request: NextRequest) {
     '/mot-de-passe-oublie',
     '/licence-expiree',
     '/api/auth',
+    '/api/health',
     '/api/locale',
     '/api/licences',
     '/admin-licences',

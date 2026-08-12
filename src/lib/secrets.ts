@@ -6,6 +6,14 @@ import { runtimeEnv } from './runtime-env'
 
 let cachedSecret: string | null = null
 
+function safeMachineFingerprint(): string {
+  try {
+    return getMachineFingerprint()
+  } catch {
+    return `serverless-${process.env.VERCEL_REGION ?? 'default'}`
+  }
+}
+
 export function getJwtSecret(): string {
   const envSecret = runtimeEnv('SM_JWT_SECRET')
   if (envSecret) {
@@ -30,7 +38,7 @@ export function getJwtSecret(): string {
 
   const machineHash = crypto
     .createHash('sha256')
-    .update(getMachineFingerprint())
+    .update(safeMachineFingerprint())
     .digest('hex')
 
   const randomPart = crypto.randomBytes(32).toString('hex')
