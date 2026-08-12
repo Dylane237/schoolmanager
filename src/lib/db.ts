@@ -6,7 +6,7 @@ import { ensureSuperAdminCredentials } from './super-admin-credentials'
 import { runVersionedMigrations } from './migrations/runner'
 import { getVercelActiveSlug } from './school-db-context'
 import { exportMemoryDbToBuffer, isSqliteCorruptError } from './db-vercel'
-import { isVercelRuntime } from './runtime-env'
+import { isServerlessRuntime } from './runtime-env'
 
 let _db: InstanceType<typeof Database> | null = null
 const _dbsBySlug = new Map<string, InstanceType<typeof Database>>()
@@ -29,7 +29,7 @@ export function createMemoryDb(): InstanceType<typeof Database> {
 }
 
 function configureDbPragmas(db: InstanceType<typeof Database>): void {
-  if (isVercelRuntime()) {
+  if (isServerlessRuntime()) {
     db.pragma('journal_mode = MEMORY')
   } else {
     db.pragma('journal_mode = WAL')
@@ -53,6 +53,9 @@ function quarantineCorruptDb(dbPath: string): void {
 }
 
 function openDatabaseAtPath(dbPath: string): InstanceType<typeof Database> {
+  if (isServerlessRuntime()) {
+    throw new Error('[db] SQLite fichier interdit en serverless — appelez prepareSchoolDb()')
+  }
   ensureUserDataDir()
   try {
     const db = new Database(dbPath)
@@ -115,7 +118,7 @@ export function exportVercelSchoolDbBuffer(ecoleSlug: string): Buffer | null {
 export function getDb(ecoleSlug?: string) {
   if (_testDbOverride) return _testDbOverride
 
-  if (isVercelRuntime()) {
+  if (isServerlessRuntime()) {
     const slug = ecoleSlug ?? getVercelActiveSlug() ?? undefined
     if (!slug) {
       throw new Error('[getDb] ecoleSlug requis sur Vercel — appelez prepareSchoolDb() avant.')
@@ -135,7 +138,7 @@ export function getDbForSlug(ecoleSlug?: string) {
 }
 
 export function closeDbForSlug(ecoleSlug?: string): void {
-  if (isVercelRuntime() && ecoleSlug) {
+  if (isServerlessRuntime() && ecoleSlug) {
     const db = _dbsBySlug.get(ecoleSlug)
     if (db) {
       try { db.close() } catch { /* ignore */ }
@@ -450,7 +453,7 @@ function migrateAnneeScolaireDefault(db: InstanceType<typeof Database>) {
 
 export function seedInitialData(db: InstanceType<typeof Database>) {
   // Sur Vercel, chaque école a sa propre base mémoire — pas de super-admin local.
-  if (isVercelRuntime()) return
+  if (isServerlessRuntime()) return
 
   const existing = db.prepare('SELECT id FROM users WHERE role = ?').get('super_admin')
   if (existing) return

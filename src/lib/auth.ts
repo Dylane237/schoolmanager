@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 import { getDb } from './db-server'
 import { getJwtSecretKey } from './secrets'
 import { getMachineFingerprint } from './paths'
-import { isVercelRuntime, runtimeEnv } from './runtime-env'
+import { isServerlessRuntime, runtimeEnv } from './runtime-env'
 import {
   prepareSchoolDb,
   markSchoolDbDirty,
@@ -59,7 +59,7 @@ export async function getUserFromRequest(request?: NextRequest): Promise<JwtPayl
   if (!user) return null
 
   if (user.ecole_slug) {
-    if (isVercelRuntime()) {
+    if (isServerlessRuntime()) {
       await prepareSchoolDb(user.ecole_slug)
     }
     const db = getDb(user.ecole_slug)
@@ -68,7 +68,7 @@ export async function getUserFromRequest(request?: NextRequest): Promise<JwtPayl
       user.ecole_id = resolved
       user.id = resolveLocalUserId(db, resolved, user)
     }
-    if (isVercelRuntime()) {
+    if (isServerlessRuntime()) {
       scheduleSchoolDbFlush(user.ecole_slug)
     }
   }
@@ -132,8 +132,11 @@ export async function loginUser(email: string, password: string) {
 
   const { isCloudAuthAvailable, loginCloudUser, cloudAuthErrorMessage, ensureCloudAccountForLocalUser } = await import('./cloud-auth')
 
-  // ── Web (Vercel) : auth cloud + base SQLite synchronisée ──
-  if (isVercelRuntime() && isCloudAuthAvailable()) {
+  // ── Web (serverless) : auth cloud + base SQLite mémoire ──
+  if (isServerlessRuntime()) {
+    if (!isCloudAuthAvailable()) {
+      return { error: 'Configuration cloud manquante sur le serveur web' as const }
+    }
     const cloud = await loginCloudUser(normalizedEmail, password)
     if (!cloud.ok) {
       return { error: cloudAuthErrorMessage(cloud.error) as 'Email introuvable' | 'Mot de passe incorrect' | 'Licence expirée' }
@@ -176,7 +179,7 @@ export async function loginUser(email: string, password: string) {
   // ── Desktop : SQLite d'abord, puis cloud (compte web ou licence locale expirée) ──
   const localResult = await loginLocalUser(normalizedEmail, password)
   if (!('error' in localResult)) {
-    if (!isVercelRuntime() && isCloudAuthAvailable()) {
+    if (!isServerlessRuntime() && isCloudAuthAvailable()) {
       try {
         const db = getDb()
         await ensureCloudAccountForLocalUser(normalizedEmail, db)
