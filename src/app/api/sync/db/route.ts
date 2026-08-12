@@ -10,11 +10,116 @@ import {
   markSchoolDbDirty,
 } from '@/lib/db-server'
 import { pushSchoolDataFromEcoleIdAsync } from '@/lib/sync-trigger'
-import { detectSyncConflict } from '@/lib/sync-conflict'
-import { readLocalSyncMeta } from '@/lib/sync-meta'
-import { getLastSyncEvent } from '@/lib/sync-monitor'
+import { detectSyncConflict, describeSyncSides, resolveAutoSyncStrategy } from '@/lib/sync-conflict'
+import { fetchCloudDbMeta } from '@/lib/db-blob-sync'
+import { readLocalSyncMeta, recordAutoResolve } from '@/lib/sync-meta'
+import { getLastSyncEvent, recordSyncEvent } from '@/lib/sync-monitor'
+import { withSchoolSyncLock } from '@/lib/sync-lock'
 
 type SyncStrategy = 'keep_local' | 'keep_cloud'
+
+async function runSchoolDbSync(
+  slug: string,
+  ecoleId: string | null | undefined,
+  body: { strategy?: SyncStrategy },
+) {
+  let strategy = body.strategy
+
+  if (!strategy && !process.env.VERCEL) {
+    const initial = await detectSyncConflict(slug)
+    if (initial.hasConflict) {
+      const cloudMeta = await fetchCloudDbMeta(slug)
+      strategy = resolveAutoSyncStrategy(initial, cloudMeta?.updated_at ?? null)
+      const localMeta = readLocalSyncMeta(slug)
+      const sides = describeSyncSides(
+        initial,
+        cloudMeta?.updated_at ?? null,
+        localMeta.lastEditAt,
+        localMeta.lastEditSource,
+      )
+      const detail = `${sides.localSummary} | ${sides.cloudSummary} → ${strategy}`
+      recordAutoResolve(slug, strategy, detail)
+      recordSyncEvent(slug, 'conflict', `Auto-résolution: ${detail}`)
+    }
+  }
+
+  const force = strategy === 'keep_local'
+  const pullForce = strategy === 'keep_cloud'
+
+  let pulled = false
+  let pullVersion: number | undefined
+  let autoResolved = strategy && !body.strategy ? strategy : undefined
+
+  if (!process.env.VERCEL) {
+    const pullResult = await pullSchoolDbToLocal(slug, { force: pullForce })
+    pulled = pullResult.pulled
+    pullVersion = pullResult.version
+    if (pullResult.conflict && strategy !== 'keep_cloud') {
+      const conflict = await detectSyncConflict(slug)
+      const cloudMeta = await fetchCloudDbMeta(slug)
+      const localMeta = readLocalSyncMeta(slug)
+      return {
+        status: 409 as const,
+        body: {
+          error: 'Conflit de synchronisation',
+          conflict,
+          conflict_log: describeSyncSides(
+            conflict,
+            cloudMeta?.updated_at ?? null,
+            localMeta.lastEditAt,
+            localMeta.lastEditSource,
+          ),
+        },
+      }
+    }
+  }
+
+  const pushResult = await pushSchoolDbFromLocal(slug, { force })
+  if (pushResult.conflict && strategy !== 'keep_local') {
+    const conflict = await detectSyncConflict(slug)
+    const cloudMeta = await fetchCloudDbMeta(slug)
+    const localMeta = readLocalSyncMeta(slug)
+    return {
+      status: 409 as const,
+      body: {
+        error: 'Conflit de synchronisation',
+        conflict,
+        conflict_log: describeSyncSides(
+          conflict,
+          cloudMeta?.updated_at ?? null,
+          localMeta.lastEditAt,
+          localMeta.lastEditSource,
+        ),
+      },
+    }
+  }
+
+  if (!pushResult.ok) {
+    return {
+      status: 502 as const,
+      body: { error: pushResult.error || 'Sync échouée' },
+    }
+  }
+
+  const db = getDb(slug)
+  const resolvedEcoleId = resolveEcoleId(db, slug, ecoleId)
+  if (resolvedEcoleId) await pushSchoolDataFromEcoleIdAsync(resolvedEcoleId, slug)
+
+  const conflict = await detectSyncConflict(slug)
+
+  return {
+    status: 200 as const,
+    body: {
+      success: true,
+      pulled,
+      pullVersion,
+      pushVersion: pushResult.version,
+      synced_at: new Date().toISOString(),
+      auto_resolved: autoResolved,
+      conflict,
+    },
+  }
+}
 
 /**
  * Sync bidirectionnelle base SQLite ↔ cloud.
@@ -40,54 +145,14 @@ export async function POST(request: NextRequest) {
 
   if (process.env.VERCEL) {
     await prepareSchoolDb(slug)
-    markSchoolDbDirty(slug)
+    markSchoolDbDirty(slug, 'web-sync')
   }
 
-  const force = body.strategy === 'keep_local'
-  const pullForce = body.strategy === 'keep_cloud'
+  const result = await withSchoolSyncLock(slug, () =>
+    runSchoolDbSync(slug, user.ecole_id, body),
+  )
 
-  let pulled = false
-  let pullVersion: number | undefined
-  let conflict = await detectSyncConflict(slug)
-
-  if (!process.env.VERCEL) {
-    const pullResult = await pullSchoolDbToLocal(slug, { force: pullForce })
-    pulled = pullResult.pulled
-    pullVersion = pullResult.version
-    if (pullResult.conflict && body.strategy !== 'keep_cloud') {
-      return NextResponse.json({
-        error: 'Conflit de synchronisation',
-        conflict: await detectSyncConflict(slug),
-      }, { status: 409 })
-    }
-  }
-
-  const pushResult = await pushSchoolDbFromLocal(slug, { force })
-  if (pushResult.conflict && body.strategy !== 'keep_local') {
-    return NextResponse.json({
-      error: 'Conflit de synchronisation',
-      conflict: await detectSyncConflict(slug),
-    }, { status: 409 })
-  }
-
-  if (!pushResult.ok) {
-    return NextResponse.json({ error: pushResult.error || 'Sync échouée' }, { status: 502 })
-  }
-
-  const db = getDb(slug)
-  const ecoleId = resolveEcoleId(db, slug, user.ecole_id)
-  if (ecoleId) await pushSchoolDataFromEcoleIdAsync(ecoleId, slug)
-
-  conflict = await detectSyncConflict(slug)
-
-  return NextResponse.json({
-    success: true,
-    pulled,
-    pullVersion,
-    pushVersion: pushResult.version,
-    synced_at: new Date().toISOString(),
-    conflict,
-  })
+  return NextResponse.json(result.body, { status: result.status })
 }
 
 export async function GET(request: NextRequest) {
@@ -96,14 +161,25 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
-  const conflict = await detectSyncConflict(user.ecole_slug)
-  const meta = readLocalSyncMeta(user.ecole_slug)
-  const lastEvent = getLastSyncEvent(user.ecole_slug)
+  const slug = user.ecole_slug
+  const conflict = await detectSyncConflict(slug)
+  const meta = readLocalSyncMeta(slug)
+  const cloudMeta = await fetchCloudDbMeta(slug)
+  const lastEvent = getLastSyncEvent(slug)
 
   return NextResponse.json({
     ...conflict,
     lastSyncAt: meta.lastSyncAt,
     lastError: meta.lastError,
     lastEvent: lastEvent?.type ?? meta.lastEvent,
+    lastAutoResolve: meta.lastAutoResolve,
+    conflict_log: conflict.hasConflict
+      ? describeSyncSides(
+        conflict,
+        cloudMeta?.updated_at ?? null,
+        meta.lastEditAt,
+        meta.lastEditSource,
+      )
+      : null,
   })
 }

@@ -134,7 +134,18 @@ export async function syncStructuredAfterBlobUpload(
   ecoleSlug: string,
   buffer: Buffer,
 ): Promise<StructuredSyncResult> {
-  const result = await syncStructuredFromBuffer(ecoleSlug, buffer)
+  let result = await syncStructuredFromBuffer(ecoleSlug, buffer)
+
+  if (!result.ok && result.error?.includes('illisible')) {
+    try {
+      const { getDbForSlug } = await import('./db')
+      const db = getDbForSlug(ecoleSlug)
+      result = await syncStructuredFromEcoleDb(db, ecoleSlug)
+    } catch {
+      /* conserver l'erreur blob */
+    }
+  }
+
   if (result.ok) {
     const detail = result.counts
       ? `${result.counts.eleves} élèves, ${result.counts.classes} classes`

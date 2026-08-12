@@ -13,6 +13,44 @@ export interface SyncConflictInfo {
   localDirty: boolean
 }
 
+export type SyncStrategy = 'keep_local' | 'keep_cloud'
+
+/** Dernière modification gagne (niveau base entière, pas merge ligne à ligne). */
+export function resolveAutoSyncStrategy(
+  conflict: SyncConflictInfo,
+  cloudUpdatedAt: string | null,
+): SyncStrategy {
+  const cloudMs = cloudUpdatedAt
+    ? Date.parse(cloudUpdatedAt)
+    : (conflict.cloudVersion ?? 0)
+  const localMs = conflict.localEditVersion
+  return cloudMs >= localMs ? 'keep_cloud' : 'keep_local'
+}
+
+export function describeSyncSides(
+  conflict: SyncConflictInfo,
+  cloudUpdatedAt: string | null,
+  localEditAt: string | null,
+  localEditSource: string | null,
+): {
+  localSummary: string
+  cloudSummary: string
+  recommendation: SyncStrategy
+} {
+  const recommendation = resolveAutoSyncStrategy(conflict, cloudUpdatedAt)
+  const localWhen = localEditAt ?? new Date(conflict.localEditVersion).toISOString()
+  const cloudWhen = cloudUpdatedAt ?? (conflict.cloudVersion
+    ? new Date(conflict.cloudVersion).toISOString()
+    : 'inconnue')
+  const localSource = localEditSource ? ` (${localEditSource})` : ''
+
+  return {
+    localSummary: `Bureau modifié le ${localWhen}${localSource}`,
+    cloudSummary: `Cloud modifié le ${cloudWhen}`,
+    recommendation,
+  }
+}
+
 export function getLocalSyncedVersion(ecoleSlug: string): number {
   const versionPath = getLocalSyncVersionPath(ecoleSlug)
   if (!fs.existsSync(versionPath)) return 0

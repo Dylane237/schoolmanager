@@ -579,9 +579,9 @@ export async function persistSchoolChanges(ecoleSlug: string): Promise<void> {
   await flushSchoolDb(ecoleSlug)
 }
 
-export function markSchoolDbDirty(ecoleSlug: string): void {
+export function markSchoolDbDirty(ecoleSlug: string, source = 'api'): void {
   dirtySlugs.add(ecoleSlug)
-  markLocalEdited(ecoleSlug)
+  markLocalEdited(ecoleSlug, source)
 }
 
 export function scheduleSchoolDbFlush(ecoleSlug: string): void {

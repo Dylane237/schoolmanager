@@ -73,11 +73,18 @@ export async function getUserFromRequest(request?: NextRequest): Promise<JwtPayl
     }
   }
 
-  if (user.ecole_slug && request && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
-    markSchoolDbDirty(user.ecole_slug)
+  if (user.ecole_slug && request && shouldMarkSchoolDirty(request)) {
+    markSchoolDbDirty(user.ecole_slug, 'api')
   }
 
   return user
+}
+
+function shouldMarkSchoolDirty(request: NextRequest): boolean {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return false
+  const pathname = request.nextUrl.pathname
+  if (pathname.startsWith('/api/sync/')) return false
+  return true
 }
 
 export async function requireUser(request: NextRequest): Promise<JwtPayload | NextResponse> {

@@ -4,7 +4,7 @@ import { requireModule } from '@/lib/rbac.server'
 import { getCloudSyncStatus } from '@/lib/cloud-read'
 import { fetchCloudDbMeta } from '@/lib/db-blob-sync'
 import { getLocalSyncVersionPath } from '@/lib/paths'
-import { detectSyncConflict } from '@/lib/sync-conflict'
+import { detectSyncConflict, describeSyncSides } from '@/lib/sync-conflict'
 import { readLocalSyncMeta } from '@/lib/sync-meta'
 import { getLastSyncEvent } from '@/lib/sync-monitor'
 import fs from 'fs'
@@ -33,6 +33,14 @@ export async function GET(request: NextRequest) {
   else if (dbMeta && dbMeta.version === localVersion) syncState = 'synced'
 
   const syncedAt = meta.lastSyncAt ?? status.synced_at ?? dbMeta?.updated_at ?? null
+  const conflictLog = conflict.hasConflict
+    ? describeSyncSides(
+      conflict,
+      dbMeta?.updated_at ?? null,
+      meta.lastEditAt,
+      meta.lastEditSource,
+    )
+    : null
 
   return NextResponse.json({
     ...status,
@@ -44,6 +52,8 @@ export async function GET(request: NextRequest) {
     readOnly: false,
     conflict: conflict.hasConflict,
     conflict_detail: conflict,
+    conflict_log: conflictLog,
+    last_auto_resolve: meta.lastAutoResolve,
     sync_state: syncState,
     last_sync_at: meta.lastSyncAt,
     last_error: meta.lastError,

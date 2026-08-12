@@ -7,18 +7,23 @@ export interface LocalSyncMeta {
   syncedVersion: number
   localEditVersion: number
   lastEditAt: string | null
+  /** Origine de la dernière modification locale (ex. api, login, eleves). */
+  lastEditSource: string | null
   lastSyncAt: string | null
   lastError: string | null
   lastEvent: string | null
+  lastAutoResolve: string | null
 }
 
 const DEFAULT_META: LocalSyncMeta = {
   syncedVersion: 0,
   localEditVersion: 0,
   lastEditAt: null,
+  lastEditSource: null,
   lastSyncAt: null,
   lastError: null,
   lastEvent: null,
+  lastAutoResolve: null,
 }
 
 export function readLocalSyncMeta(ecoleSlug: string): LocalSyncMeta {
@@ -40,11 +45,19 @@ export function writeLocalSyncMeta(ecoleSlug: string, patch: Partial<LocalSyncMe
   return next
 }
 
-export function markLocalEdited(ecoleSlug: string): void {
+export function markLocalEdited(ecoleSlug: string, source?: string): void {
   const meta = readLocalSyncMeta(ecoleSlug)
   writeLocalSyncMeta(ecoleSlug, {
     localEditVersion: Math.max(meta.localEditVersion, Date.now()),
     lastEditAt: new Date().toISOString(),
+    lastEditSource: source ?? meta.lastEditSource,
+  })
+}
+
+export function recordAutoResolve(ecoleSlug: string, strategy: string, detail: string): void {
+  writeLocalSyncMeta(ecoleSlug, {
+    lastAutoResolve: `${strategy}: ${detail}`,
+    lastError: null,
   })
 }
 
