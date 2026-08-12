@@ -4,6 +4,15 @@ vi.mock('../src/lib/supabase-admin', () => ({
   isSupabaseConfigured: () => true,
   getSupabaseAdmin: () => ({
     from: (table: string) => {
+      if (table === 'ecoles') {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: null }),
+            }),
+          }),
+        }
+      }
       if (table !== 'licences') throw new Error(`unexpected table ${table}`)
       return {
         select: () => ({

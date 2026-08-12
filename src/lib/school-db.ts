@@ -24,6 +24,8 @@ import { pushSchoolUploads, pullSchoolUploads } from './upload-blob-sync'
 const dirtySlugs = new Set<string>()
 const preparedSlugs = new Set<string>()
 const flushScheduled = new Set<string>()
+/** Version blob cloud chargée en mémoire (Vercel, par slug). */
+const vercelSyncedVersions = new Map<string, number>()
 
 export interface CloudRegisterSchoolData {
   nom_ecole: string
@@ -246,8 +248,8 @@ export async function hydrateSchoolFromSupabase(
   `).get(ecoleRow.id)
 
   if (!localActive) {
-    const { fetchActiveCloudLicenceRecord } = await import('./cloud-auth')
-    const licence = await fetchActiveCloudLicenceRecord(ecoleSlug)
+    const { resolveActiveCloudLicence } = await import('./licence-resolver')
+    const licence = await resolveActiveCloudLicence(ecoleSlug)
 
     if (licence?.cle_licence) {
       upsertActiveLicenceInDb(
@@ -311,9 +313,13 @@ export async function resolveActiveLicence(
   row = readLocal()
   if (row) return row
 
-  const { fetchCloudLicenceForSlug } = await import('./cloud-auth')
-  const cloud = await fetchCloudLicenceForSlug(ecoleSlug)
-  return cloud
+  const { resolveActiveCloudLicence } = await import('./licence-resolver')
+  const cloud = await resolveActiveCloudLicence(ecoleSlug)
+  if (cloud?.cle_licence) {
+    upsertActiveLicenceInDb(db, ecoleId, cloud.cle_licence, cloud.type, cloud.date_fin)
+    return { type: cloud.type, date_fin: cloud.date_fin }
+  }
+  return null
 }
 
 /** Complète la licence locale depuis Supabase si absente ou expirée (buffer cloud obsolète). */
@@ -329,9 +335,21 @@ export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
   if (process.env.VERCEL) {
     setVercelActiveSlug(ecoleSlug)
 
-    if (!preparedSlugs.has(ecoleSlug)) {
+    const cloudMeta = isSupabaseConfigured() ? await fetchCloudDbMeta(ecoleSlug) : null
+    const localVersion = vercelSyncedVersions.get(ecoleSlug) ?? 0
+    const cloudAhead = cloudMeta != null && cloudMeta.version > localVersion
+    const canReload = !dirtySlugs.has(ecoleSlug)
+    const needsInitialLoad = !preparedSlugs.has(ecoleSlug)
+    const needsReload = needsInitialLoad || (cloudAhead && canReload)
+
+    if (needsReload) {
+      if (preparedSlugs.has(ecoleSlug)) {
+        const { closeDbForSlug } = await import('./db')
+        closeDbForSlug(ecoleSlug)
+        preparedSlugs.delete(ecoleSlug)
+      }
+
       const { openVercelSchoolDb } = await import('./db')
-      const cloudMeta = isSupabaseConfigured() ? await fetchCloudDbMeta(ecoleSlug) : null
       let buffer: Buffer | null = null
 
       if (cloudMeta) {
@@ -340,7 +358,10 @@ export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
 
       if (buffer && buffer.length > 0) {
         await openVercelSchoolDb(ecoleSlug, { buffer })
-        if (cloudMeta) markLocalSynced(ecoleSlug, cloudMeta.version)
+        if (cloudMeta) {
+          vercelSyncedVersions.set(ecoleSlug, cloudMeta.version)
+          markLocalSynced(ecoleSlug, cloudMeta.version)
+        }
       } else {
         await openVercelSchoolDb(ecoleSlug, {
           provision: async (provisionDb) => {
@@ -559,6 +580,7 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
 
     const result = await uploadSchoolDbBuffer(ecoleSlug, buffer)
     if (result.ok && result.version) {
+      vercelSyncedVersions.set(ecoleSlug, result.version)
       markLocalSynced(ecoleSlug, result.version)
       recordSyncEvent(ecoleSlug, 'push_ok', undefined, result.version)
 
@@ -685,6 +707,7 @@ export async function pushSchoolDbFromLocal(
 
     const result = await uploadSchoolDbBuffer(ecoleSlug, buffer)
     if (result.ok && result.version) {
+      vercelSyncedVersions.set(ecoleSlug, result.version)
       markLocalSynced(ecoleSlug, result.version)
       dirtySlugs.delete(ecoleSlug)
       recordSyncEvent(ecoleSlug, 'push_ok', undefined, result.version)
@@ -730,7 +753,9 @@ export async function pushSchoolDbFromLocal(
 export function clearSchoolDbCache(ecoleSlug?: string): void {
   if (ecoleSlug) {
     preparedSlugs.delete(ecoleSlug)
+    vercelSyncedVersions.delete(ecoleSlug)
     return
   }
   preparedSlugs.clear()
+  vercelSyncedVersions.clear()
 }

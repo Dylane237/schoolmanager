@@ -3,6 +3,10 @@ import bcrypt from 'bcryptjs'
 import { getSupabaseAdmin, isSupabaseConfigured } from './supabase-admin'
 import { upsertEcoleCloud } from './licence-cloud-sync'
 import type { AuthUser } from './auth'
+import { resolveActiveCloudLicence } from './licence-resolver'
+
+export type { ActiveCloudLicence } from './licence-resolver'
+export { fetchActiveCloudLicenceRecord, fetchCloudLicenceForSlug } from './licence-resolver'
 
 export type CloudAuthError =
   | 'not_configured'
@@ -39,49 +43,6 @@ export interface CloudRegisterInput {
 
 function supabase() {
   return getSupabaseAdmin()!
-}
-
-export interface ActiveCloudLicence {
-  cle_licence: string | null
-  type: string
-  date_fin: string
-}
-
-/** Licence active cloud — compat ancienne prod (ecole_id = slug sans ecole_slug). */
-export async function fetchActiveCloudLicenceRecord(
-  ecoleSlug: string,
-): Promise<ActiveCloudLicence | null> {
-  if (!isSupabaseConfigured()) return null
-
-  const slug = ecoleSlug.trim()
-  if (!slug) return null
-
-  const today = new Date().toISOString().split('T')[0]
-  const sb = supabase()
-
-  const { data } = await sb
-    .from('licences')
-    .select('id, cle_licence, type, date_fin, is_active, ecole_slug, ecole_id')
-    .eq('is_active', true)
-    .or(`ecole_slug.eq.${slug},ecole_id.eq.${slug}`)
-    .order('date_fin', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (!data?.is_active || !data.date_fin) return null
-
-  const dateFin = String(data.date_fin).slice(0, 10)
-  if (dateFin < today) return null
-
-  if (!data.ecole_slug) {
-    await sb.from('licences').update({ ecole_slug: slug }).eq('id', data.id)
-  }
-
-  return {
-    cle_licence: data.cle_licence ?? null,
-    type: data.type ?? 'standard',
-    date_fin: dateFin,
-  }
 }
 
 export function isCloudAuthAvailable(): boolean {
@@ -329,7 +290,7 @@ export async function loginCloudUser(
     .eq('slug', cloudUser.ecole_slug)
     .maybeSingle()
 
-  const licence = await fetchActiveCloudLicenceRecord(cloudUser.ecole_slug)
+  const licence = await resolveActiveCloudLicence(cloudUser.ecole_slug)
   if (!licence) {
     return { ok: false, error: 'licence_expired' }
   }
@@ -396,12 +357,6 @@ export async function resetCloudPassword(
 
   if (error) return { ok: false, error: 'server_error' }
   return { ok: true }
-}
-
-export async function fetchCloudLicenceForSlug(ecoleSlug: string): Promise<{ type: string; date_fin: string } | null> {
-  const licence = await fetchActiveCloudLicenceRecord(ecoleSlug)
-  if (!licence) return null
-  return { type: licence.type, date_fin: licence.date_fin }
 }
 
 export async function fetchCloudEcole(slug: string): Promise<{ id: string; nom: string; logo_url: string | null } | null> {
