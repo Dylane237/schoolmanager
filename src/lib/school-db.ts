@@ -363,6 +363,9 @@ export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
     const hydrated = await hydrateSchoolFromSupabase(db, ecoleSlug)
     if (hydrated) markSchoolDbDirty(ecoleSlug)
 
+    const classesHydrated = await hydrateClassesFromCloud(db, ecoleSlug)
+    if (classesHydrated) markSchoolDbDirty(ecoleSlug)
+
     return
   }
 
@@ -417,9 +420,50 @@ async function provisionEmptySchoolDb(ecoleSlug: string, dbPath: string): Promis
   const mem = createMemoryDb()
   await provisionSchoolDbFromCloud(mem, ecoleSlug)
 
-  mem.pragma('wal_checkpoint(TRUNCATE)')
-  await mem.backup(dbPath)
+  const { exportMemoryDbToBuffer } = await import('./db-vercel')
+  fs.writeFileSync(dbPath, exportMemoryDbToBuffer(mem))
   mem.close()
+}
+
+/** Restaure les classes depuis cloud_classes si la base locale est vide (web). */
+async function hydrateClassesFromCloud(
+  db: Database.Database,
+  ecoleSlug: string,
+): Promise<boolean> {
+  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecole) return false
+
+  const localCount = (db.prepare(
+    'SELECT COUNT(*) as c FROM classes WHERE ecole_id = ?',
+  ).get(ecole.id) as { c: number }).c
+  if (localCount > 0) return false
+
+  const { fetchCloudClasses } = await import('./cloud-read')
+  const cloudClasses = await fetchCloudClasses(ecoleSlug)
+  if (!cloudClasses.length) return false
+
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO classes (id, ecole_id, nom, section, niveau, annee_scolaire, capacite_max)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const c of cloudClasses) {
+    insert.run(
+      c.id,
+      ecole.id,
+      c.nom,
+      c.section,
+      c.niveau,
+      c.annee_scolaire,
+      c.capacite_max ?? 60,
+    )
+  }
+  return true
+}
+
+/** Marque la base dirty, flush blob + sync structurée (web/desktop). */
+export async function persistSchoolChanges(ecoleSlug: string): Promise<void> {
+  markSchoolDbDirty(ecoleSlug)
+  await flushSchoolDb(ecoleSlug)
 }
 
 export function markSchoolDbDirty(ecoleSlug: string): void {
@@ -464,11 +508,11 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
       recordSyncEvent(ecoleSlug, 'push_fail', result.error)
     }
 
-    const { pushSchoolDataFromEcoleId } = await import('./sync-trigger')
+    const { pushSchoolDataFromEcoleIdAsync } = await import('./sync-trigger')
     const { getDbForSlug } = await import('./db')
     const db = getDbForSlug(ecoleSlug)
     const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
-    if (ecole?.id) pushSchoolDataFromEcoleId(ecole.id)
+    if (ecole?.id) await pushSchoolDataFromEcoleIdAsync(ecole.id, ecoleSlug)
     return
   }
 
@@ -492,11 +536,11 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
     recordSyncEvent(ecoleSlug, 'push_fail', result.error)
   }
 
-  const { pushSchoolDataFromEcoleId } = await import('./sync-trigger')
+  const { pushSchoolDataFromEcoleIdAsync } = await import('./sync-trigger')
   const { getDbForSlug } = await import('./db')
   const db = getDbForSlug(ecoleSlug)
   const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
-  if (ecole?.id) pushSchoolDataFromEcoleId(ecole.id)
+  if (ecole?.id) await pushSchoolDataFromEcoleIdAsync(ecole.id, ecoleSlug)
 }
 
 export function resolveEcoleId(

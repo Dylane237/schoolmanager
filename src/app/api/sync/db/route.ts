@@ -6,8 +6,10 @@ import {
   pushSchoolDbFromLocal,
   getDb,
   resolveEcoleId,
+  prepareSchoolDb,
+  markSchoolDbDirty,
 } from '@/lib/db-server'
-import { pushSchoolDataFromEcoleId } from '@/lib/sync-trigger'
+import { pushSchoolDataFromEcoleIdAsync } from '@/lib/sync-trigger'
 import { detectSyncConflict } from '@/lib/sync-conflict'
 import { readLocalSyncMeta } from '@/lib/sync-meta'
 import { getLastSyncEvent } from '@/lib/sync-monitor'
@@ -34,6 +36,11 @@ export async function POST(request: NextRequest) {
     body = await request.json()
   } catch {
     // body optionnel
+  }
+
+  if (process.env.VERCEL) {
+    await prepareSchoolDb(slug)
+    markSchoolDbDirty(slug)
   }
 
   const force = body.strategy === 'keep_local'
@@ -67,9 +74,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: pushResult.error || 'Sync échouée' }, { status: 502 })
   }
 
-  const db = getDb()
+  const db = getDb(slug)
   const ecoleId = resolveEcoleId(db, slug, user.ecole_id)
-  if (ecoleId) pushSchoolDataFromEcoleId(ecoleId)
+  if (ecoleId) await pushSchoolDataFromEcoleIdAsync(ecoleId, slug)
 
   conflict = await detectSyncConflict(slug)
 

@@ -18,6 +18,7 @@ export {
   resolveEcoleId,
   pullSchoolDbToLocal,
   pushSchoolDbFromLocal,
+  persistSchoolChanges,
   ensureCloudLoginSchoolData,
   ensureCloudRegisterSchoolData,
   upsertActiveLicenceInDb,

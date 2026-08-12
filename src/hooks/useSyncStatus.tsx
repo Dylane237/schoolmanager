@@ -20,6 +20,7 @@ type SyncStatusPayload = {
   conflict?: boolean
   last_error?: string | null
   last_sync_at?: string | null
+  synced_at?: string | null
   db_synced?: boolean
 }
 
@@ -49,7 +50,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
     else if (data.sync_state === 'synced' || data.db_synced) setState('synced')
     else setState('pending')
     setLastError(data.last_error ?? null)
-    setLastSyncAt(data.last_sync_at ?? null)
+    setLastSyncAt(data.last_sync_at ?? data.synced_at ?? null)
   }, [])
 
   const refresh = useCallback(async () => {
