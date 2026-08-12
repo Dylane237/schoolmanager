@@ -21,6 +21,9 @@ dist2/
 .env.production
 *.pem
 *.key
+.tmp-*
+.eslint-report.json
+.cursor/settings.json
 
 
 # Uploads et données utilisateur
