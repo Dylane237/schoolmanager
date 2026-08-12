@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   })
 
   return NextResponse.json({
-    success: result.errors.length === 0,
+    success: result.errors.length === 0 && result.applied > 0,
     applied: result.applied,
     skipped: result.skipped,
     errors: result.errors,

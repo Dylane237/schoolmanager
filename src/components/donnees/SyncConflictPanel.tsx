@@ -85,28 +85,62 @@ export default function SyncConflictPanel({
   }, [data?.diff.items, choices])
 
   const applyMerge = async () => {
-    if (!data?.diff.items.length) return
-    if (preview && preview.desktop_losses > 0) {
-      const ok = window.confirm(t('confirmLosses', { count: preview.desktop_losses }))
-      if (!ok) return
-    }
     setMerging(true)
     try {
-      const decisions = data.diff.items.map(item => ({
-        entity_type: item.entity_type,
-        entity_id: item.entity_id,
-        choice: choices[`${item.entity_type}:${item.entity_id}`] ?? 'skip',
-      }))
+      const freshRes = await fetch('/api/sync/changelog')
+      if (!freshRes.ok) {
+        toast.error(t('mergeError'))
+        return
+      }
+      const fresh = await freshRes.json() as ChangelogPayload
+      const items = fresh.diff?.items ?? []
+      if (!items.length) {
+        toast.success(t('alreadySynced'))
+        setData(fresh)
+        onResolved?.()
+        return
+      }
+
+      const freshChoices = { ...choices }
+      for (const item of items) {
+        const key = `${item.entity_type}:${item.entity_id}`
+        if (!(key in freshChoices)) {
+          freshChoices[key] = item.kind === 'local_only' ? 'local'
+            : item.kind === 'cloud_only' ? 'cloud'
+            : 'local'
+        }
+      }
+
+      const decisions = items
+        .map(item => ({
+          entity_type: item.entity_type,
+          entity_id: item.entity_id,
+          choice: freshChoices[`${item.entity_type}:${item.entity_id}`] ?? 'skip',
+        }))
+        .filter(d => d.choice !== 'skip')
+
+      if (!decisions.length) {
+        toast.error(t('nothingToApply'))
+        return
+      }
+
+      const previewFresh = computeMergePreview(items, freshChoices)
+      if (previewFresh.desktop_losses > 0) {
+        const ok = window.confirm(t('confirmLosses', { count: previewFresh.desktop_losses }))
+        if (!ok) return
+      }
+
       const res = await fetch('/api/sync/merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ decisions }),
       })
       const json = await res.json()
-      if (!res.ok || json.errors?.length) {
+      const hasHardErrors = json.errors?.length > 0
+      if (!res.ok || (hasHardErrors && !json.applied)) {
         toast.error(json.errors?.[0] ?? t('mergeError'))
       } else {
-        toast.success(t('mergeSuccess', { count: json.applied }))
+        toast.success(t('mergeSuccess', { count: json.applied ?? 0 }))
         await load()
         onResolved?.()
       }

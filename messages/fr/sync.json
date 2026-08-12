@@ -32,6 +32,8 @@
     "mergeError": "Erreur lors de la fusion",
     "previewTitle": "Prévisualisation avant application",
     "previewWarning": "Attention : {desktop} perte(s) sur le bureau, {web} écrasement(s) côté web.",
-    "confirmLosses": "{count} entrée(s) seront supprimées du bureau. Continuer ?"
+    "confirmLosses": "{count} entrée(s) seront supprimées du bureau. Continuer ?",
+    "alreadySynced": "Plus aucune différence — déjà synchronisé",
+    "nothingToApply": "Sélectionnez au moins un élément à fusionner (pas tout sur Ignorer)"
   }
 }

@@ -262,7 +262,8 @@ export async function applyMergeDecisions(
 
       const kind = kindByKey.get(`${d.entity_type}:${d.entity_id}`)
       if (!kind) {
-        errors.push(`${d.entity_type}/${d.entity_id}: introuvable dans le diff`)
+        // Entrée déjà résolue ou diff rafraîchi entre-temps — ignorer sans erreur
+        skipped += 1
         continue
       }
 
