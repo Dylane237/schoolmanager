@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { AlertTriangle, Cloud, Laptop, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { computeMergePreview } from '@/lib/sync-merge-preview'
 
 type SyncChangeEntry = {
   at: string
@@ -78,8 +79,17 @@ export default function SyncConflictPanel({
     setChoices(prev => ({ ...prev, [key]: choice }))
   }
 
+  const preview = useMemo(() => {
+    if (!data?.diff.items.length) return null
+    return computeMergePreview(data.diff.items, choices)
+  }, [data?.diff.items, choices])
+
   const applyMerge = async () => {
     if (!data?.diff.items.length) return
+    if (preview && preview.desktop_losses > 0) {
+      const ok = window.confirm(t('confirmLosses', { count: preview.desktop_losses }))
+      if (!ok) return
+    }
     setMerging(true)
     try {
       const decisions = data.diff.items.map(item => ({
@@ -175,6 +185,7 @@ export default function SyncConflictPanel({
                     <div>
                       <p className="font-medium text-slate-800">{item.label}</p>
                       <p className="text-xs text-slate-500 mt-0.5">
+                        <span className="inline-block px-1.5 py-0.5 rounded bg-slate-100 mr-1">{item.entity_type}</span>
                         {kindLabel(item.kind)}
                         {item.fields_changed.length > 0 && ` · ${item.fields_changed.join(', ')}`}
                       </p>
@@ -207,6 +218,38 @@ export default function SyncConflictPanel({
               )
             })}
           </ul>
+
+          {preview && preview.lines.some(l => l.choice !== 'skip') && (
+            <div className="p-4 bg-slate-100 border-t border-slate-200 space-y-2">
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                {t('previewTitle')}
+              </p>
+              {(preview.desktop_losses > 0 || preview.web_losses > 0) && (
+                <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">
+                  {t('previewWarning', {
+                    desktop: preview.desktop_losses,
+                    web: preview.web_losses,
+                  })}
+                </p>
+              )}
+              <ul className="space-y-2 max-h-40 overflow-y-auto">
+                {preview.lines.filter(l => l.choice !== 'skip').map(line => (
+                  <li key={`${line.entity_type}:${line.entity_id}`} className="text-xs bg-white rounded p-2 border border-slate-200">
+                    <p className="font-medium text-slate-800">{line.label}</p>
+                    <p className="text-slate-600 mt-1">
+                      <Laptop className="w-3 h-3 inline mr-1" />
+                      {line.desktop_will}
+                    </p>
+                    <p className="text-slate-600 mt-0.5">
+                      <Cloud className="w-3 h-3 inline mr-1" />
+                      {line.web_will}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="p-3 bg-slate-50 border-t border-slate-200">
             <button
               type="button"

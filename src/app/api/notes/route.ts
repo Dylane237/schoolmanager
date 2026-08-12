@@ -117,5 +117,15 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  return jsonPersist(ecoleSlug, { success: true })
+  return jsonPersist(ecoleSlug, { success: true }, undefined, {
+    entity_type: 'note',
+    entity_id: body.eleve_id && body.matiere_id ? (
+      (db.prepare(`
+        SELECT id FROM notes WHERE eleve_id = ? AND matiere_id = ? AND periode = ?
+      `).get(body.eleve_id, body.matiere_id, body.periode) as { id: string } | undefined)?.id ?? null
+    ) : null,
+    action: 'update',
+    label: `Note ${body.note}/100 — période ${body.periode}`,
+    source: 'notes',
+  })
 }

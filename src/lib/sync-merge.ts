@@ -3,6 +3,9 @@ import type Database from 'better-sqlite3'
 import { isSupabaseConfigured } from './supabase-admin'
 import { persistSchoolChanges } from './school-db'
 import { pushSchoolDataFromEcoleIdAsync } from './sync-trigger'
+import { applyBlobMergeDecision, isBlobEntityType } from './sync-merge-blob'
+import { openCloudSnapshotDb, resolveEcoleIdFromDb } from './sync-snapshot'
+import type { SyncDiffKind } from './sync-diff-types'
 import type { SyncEntityType } from './sync-changelog'
 
 export type MergeChoice = 'local' | 'cloud' | 'skip'
@@ -222,36 +225,77 @@ async function applyLocalClasseToCloud(
   return error?.message ?? null
 }
 
+function removeLocalEleve(db: Database.Database, ecoleId: string, entityId: string): void {
+  db.prepare('UPDATE eleves SET statut = ? WHERE id = ? AND ecole_id = ?').run('inactif', entityId, ecoleId)
+}
+
+function removeLocalClasse(db: Database.Database, ecoleId: string, entityId: string): void {
+  db.prepare('DELETE FROM classes WHERE id = ? AND ecole_id = ?').run(entityId, ecoleId)
+}
+
 export async function applyMergeDecisions(
   db: Database.Database,
   ecoleId: string,
   ecoleSlug: string,
   decisions: MergeDecision[],
+  kindByKey?: Map<string, SyncDiffKind>,
 ): Promise<{ applied: number; skipped: number; errors: string[] }> {
   let applied = 0
   let skipped = 0
   const errors: string[] = []
 
-  for (const d of decisions) {
-    if (d.choice === 'skip') {
-      skipped += 1
-      continue
+  if (!kindByKey) {
+    const { computeSyncDiff } = await import('./sync-diff')
+    const diff = await computeSyncDiff(db, ecoleId, ecoleSlug)
+    kindByKey = new Map(diff.items.map(i => [`${i.entity_type}:${i.entity_id}`, i.kind]))
+  }
+
+  const cloudDb = await openCloudSnapshotDb(ecoleSlug)
+  const cloudEcoleId = cloudDb ? resolveEcoleIdFromDb(cloudDb, ecoleSlug) : null
+
+  try {
+    for (const d of decisions) {
+      if (d.choice === 'skip') {
+        skipped += 1
+        continue
+      }
+
+      const kind = kindByKey.get(`${d.entity_type}:${d.entity_id}`)
+      if (!kind) {
+        errors.push(`${d.entity_type}/${d.entity_id}: introuvable dans le diff`)
+        continue
+      }
+
+      let err: string | null = null
+
+      if (isBlobEntityType(d.entity_type)) {
+        err = await applyBlobMergeDecision(
+          db, cloudDb, ecoleId, cloudEcoleId,
+          d.entity_type, d.entity_id, d.choice, kind,
+        )
+      } else if (d.entity_type === 'eleve') {
+        if (d.choice === 'cloud') {
+          if (kind === 'local_only') removeLocalEleve(db, ecoleId, d.entity_id)
+          else err = await applyCloudEleveToLocal(db, ecoleId, ecoleSlug, d.entity_id)
+        } else if (d.choice === 'local') {
+          if (kind !== 'cloud_only') err = await applyLocalEleveToCloud(db, ecoleId, ecoleSlug, d.entity_id)
+        }
+      } else if (d.entity_type === 'classe') {
+        if (d.choice === 'cloud') {
+          if (kind === 'local_only') removeLocalClasse(db, ecoleId, d.entity_id)
+          else err = await applyCloudClasseToLocal(db, ecoleId, ecoleSlug, d.entity_id)
+        } else if (d.choice === 'local') {
+          if (kind !== 'cloud_only') err = await applyLocalClasseToCloud(db, ecoleId, ecoleSlug, d.entity_id)
+        }
+      } else {
+        err = `Type "${d.entity_type}" non supporté pour le merge granulaire`
+      }
+
+      if (err) errors.push(`${d.entity_type}/${d.entity_id}: ${err}`)
+      else applied += 1
     }
-
-    let err: string | null = null
-
-    if (d.entity_type === 'eleve') {
-      if (d.choice === 'cloud') err = await applyCloudEleveToLocal(db, ecoleId, ecoleSlug, d.entity_id)
-      else if (d.choice === 'local') err = await applyLocalEleveToCloud(db, ecoleId, ecoleSlug, d.entity_id)
-    } else if (d.entity_type === 'classe') {
-      if (d.choice === 'cloud') err = await applyCloudClasseToLocal(db, ecoleId, ecoleSlug, d.entity_id)
-      else if (d.choice === 'local') err = await applyLocalClasseToCloud(db, ecoleId, ecoleSlug, d.entity_id)
-    } else {
-      err = `Type "${d.entity_type}" non supporté pour le merge granulaire`
-    }
-
-    if (err) errors.push(`${d.entity_type}/${d.entity_id}: ${err}`)
-    else applied += 1
+  } finally {
+    cloudDb?.close()
   }
 
   if (applied > 0) {

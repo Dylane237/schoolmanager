@@ -69,5 +69,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return jsonPersist(ecoleSlug, { success: true })
+  return jsonPersist(ecoleSlug, { success: true }, undefined, {
+    entity_type: 'tranche',
+    entity_id: `${body.classe_id}:batch:${annee}`,
+    action: 'update',
+    label: `Tranches mises à jour — ${body.tranches.length} tranche(s)`,
+    source: 'tranches-config',
+  })
 }

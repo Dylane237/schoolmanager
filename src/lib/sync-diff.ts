@@ -1,31 +1,13 @@
 import 'server-only'
 import type Database from 'better-sqlite3'
 import { fetchCloudClasses } from './cloud-read'
-import { getPendingLocalChanges, type SyncChangeEntry, type SyncEntityType } from './sync-changelog'
+import { getPendingLocalChanges, type SyncChangeEntry } from './sync-changelog'
 import { isSupabaseConfigured } from './supabase-admin'
+import { diffBlobEntities } from './sync-diff-blob'
+import { openCloudSnapshotDb, resolveEcoleIdFromDb } from './sync-snapshot'
+import type { SyncDiffItem, SyncDiffReport } from './sync-diff-types'
 
-export type SyncDiffKind = 'local_only' | 'cloud_only' | 'both_modified'
-
-export type SyncDiffItem = {
-  entity_type: SyncEntityType
-  entity_id: string
-  label: string
-  kind: SyncDiffKind
-  local_summary: string | null
-  cloud_summary: string | null
-  fields_changed: string[]
-}
-
-export type SyncDiffReport = {
-  has_differences: boolean
-  items: SyncDiffItem[]
-  local_pending: SyncChangeEntry[]
-  summary: {
-    local_only: number
-    cloud_only: number
-    both_modified: number
-  }
-}
+export type { SyncDiffItem, SyncDiffKind, SyncDiffReport } from './sync-diff-types'
 
 type EleveRow = {
   id: string
@@ -267,7 +249,21 @@ export async function computeSyncDiff(
   const items = [
     ...diffEleves(localEleves, cloudEleves),
     ...diffClasses(localClasses, cloudClasses),
-  ].sort((a, b) => a.label.localeCompare(b.label, 'fr'))
+  ]
+
+  const cloudDb = await openCloudSnapshotDb(ecoleSlug)
+  if (cloudDb) {
+    try {
+      const cloudEcoleId = resolveEcoleIdFromDb(cloudDb, ecoleSlug)
+      if (cloudEcoleId) {
+        items.push(...diffBlobEntities(db, cloudDb, ecoleId, cloudEcoleId))
+      }
+    } finally {
+      cloudDb.close()
+    }
+  }
+
+  items.sort((a, b) => a.label.localeCompare(b.label, 'fr'))
 
   const local_pending = getPendingLocalChanges(ecoleSlug)
 

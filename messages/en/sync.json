@@ -29,6 +29,9 @@
     "applyMerge": "Apply selected choices",
     "merging": "Applying…",
     "mergeSuccess": "{count} item(s) synced",
-    "mergeError": "Merge failed"
+    "mergeError": "Merge failed",
+    "previewTitle": "Preview before applying",
+    "previewWarning": "Warning: {desktop} desktop loss(es), {web} web overwrite(s).",
+    "confirmLosses": "{count} entry(ies) will be removed from desktop. Continue?"
   }
 }

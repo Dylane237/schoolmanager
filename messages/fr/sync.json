@@ -29,6 +29,9 @@
     "applyMerge": "Appliquer les choix sélectionnés",
     "merging": "Application…",
     "mergeSuccess": "{count} élément(s) synchronisé(s)",
-    "mergeError": "Erreur lors de la fusion"
+    "mergeError": "Erreur lors de la fusion",
+    "previewTitle": "Prévisualisation avant application",
+    "previewWarning": "Attention : {desktop} perte(s) sur le bureau, {web} écrasement(s) côté web.",
+    "confirmLosses": "{count} entrée(s) seront supprimées du bureau. Continuer ?"
   }
 }
