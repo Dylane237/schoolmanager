@@ -17,13 +17,13 @@ export async function GET(request: NextRequest) {
   if (denied) return denied
 
   const limit = Math.min(500, Math.max(1, Number(request.nextUrl.searchParams.get('limit') ?? 200)))
-  const module = request.nextUrl.searchParams.get('module')
+  const moduleFilter = request.nextUrl.searchParams.get('module')
 
   const db = getDb()
   let logs = getRecentAuditLogs(db, user.ecole_id, limit)
 
-  if (module) {
-    logs = logs.filter(l => l.module === module)
+  if (moduleFilter) {
+    logs = logs.filter(l => l.module === moduleFilter)
   }
 
   const format = request.nextUrl.searchParams.get('format') ?? 'json'

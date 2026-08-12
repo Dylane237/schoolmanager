@@ -103,8 +103,8 @@ export default function Sidebar({ slug, ecoleNom }: SidebarProps) {
       <nav className="flex-1 p-3 overflow-y-auto space-y-4">
         {NAV_GROUPS(slug, t).map((group, gi) => {
           const visibleItems = group.items.filter(item => {
-            const module = NAV_MODULE_MAP[item.key] as Module
-            return hasModuleAccess(userRole, module)
+            const navModule = NAV_MODULE_MAP[item.key] as Module
+            return hasModuleAccess(userRole, navModule)
           })
           if (visibleItems.length === 0) return null
           return (

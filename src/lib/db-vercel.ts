@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3'
+import Database from 'better-sqlite3'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -18,7 +18,6 @@ function backupTo(dest: BackupTarget, source: SqliteDb): void {
 
 /** Charge un fichier SQLite (buffer) dans une base :memory: (évite I/O WAL sur /tmp Vercel). */
 export function loadBufferIntoMemoryDb(buffer: Buffer): SqliteDb {
-  const Database = require('better-sqlite3') as typeof import('better-sqlite3')
   const mem = new Database(':memory:')
   mem.pragma('journal_mode = MEMORY')
   mem.pragma('foreign_keys = ON')
@@ -41,7 +40,6 @@ export function loadBufferIntoMemoryDb(buffer: Buffer): SqliteDb {
 
 /** Exporte une base :memory: vers un buffer (pour upload cloud). */
 export function exportMemoryDbToBuffer(db: SqliteDb): Buffer {
-  const Database = require('better-sqlite3') as typeof import('better-sqlite3')
   const tmpFile = path.join(os.tmpdir(), `sm-export-${Date.now()}.db`)
   try {
     const fileDb = new Database(tmpFile)

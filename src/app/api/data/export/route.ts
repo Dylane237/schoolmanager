@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Format invalide' }, { status: 400 })
   }
 
-  const module = ENTITY_MODULES[entity]
-  const denied = requireModule(user, module, 'GET')
+  const appModule = ENTITY_MODULES[entity]
+  const denied = requireModule(user, appModule, 'GET')
   if (denied) return denied
 
   const db = getDb()

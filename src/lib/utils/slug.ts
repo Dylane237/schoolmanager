@@ -12,7 +12,7 @@ export function uniqueSlug(
   base: string,
   exists: (slug: string) => boolean,
 ): string {
-  let slug = slugify(base) || 'ecole'
+  const slug = slugify(base) || 'ecole'
   if (!exists(slug)) return slug
   for (let i = 2; i < 1000; i++) {
     const candidate = `${slug}-${i}`

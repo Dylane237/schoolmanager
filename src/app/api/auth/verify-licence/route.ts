@@ -7,6 +7,7 @@ function getDb() {
   if (process.env.VERCEL) return null
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Database = require('better-sqlite3')
     ensureUserDataDir()
     const db = new Database(getDbPath())

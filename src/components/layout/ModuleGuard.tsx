@@ -16,8 +16,8 @@ export default function ModuleGuard({ children }: ModuleGuardProps) {
   const { slug, userRole } = useSchool()
   const t = useTranslations('components.moduleGuard')
 
-  const module = getModuleForPagePath(pathname, slug)
-  if (module && !hasModuleAccess(userRole, module)) {
+  const appModule = getModuleForPagePath(pathname, slug)
+  if (appModule && !hasModuleAccess(userRole, appModule)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-8">
         <div className="card p-10 max-w-md w-full text-center">

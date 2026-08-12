@@ -9,7 +9,7 @@
     "build": "next build --webpack",
     "build:electron": "node scripts/build-next.js",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint src tests e2e",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
