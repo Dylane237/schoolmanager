@@ -1,0 +1,85 @@
+{
+  "breadcrumb": "Tableau de bord",
+  "greeting": "Bonjour, {name}",
+  "enrollStudent": "Inscrire un élève",
+  "stats": {
+    "activeStudents": "Élèves actifs",
+    "classes": "Classes",
+    "staff": "Personnel",
+    "collectedThisMonth": "Collecté ce mois",
+    "inClasses": "sur {count} classe(s)",
+    "avgCapacity": "capacité moyenne : {count} élèves",
+    "noStaff": "Aucun staff enregistré",
+    "activeMembers": "membres actifs",
+    "noCollection": "Aucun encaissement ce mois",
+    "trendVsLastMonth": "{pct} % vs mois dernier",
+    "firstCollection": "Premiers encaissements ce mois"
+  },
+  "sections": {
+    "modules": "Modules",
+    "alerts": "Alertes & rappels",
+    "recentPayments": "Derniers paiements",
+    "quickAccess": "Accès rapides"
+  },
+  "modules": {
+    "students": { "label": "Élèves", "desc": "Inscriptions & fiches" },
+    "payments": { "label": "Paiements", "desc": "Frais & reçus PDF" },
+    "classes": { "label": "Classes", "desc": "Gestion des classes" },
+    "grades": { "label": "Notes", "desc": "Saisie & bulletins" },
+    "reportCards": { "label": "Bulletins", "desc": "Impression report cards" },
+    "attendance": { "label": "Présences", "desc": "Registre d'appel" },
+    "staff": { "label": "Personnel", "desc": "Staff & RH" },
+    "announcements": { "label": "Annonces", "desc": "Communications" }
+  },
+  "alerts": {
+    "emptyClasses": "{count} classe(s) sans élèves inscrits",
+    "emptyClassesSub": "Classes — vérifier les inscriptions",
+    "unpaid": "{count} élève(s) avec solde impayé",
+    "unpaidSub": "Paiements — Suivi des frais",
+    "noTeacher": "{count} classe(s) sans enseignant affecté",
+    "noTeacherSub": "Personnel — Affectations",
+    "allGood": "Tout est en ordre",
+    "updatedOn": "Mis à jour le {date}"
+  },
+  "payments": {
+    "empty": "Aucun paiement enregistré pour l'instant.",
+    "student": "Élève",
+    "class": "Classe",
+    "method": "Mode",
+    "amount": "Montant",
+    "methods": {
+      "especes": "Espèces",
+      "orange_money": "Orange Money",
+      "mtn_momo": "MTN MoMo",
+      "virement": "Virement"
+    }
+  },
+  "quickAccess": {
+    "newPayment": { "label": "Nouveau paiement", "desc": "Enregistrer un règlement" },
+    "enterGrades": { "label": "Saisir des notes", "desc": "Notes de la période en cours" },
+    "attendance": { "label": "Faire l'appel", "desc": "Registre de présences" },
+    "settings": { "label": "Paramètres école", "desc": "Configuration & profil" }
+  },
+  "charts": {
+    "collections": {
+      "title": "Encaissements",
+      "period": {
+        "jour": "Jour",
+        "semaine": "Semaine",
+        "mois": "Mois",
+        "custom": "Personnalisé"
+      },
+      "to": "à",
+      "empty": "Aucun encaissement sur cette période",
+      "error": "Impossible de charger les données pour cette période.",
+      "tooltipAmount": "Montant"
+    },
+    "paymentByClass": {
+      "section": "Répartition",
+      "title": "Élèves à jour par classe",
+      "empty": "Aucune tranche configurée sur vos classes",
+      "tooltip": "{paid}/{total} élèves ({pct}%) · À jour",
+      "moreClasses": "{count} autre(s) classe(s) — voir la liste complète"
+    }
+  }
+}

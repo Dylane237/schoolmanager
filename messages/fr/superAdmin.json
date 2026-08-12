@@ -1,0 +1,68 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "schools": "Écoles",
+    "licences": "Licences cloud"
+  },
+  "dashboard": {
+    "title": "Vue globale",
+    "subtitle": "Pilotage commercial et opérationnel",
+    "stats": {
+      "clientSchools": "Écoles clientes",
+      "totalStudents": "Élèves total",
+      "activeLicences": "Licences actives",
+      "expiringSoon": "Expirent sous 30j"
+    },
+    "business": {
+      "title": "Indicateurs business",
+      "revenue": "Chiffre d'affaires licences",
+      "newSchoolsThisMonth": "Nouvelles écoles ce mois",
+      "conversionRate": "Taux de conversion",
+      "expiredLicences": "Licences expirées"
+    },
+    "planDistribution": {
+      "title": "Répartition par plan",
+      "columns": {
+        "plan": "Plan",
+        "activeLicences": "Licences actives",
+        "estimatedRevenue": "Revenu estimé"
+      }
+    },
+    "renewals": {
+      "title": "Renouvellements à venir (30 jours)",
+      "columns": {
+        "school": "École",
+        "slug": "Slug",
+        "students": "Élèves",
+        "plan": "Plan",
+        "licence": "Licence",
+        "expiration": "Expiration"
+      }
+    },
+    "status": {
+      "inactive": "Inactive",
+      "expired": "Expirée",
+      "expiresIn": "Expire dans {n}j",
+      "active": "Active"
+    }
+  },
+  "schools": {
+    "title": "Écoles clientes",
+    "subtitle": "{count} école(s) enregistrée(s)",
+    "empty": "Aucune école inscrite. Générez une clé pool pour permettre une nouvelle inscription.",
+    "accessDashboard": "Accéder au dashboard →",
+    "students": "Élèves",
+    "plan": "Plan",
+    "expiration": "Expiration"
+  },
+  "licences": {
+    "title": "Licences — administration cloud",
+    "subtitle": "Console centralisée pour la gestion des clés et établissements.",
+    "openConsole": "Ouvrir l'admin cloud",
+    "localNote": "Les données opérationnelles restent en local (SQLite) sur chaque poste.",
+    "links": {
+      "schools": "Écoles",
+      "dashboard": "Tableau de bord"
+    }
+  }
+}

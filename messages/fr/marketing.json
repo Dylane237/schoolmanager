@@ -1,0 +1,331 @@
+{
+  "brand": {
+    "name": "SchoolManager",
+    "tagline": "Gestion scolaire · Cameroun"
+  },
+  "nav": {
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "download": "Télécharger",
+    "contact": "Contact",
+    "login": "Se connecter",
+    "register": "Essai gratuit"
+  },
+  "hero": {
+    "badge": "Offline · Web · Bureau",
+    "pills": {
+      "desktop": "Bureau offline",
+      "web": "Web instantané",
+      "mobile": "Mobile partout"
+    },
+    "title1": "Gérez votre école.",
+    "title2": "Partout. Même sans internet.",
+    "title3": "Comme vous le méritez.",
+    "subtitle": "Inscriptions, paiements par tranches, bulletins et reçus — sur le navigateur, sur votre téléphone, ou sur le PC du secrétariat avec synchronisation automatique.",
+    "ctaRegister": "Créer mon école",
+    "ctaDownload": "Télécharger pour Windows",
+    "ctaLogin": "J'ai déjà un compte",
+    "trust": "Sections francophone, anglophone et maternelle · Données hébergées chez vous",
+    "liveDemo": "Aperçu en direct",
+    "screenshotAlt": "Interface SchoolManager — suivi des paiements et tranches de scolarité"
+  },
+  "features": {
+    "title": "Tout ce qu'une école camerounaise attend",
+    "subtitle": "Du secrétariat à la direction — un seul outil, une seule base de données.",
+    "items": {
+      "students": {
+        "title": "Élèves & classes",
+        "desc": "Matricules, photos, parents, niveaux Cameroun, transferts entre classes."
+      },
+      "payments": {
+        "title": "Paiements & tranches",
+        "desc": "Encaissements, reçus imprimables, impayés, situation par élève et par classe."
+      },
+      "grades": {
+        "title": "Notes & bulletins",
+        "desc": "Saisie par matière, moyennes, mentions, impression bulletin officiel."
+      },
+      "attendance": {
+        "title": "Présences",
+        "desc": "Appel quotidien par classe — présent, absent, retard, excusé."
+      },
+      "staff": {
+        "title": "Personnel",
+        "desc": "Enseignants et staff administratif, affectation aux classes."
+      },
+      "offline": {
+        "title": "100 % offline au bureau",
+        "desc": "Le logiciel Windows continue sans connexion. Sync automatique quand internet revient."
+      },
+      "analytics": {
+        "title": "Tableaux de bord",
+        "desc": "Encaissements, impayés par classe, tendances — la direction voit tout en un coup d'œil."
+      },
+      "secure": {
+        "title": "Sécurité & rôles",
+        "desc": "Accès par profil (direction, secrétariat, enseignant) — chacun voit ce qu'il doit voir."
+      },
+      "mobile": {
+        "title": "Web & mobile",
+        "desc": "Même compte, même école — consultez les données depuis n'importe où après synchronisation."
+      }
+    }
+  },
+  "dualChannel": {
+    "eyebrow": "Sync intelligente",
+    "title": "Même outil, nouvel écran.",
+    "subtitle": "La secrétaire encaisse offline au PC. La directrice consulte les impayés sur son téléphone dès que la sync est faite.",
+    "steps": {
+      "1": "Installez l'app Windows au secrétariat — elle fonctionne sans internet.",
+      "2": "Travaillez normalement : élèves, paiements, bulletins, présences.",
+      "3": "À la reconnexion, vos données se synchronisent pour le web et le mobile."
+    },
+    "cards": {
+      "desktop": {
+        "title": "PC secrétariat",
+        "hint": "App Windows · offline"
+      },
+      "mobile": {
+        "title": "Téléphone & web",
+        "hint": "Même compte · même école"
+      }
+    }
+  },
+  "showcase": {
+    "payments": {
+      "label": "Paiements",
+      "title": "Encaissements et tranches sans prise de tête",
+      "desc": "Enregistrez un paiement en quelques secondes, imprimez le reçu, suivez les impayés par élève ou par classe.",
+      "imageAlt": "Capture d'écran SchoolManager — page Paiements avec filtres et situation par élève",
+      "stats": [
+        { "value": "2 min", "label": "Par encaissement" },
+        { "value": "100 %", "label": "Reçus imprimables" }
+      ]
+    },
+    "students": {
+      "label": "Inscriptions",
+      "title": "Inscrivez et gérez vos élèves facilement",
+      "desc": "Recherche par nom ou matricule, filtres par classe et statut de paiement — tout est centralisé pour le secrétariat.",
+      "imageAlt": "Capture d'écran SchoolManager — liste des élèves et inscription",
+      "stats": [
+        { "value": "CSV", "label": "Import en masse" },
+        { "value": "1 clic", "label": "Nouvel élève" }
+      ]
+    },
+    "dashboard": {
+      "label": "Direction",
+      "title": "Vue d'ensemble pour la direction",
+      "desc": "Encaissements du mois, classes les plus en retard, effectifs — tout centralisé sur un tableau de bord clair.",
+      "stats": [
+        { "value": "24/7", "label": "Accès web & mobile" },
+        { "value": "1 base", "label": "Une seule source de vérité" }
+      ]
+    }
+  },
+  "howItWorks": {
+    "title": "Comment ça marche",
+    "subtitle": "De la création de compte à la gestion quotidienne — en quatre étapes simples.",
+    "steps": {
+      "1": {
+        "title": "Créez votre école",
+        "desc": "Inscription en 3 minutes — nom, sections, utilisateurs de base."
+      },
+      "2": {
+        "title": "Importez vos élèves",
+        "desc": "Saisie manuelle ou import CSV de vos listes existantes."
+      },
+      "3": {
+        "title": "Installez le bureau",
+        "desc": "Téléchargez l'app Windows pour le secrétariat — offline et rapide."
+      },
+      "4": {
+        "title": "Gérez au quotidien",
+        "desc": "Paiements, notes, présences — sync automatique quand internet revient."
+      }
+    }
+  },
+  "testimonials": {
+    "title": "Ce qu'en disent les établissements",
+    "subtitle": "Des écoles camerounaises qui ont modernisé leur gestion.",
+    "items": {
+      "1": {
+        "text": "Enfin un logiciel adapté à nos tranches de paiement et à nos sections francophone et anglophone.",
+        "author": "Directrice",
+        "role": "École privée · Yaoundé"
+      },
+      "2": {
+        "text": "La version offline au secrétariat nous a sauvés lors des coupures internet. Les reçus s'impriment en un clic.",
+        "author": "Secrétaire",
+        "role": "Groupe scolaire · Douala"
+      },
+      "3": {
+        "text": "Je consulte les impayés depuis mon téléphone le soir — plus besoin d'attendre le rapport du lendemain.",
+        "author": "Fondatrice",
+        "role": "École maternelle · Bafoussam"
+      },
+      "4": {
+        "text": "Migration depuis Excel en une journée avec leur support. Les bulletins sont prêts pour le conseil de classe.",
+        "author": "Censeur",
+        "role": "Lycée · Garoua"
+      },
+      "5": {
+        "text": "Interface claire, formation rapide pour le personnel. Support WhatsApp réactif.",
+        "author": "Comptable",
+        "role": "École bilingue · Limbé"
+      },
+      "6": {
+        "text": "Un seul outil pour les élèves, les paiements et les notes — exactement ce qu'il nous fallait.",
+        "author": "Directeur",
+        "role": "École primaire · Kribi"
+      }
+    }
+  },
+  "sync": {
+    "title": "Bureau, navigateur, téléphone — les mêmes données",
+    "subtitle": "La secrétaire encaisse offline au PC. La directrice consulte les impayés sur son téléphone dès que la sync est faite.",
+    "desktop": "PC secrétariat",
+    "desktopHint": "App Windows · offline",
+    "cloud": "Synchronisation",
+    "cloudHint": "Automatique · sécurisée",
+    "mobile": "Téléphone & web",
+    "mobileHint": "Même compte · même école"
+  },
+  "ctaBand": {
+    "title": "Prêt à moderniser votre établissement ?",
+    "subtitle": "Créez votre école en 3 minutes ou installez la version bureau pour le secrétariat.",
+    "register": "Commencer gratuitement",
+    "download": "Installer sur Windows"
+  },
+  "pricingTeaser": {
+    "title": "Des formules adaptées à votre effectif",
+    "from": "À partir de",
+    "currency": "FCFA / an",
+    "seeAll": "Voir tous les tarifs"
+  },
+  "faq": {
+    "title": "Questions fréquentes",
+    "items": {
+      "offline": {
+        "q": "Fonctionne-t-il sans internet ?",
+        "a": "Oui. La version Windows installée au bureau fonctionne entièrement offline. Le navigateur et le téléphone nécessitent une connexion."
+      },
+      "data": {
+        "q": "Où sont stockées mes données ?",
+        "a": "Sur le PC de l'école (Documents/SchoolManager) et, si vous activez la sync cloud, une copie sécurisée pour l'accès web et mobile."
+      },
+      "install": {
+        "q": "Dois-je être présent pour l'installation ?",
+        "a": "Non. Téléchargez l'installateur, lancez-le, connectez-vous avec le même compte que sur le web. Notre support peut vous guider à distance."
+      },
+      "migrate": {
+        "q": "Puis-je migrer depuis un autre logiciel ?",
+        "a": "Oui — import CSV des élèves et accompagnement sur demande pour récupérer vos listes et soldes."
+      },
+      "sections": {
+        "q": "Gère-t-il francophone, anglophone et maternelle ?",
+        "a": "Oui — niveaux Cameroun, sections multiples et classes maternelles sont pris en charge nativement."
+      },
+      "support": {
+        "q": "Quel support proposez-vous ?",
+        "a": "Support WhatsApp du lundi au samedi, aide à l'installation à distance et accompagnement migration sur les formules Standard et Premium."
+      }
+    }
+  },
+  "download": {
+    "title": "Télécharger SchoolManager",
+    "subtitle": "Version bureau Windows — recommandée pour le secrétariat (offline, impressions, performance).",
+    "version": "Version {version}",
+    "windows": "Windows 10 ou supérieur · 64 bits",
+    "button": "Télécharger l'installateur",
+    "sizeHint": "Environ 110 Mo · Installation en 2 minutes",
+    "orWeb": "Ou utiliser sans installer",
+    "orWebDesc": "Accédez à votre école depuis n'importe quel navigateur avec le même compte.",
+    "orWebCta": "Se connecter au web",
+    "requirements": {
+      "title": "Prérequis",
+      "items": {
+        "os": "Windows 10, 11 ou supérieur (64 bits)",
+        "ram": "4 Go de RAM minimum recommandés",
+        "disk": "500 Mo d'espace disque libre",
+        "net": "Internet requis uniquement pour l'activation et la synchronisation"
+      }
+    },
+    "steps": {
+      "title": "Installation en 3 étapes",
+      "1": "Téléchargez et lancez l'installateur (.exe)",
+      "2": "Connectez-vous avec l'email et le mot de passe de votre école",
+      "3": "Vos données se synchronisent — le bureau fonctionne offline"
+    },
+    "faq": {
+      "title": "Questions installation",
+      "otherPc": {
+        "q": "Installer sur un second PC de l'école ?",
+        "a": "Oui — même compte, même école. Téléchargez à nouveau depuis cette page ou depuis Paramètres → Application bureau."
+      },
+      "update": {
+        "q": "Comment mettre à jour ?",
+        "a": "L'application vérifie les mises à jour automatiquement. Vous pouvez aussi relancer l'installateur depuis cette page."
+      }
+    }
+  },
+  "pricing": {
+    "title": "Tarifs",
+    "subtitle": "Licence annuelle par établissement — sans frais cachés.",
+    "perYear": "/ an",
+    "currency": "FCFA",
+    "cta": "Commencer",
+    "contact": "Besoin d'un devis sur mesure ?",
+    "contactCta": "Nous contacter",
+    "seeDetails": "Voir le détail des tarifs",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "students": "Jusqu'à 150 élèves",
+        "features": ["Élèves & classes", "Paiements & reçus", "Notes & bulletins", "Support WhatsApp"]
+      },
+      "standard": {
+        "name": "Standard",
+        "badge": "Populaire",
+        "students": "Jusqu'à 400 élèves",
+        "features": ["Tout Starter", "Présences & annonces", "Multi-utilisateurs", "Priorité support"]
+      },
+      "premium": {
+        "name": "Premium",
+        "students": "Effectif illimité",
+        "features": ["Tout Standard", "Sync cloud & mobile", "Migration assistée", "Support dédié"]
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact & support",
+    "subtitle": "Une question, une démo ou de l'aide pour migrer vos données — nous répondons rapidement.",
+    "whatsapp": "WhatsApp support",
+    "whatsappHint": "Réponse en journée · Lundi – Samedi",
+    "demo": "Demander une démo",
+    "demoHint": "Présentation à distance de 30 minutes pour votre équipe",
+    "demoMessage": "Bonjour, je souhaite une démonstration de SchoolManager pour mon établissement.",
+    "installHelp": "Aide à l'installation",
+    "installHint": "Installation à distance guidée par notre équipe",
+    "installMessage": "Bonjour, j'ai besoin d'aide pour installer SchoolManager sur le PC de mon école.",
+    "footerDownload": "Télécharger l'application",
+    "footerRegister": "Créer mon école"
+  },
+  "footer": {
+    "product": "Produit",
+    "legal": "Légal",
+    "rights": "© {year} SchoolManager · Cameroun",
+    "privacy": "Confidentialité",
+    "terms": "Conditions d'utilisation"
+  },
+  "desktopApp": {
+    "title": "Application bureau Windows",
+    "subtitle": "Recommandée pour le secrétariat — offline, impressions et performance.",
+    "installed": "Vous utilisez la version bureau",
+    "installedHint": "Version {version} · Les mises à jour se gèrent ci-dessous.",
+    "webOnly": "Vous êtes sur le navigateur",
+    "webOnlyHint": "Installez l'application sur le PC du secrétariat pour travailler sans internet.",
+    "download": "Télécharger pour Windows",
+    "downloadPage": "Page de téléchargement",
+    "version": "Version {version} disponible"
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "title": "Settings",
+  "subtitle": "Configure your school",
+  "breadcrumb": "Settings",
+  "school": {
+    "title": "School information",
+    "subtitle": "Report cards, sidebar and application watermark",
+    "logo": "School logo",
+    "logoDesc": "Displayed in the sidebar and as a discreet watermark on all pages. PNG or JPG with transparent background recommended.",
+    "upload": "Upload",
+    "change": "Change",
+    "remove": "Remove",
+    "fields": {
+      "name": "School name",
+      "director": "Director's name",
+      "phone": "Phone",
+      "email": "Email",
+      "address": "Address",
+      "slug": "URL identifier"
+    },
+    "placeholders": {
+      "name": "e.g. Sainte-Marie Primary School",
+      "director": "e.g. Mr Jean KAMGA",
+      "phone": "e.g. +237 6XX XXX XXX",
+      "email": "e.g. contact@school.cm",
+      "address": "e.g. Bastos district, Yaoundé"
+    },
+    "slugPrefix": "schoolmanager/",
+    "slugHint": "The URL identifier cannot be changed",
+    "save": "Save",
+    "saving": "Saving..."
+  },
+  "years": {
+    "title": "School years",
+    "active": "Active: {label}",
+    "noActive": "No active year",
+    "empty": "No school years configured",
+    "add": "Add",
+    "badgeActive": "Active",
+    "activate": "Activate",
+    "placeholder": "e.g. {label}",
+    "confirmTitle": "Change active year?",
+    "confirmBody": "You are about to activate year {label}. All data (classes, students, payments, grades) will be filtered by this year.",
+    "confirmWarning": "This action does not delete any data. You can switch back to a previous year at any time.",
+    "confirmYes": "Yes, activate {label}"
+  },
+  "header": {
+    "title": "Official header",
+    "subtitle": "Receipts, report cards and student profiles · MINEDUB by default",
+    "alt": "Header",
+    "cashierName": "Cashier name",
+    "cashierPlaceholder": "e.g. Mrs NGONO Sylvie",
+    "replace": "Replace",
+    "remove": "Remove",
+    "save": "Save header",
+    "saving": "Saving...",
+    "upload": "Upload header",
+    "formatHint": "PNG, JPG — max 2 MB · wide banner 1600×160px"
+  },
+  "storage": {
+    "title": "Local storage",
+    "subtitle": "Data location on this computer",
+    "openFolder": "Open folder",
+    "paths": {
+      "database": "Database",
+      "photos": "Student photos",
+      "backups": "Automatic backups",
+      "exports": "Exported lists"
+    }
+  },
+  "backup": {
+    "title": "Data backup",
+    "autoHint": "Daily automatic backup · last 7 days kept",
+    "manual": "Manual backup",
+    "backingUp": "Backing up...",
+    "exportDb": "Export .db",
+    "exporting": "Exporting...",
+    "restore": "Restore a backup",
+    "restoring": "Restoring...",
+    "restoreWarning": "Restoring replaces the current database with a .db file chosen on your computer. The application restarts automatically when finished.",
+    "recent": "Recent backups",
+    "sizeKb": "{size} KB"
+  },
+  "usersManagement": {
+    "title": "User accounts",
+    "newAccount": "New account",
+    "hint": "Create accounts for your team. Each role only accesses authorised modules.",
+    "modalTitle": "New user account",
+    "fields": {
+      "lastName": "Last name *",
+      "firstName": "First name",
+      "email": "Email *",
+      "password": "Password * (min. 8 chars)",
+      "role": "Role *",
+      "phone": "Phone"
+    },
+    "roles": {
+      "admin": "Administrator",
+      "secretaire": "Secretary",
+      "comptable": "Accountant",
+      "enseignant": "Teacher",
+      "secretaireDesc": "Secretary — students, attendance, announcements",
+      "comptableDesc": "Accountant — students, payments",
+      "enseignantDesc": "Teacher — grades, attendance, nursery"
+    },
+    "create": "Create account",
+    "creating": "Creating...",
+    "loading": "Loading...",
+    "empty": "No user accounts",
+    "columns": {
+      "user": "User",
+      "email": "Email",
+      "role": "Role"
+    },
+    "delete": "Delete",
+    "deleteConfirm": "Delete account for {name}?",
+    "toasts": {
+      "created": "Account created",
+      "deleted": "Account deleted",
+      "error": "Error"
+    }
+  },
+  "auditLog": {
+    "title": "Audit log",
+    "subtitle": "Payments, grades and user accounts",
+    "modules": {
+      "all": "All",
+      "paiements": "Payments",
+      "notes": "Grades",
+      "users": "Users"
+    },
+    "loading": "Loading...",
+    "empty": "No actions recorded yet.",
+    "columns": {
+      "date": "Date",
+      "module": "Module",
+      "action": "Action",
+      "detail": "Detail"
+    },
+    "detailInstalment": "instalment {n}",
+    "detailGrade": "grade {n}"
+  },
+  "supportTools": {
+    "title": "Support & diagnostics",
+    "description": "Export a technical report (licence, version, database) or the audit log (payments, grades, users) to send to support.",
+    "exporting": "Exporting...",
+    "diagnostic": "Licence diagnostic",
+    "auditCsv": "Audit log (CSV)",
+    "toasts": {
+      "exportFailed": "Export failed",
+      "exported": "Export downloaded",
+      "networkError": "Network error"
+    }
+  },
+  "appUpdates": {
+    "title": "Application updates",
+    "versionHint": "Version {version} · Fixes and new features",
+    "available": "Version {version} available",
+    "availableHint": "Download and install to get the latest improvements.",
+    "ready": "Update ready",
+    "readyHint": "Restart the application to apply version {version}.",
+    "downloading": "Downloading...",
+    "checking": "Checking...",
+    "checkUpdates": "Check for updates",
+    "download": "Download",
+    "install": "Restart and install",
+    "latest": "You are on the latest version.",
+    "checkFailed": "Unable to check for updates"
+  },
+  "toasts": {
+    "saved": "Settings saved",
+    "saveError": "Error saving settings",
+    "headerSaved": "Official header saved",
+    "headerDeleted": "Header removed",
+    "headerDeleteError": "Error removing header",
+    "imageTooLarge": "Image too large (max 2 MB)",
+    "yearAdded": "School year added",
+    "yearAddError": "Error adding year",
+    "yearActivated": "Year {label} activated",
+    "backupCreated": "Backup created successfully",
+    "exportDone": "Export completed",
+    "backupError": "Error during backup",
+    "restoreError": "Error during restore"
+  }
+}

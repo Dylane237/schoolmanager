@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { LifeBuoy, Download, FileText } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function SupportTools() {
+  const t = useTranslations('parametres.supportTools')
   const [loading, setLoading] = useState<'diag' | 'audit' | null>(null)
 
   const download = async (type: 'diag' | 'audit') => {
@@ -15,7 +17,7 @@ export default function SupportTools() {
         : '/api/support/audit-export?format=csv&limit=500'
       const res = await fetch(url)
       if (!res.ok) {
-        toast.error('Export impossible')
+        toast.error(t('toasts.exportFailed'))
         return
       }
       const blob = type === 'diag'
@@ -28,9 +30,9 @@ export default function SupportTools() {
         : `schoolmanager-audit-${Date.now()}.csv`
       a.click()
       URL.revokeObjectURL(a.href)
-      toast.success('Export téléchargé')
+      toast.success(t('toasts.exported'))
     } catch {
-      toast.error('Erreur réseau')
+      toast.error(t('toasts.networkError'))
     } finally {
       setLoading(null)
     }
@@ -40,12 +42,9 @@ export default function SupportTools() {
     <div className="card p-5 space-y-4">
       <div className="flex items-center gap-2">
         <LifeBuoy className="w-5 h-5 text-blue-600" />
-        <h3 className="font-semibold text-slate-800">Support & diagnostic</h3>
+        <h3 className="font-semibold text-slate-800">{t('title')}</h3>
       </div>
-      <p className="text-sm text-slate-500 leading-relaxed">
-        Exportez un rapport technique (licence, version, base) ou le journal d&apos;audit
-        (paiements, notes, utilisateurs) à envoyer au support.
-      </p>
+      <p className="text-sm text-slate-500 leading-relaxed">{t('description')}</p>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -54,7 +53,7 @@ export default function SupportTools() {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           <Download className="w-4 h-4" />
-          {loading === 'diag' ? 'Export...' : 'Diagnostic licence'}
+          {loading === 'diag' ? t('exporting') : t('diagnostic')}
         </button>
         <button
           type="button"
@@ -63,7 +62,7 @@ export default function SupportTools() {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           <FileText className="w-4 h-4" />
-          {loading === 'audit' ? 'Export...' : 'Journal d\'audit (CSV)'}
+          {loading === 'audit' ? t('exporting') : t('auditCsv')}
         </button>
       </div>
     </div>

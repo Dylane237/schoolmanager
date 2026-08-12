@@ -5,8 +5,26 @@ import { ensureSuperAdminCredentials } from './super-admin-credentials'
 import { runVersionedMigrations } from './migrations/runner'
 
 let _db: InstanceType<typeof Database> | null = null
+let _testDbOverride: InstanceType<typeof Database> | null = null
+
+/** Injecte une base SQLite de test (Vitest). */
+export function setTestDb(db: InstanceType<typeof Database> | null) {
+  _testDbOverride = db
+}
+
+/** Base en mémoire pour tests d'intégration. */
+export function createMemoryDb(): InstanceType<typeof Database> {
+  const db = new Database(':memory:')
+  db.pragma('journal_mode = WAL')
+  db.pragma('foreign_keys = ON')
+  initSchema(db)
+  runMigrations(db)
+  runVersionedMigrations(db)
+  return db
+}
 
 export function getDb() {
+  if (_testDbOverride) return _testDbOverride
   if (_db) return _db
   ensureUserDataDir()
   _db = new Database(getDbPath())
@@ -275,7 +293,6 @@ function initSchema(db: InstanceType<typeof Database>) {
 }
 
 function runMigrations(db: InstanceType<typeof Database>) {
-  // Supprimer les données de démonstration des installations existantes
   const demoEcole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get('demo') as { id: string } | undefined
   if (demoEcole) {
     db.prepare('DELETE FROM users WHERE ecole_id = ?').run(demoEcole.id)
@@ -283,111 +300,6 @@ function runMigrations(db: InstanceType<typeof Database>) {
   }
   db.prepare('DELETE FROM users WHERE email = ?').run('demo@schoolmanager.cm')
 
-  const cols = db.prepare(`PRAGMA table_info(notes)`).all() as { name: string }[]
-  const noteCol = cols.find(c => c.name === 'note')
-  if (noteCol) {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS notes_new (
-        id TEXT PRIMARY KEY,
-        ecole_id TEXT REFERENCES ecoles(id) ON DELETE CASCADE,
-        eleve_id TEXT REFERENCES eleves(id),
-        matiere_id TEXT REFERENCES matieres(id),
-        periode TEXT NOT NULL,
-        note REAL CHECK (note >= 0 AND note <= 100),
-        appreciation TEXT,
-        saisie_par TEXT REFERENCES users(id),
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-    `)
-    const hasOldConstraint = db.prepare(`
-      SELECT sql FROM sqlite_master WHERE type='table' AND name='notes'
-    `).get() as { sql: string } | undefined
-    if (hasOldConstraint?.sql?.includes('<= 20')) {
-      db.exec(`
-        INSERT OR IGNORE INTO notes_new SELECT * FROM notes;
-        DROP TABLE notes;
-        ALTER TABLE notes_new RENAME TO notes;
-        CREATE INDEX IF NOT EXISTS idx_notes_eleve ON notes(eleve_id);
-        CREATE INDEX IF NOT EXISTS idx_notes_ecole ON notes(ecole_id, periode);
-      `)
-    } else {
-      db.exec(`DROP TABLE IF EXISTS notes_new`)
-    }
-  }
-
-  const classCols = db.prepare(`PRAGMA table_info(classes)`).all() as { name: string }[]
-  if (!classCols.find(c => c.name === 'personnel_id')) {
-    db.exec(`ALTER TABLE classes ADD COLUMN personnel_id TEXT REFERENCES personnel(id)`)
-  }
-
-  const licenceCols = db.prepare(`PRAGMA table_info(licences)`).all() as { name: string }[]
-  if (!licenceCols.find(c => c.name === 'machine_fingerprint')) {
-    db.exec(`ALTER TABLE licences ADD COLUMN machine_fingerprint TEXT`)
-  }
-
-  // Migration : en-tête personnalisée du reçu (logo + adresse déjà mis en page)
-  const ecoleCols = db.prepare(`PRAGMA table_info(ecoles)`).all() as { name: string }[]
-  if (!ecoleCols.find(c => c.name === 'entete_url')) {
-    db.exec(`ALTER TABLE ecoles ADD COLUMN entete_url TEXT`)
-  }
-
-  // Migration : nom du caissier affiché sous "La caisse" sur le reçu
-  if (!ecoleCols.find(c => c.name === 'nom_caissier')) {
-    db.exec(`ALTER TABLE ecoles ADD COLUMN nom_caissier TEXT`)
-  }
-
-  // Migration : code de secours (récupération mot de passe offline)
-  const userCols = db.prepare(`PRAGMA table_info(users)`).all() as { name: string }[]
-  if (!userCols.find(c => c.name === 'recovery_code_hash')) {
-    db.exec(`ALTER TABLE users ADD COLUMN recovery_code_hash TEXT`)
-  }
-
-  const faCols = db.prepare(`PRAGMA table_info(frais_annexes)`).all() as { name: string }[]
-  if (!faCols.find(c => c.name === 'type')) {
-    db.exec(`ALTER TABLE frais_annexes ADD COLUMN type TEXT DEFAULT 'autre'`)
-  }
-  if (!faCols.find(c => c.name === 'date_limite')) {
-    db.exec(`ALTER TABLE frais_annexes ADD COLUMN date_limite TEXT`)
-  }
-
-  const ecoleCols2 = db.prepare(`PRAGMA table_info(ecoles)`).all() as { name: string }[]
-  if (!ecoleCols2.find(c => c.name === 'referral_code')) {
-    db.exec(`ALTER TABLE ecoles ADD COLUMN referral_code TEXT`)
-  }
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS parrainages (
-      id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-      parrain_ecole_id TEXT NOT NULL REFERENCES ecoles(id) ON DELETE CASCADE,
-      contact_nom TEXT NOT NULL,
-      contact_ecole TEXT,
-      contact_telephone TEXT NOT NULL,
-      notes TEXT,
-      statut TEXT DEFAULT 'en_cours' CHECK (statut IN ('en_cours', 'abonnement_actif', 'commission_versee', 'annule')),
-      montant_abonnement REAL,
-      commission_pct REAL DEFAULT 10,
-      commission_montant REAL,
-      cloud_id TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now'))
-    );
-  `)
-
-  const parrainageCols = db.prepare(`PRAGMA table_info(parrainages)`).all() as { name: string }[]
-  if (!parrainageCols.find(c => c.name === 'cloud_id')) {
-    db.exec(`ALTER TABLE parrainages ADD COLUMN cloud_id TEXT`)
-  }
-
-  // Migration : ajout table licence_cache si elle n'existe pas
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS licence_cache (
-      cle TEXT PRIMARY KEY,
-      plan TEXT NOT NULL,
-      date_fin TEXT NOT NULL,
-      last_verified TEXT NOT NULL,
-      is_active INTEGER NOT NULL DEFAULT 1
-    );
-  `)
   migrateAnneeScolaireDefault(db)
 }
 

@@ -1,0 +1,96 @@
+{
+  "section": {
+    "all": "Toutes les sections",
+    "label": "Section"
+  },
+  "class": {
+    "all": "Toutes les classes",
+    "none": "Sans classe",
+    "label": "Classe"
+  },
+  "payment": {
+    "label": "Paiement"
+  },
+  "status": {
+    "all": "Tous",
+    "allStudents": "Tous les élèves",
+    "paid": "Soldé",
+    "partial": "Partiel",
+    "unpaid": "Impayé",
+    "notConfigured": "Non configurés"
+  },
+  "mode": {
+    "all": "Tous les modes"
+  },
+  "search": {
+    "students": "Rechercher par nom, prénom, matricule, parent..."
+  },
+  "resultLabel": {
+    "students": "élève(s)"
+  },
+  "reset": "Réinitialiser",
+  "searchDefault": "Rechercher...",
+  "all": "Tous",
+  "allFeminine": "Toutes",
+  "labels": {
+    "section": "Section",
+    "class": "Classe",
+    "payment": "Paiement",
+    "situation": "Situation",
+    "month": "Mois",
+    "method": "Mode",
+    "date": "Date",
+    "show": "Afficher",
+    "recipients": "Destinataires",
+    "priority": "Priorité",
+    "state": "État",
+    "type": "Type",
+    "contract": "Contrat",
+    "sequence": "Séquence",
+    "mention": "Mention",
+    "period": "Période",
+    "subject": "Matière"
+  },
+  "sections": {
+    "all": "Toutes les sections",
+    "francophone": "Francophone",
+    "anglophone": "Anglophone",
+    "maternelle": "Maternelle"
+  },
+  "payments": {
+    "all": "Tous les paiements",
+    "allModes": "Tous les modes",
+    "allStudents": "Tous les élèves",
+    "unpaid": "Impayés",
+    "partial": "Partiels",
+    "paid": "Soldés",
+    "notConfigured": "Non configurés"
+  },
+  "students": {
+    "unpaid": "Impayés",
+    "partial": "Paiement partiel",
+    "paid": "Soldés",
+    "noClass": "Sans classe"
+  },
+  "date": {
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "dayBefore": "Avant-hier"
+  },
+  "dates": {
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "dayBefore": "Avant-hier"
+  },
+  "presets": {
+    "unpaid": "Impayés",
+    "partial": "Partiels",
+    "paid": "Soldés",
+    "notConfigured": "Non configurés"
+  },
+  "announcements": {
+    "active": "Actives",
+    "hidden": "Masquées",
+    "expired": "Expirées"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "breadcrumb": "Dashboard",
+  "greeting": "Hello, {name}",
+  "enrollStudent": "Enroll a student",
+  "stats": {
+    "activeStudents": "Active students",
+    "classes": "Classes",
+    "staff": "Staff",
+    "collectedThisMonth": "Collected this month",
+    "inClasses": "across {count} class(es)",
+    "avgCapacity": "average capacity: {count} students",
+    "noStaff": "No staff registered",
+    "activeMembers": "active members",
+    "noCollection": "No collections this month",
+    "trendVsLastMonth": "{pct}% vs last month",
+    "firstCollection": "First collections this month"
+  },
+  "sections": {
+    "modules": "Modules",
+    "alerts": "Alerts & reminders",
+    "recentPayments": "Recent payments",
+    "quickAccess": "Quick access"
+  },
+  "modules": {
+    "students": { "label": "Students", "desc": "Enrolments & profiles" },
+    "payments": { "label": "Payments", "desc": "Fees & PDF receipts" },
+    "classes": { "label": "Classes", "desc": "Class management" },
+    "grades": { "label": "Grades", "desc": "Entry & report cards" },
+    "reportCards": { "label": "Report cards", "desc": "Print report cards" },
+    "attendance": { "label": "Attendance", "desc": "Attendance register" },
+    "staff": { "label": "Staff", "desc": "Staff & HR" },
+    "announcements": { "label": "Announcements", "desc": "Communications" }
+  },
+  "alerts": {
+    "emptyClasses": "{count} class(es) with no enrolled students",
+    "emptyClassesSub": "Classes — check enrolments",
+    "unpaid": "{count} student(s) with outstanding balance",
+    "unpaidSub": "Payments — fee tracking",
+    "noTeacher": "{count} class(es) without assigned teacher",
+    "noTeacherSub": "Staff — assignments",
+    "allGood": "Everything looks good",
+    "updatedOn": "Updated on {date}"
+  },
+  "payments": {
+    "empty": "No payments recorded yet.",
+    "student": "Student",
+    "class": "Class",
+    "method": "Method",
+    "amount": "Amount",
+    "methods": {
+      "especes": "Cash",
+      "orange_money": "Orange Money",
+      "mtn_momo": "MTN MoMo",
+      "virement": "Bank transfer"
+    }
+  },
+  "quickAccess": {
+    "newPayment": { "label": "New payment", "desc": "Record a payment" },
+    "enterGrades": { "label": "Enter grades", "desc": "Current period grades" },
+    "attendance": { "label": "Take attendance", "desc": "Attendance register" },
+    "settings": { "label": "School settings", "desc": "Configuration & profile" }
+  }
+}

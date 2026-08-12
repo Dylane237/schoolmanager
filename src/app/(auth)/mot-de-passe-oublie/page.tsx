@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Mail, Lock, KeyRound } from 'lucide-react'
 import { AuthSplitLayout } from '@/components/auth/auth-split-layout'
 import { AuthInput } from '@/components/auth/auth-input'
@@ -12,6 +13,8 @@ import { WhatsAppSupportLink } from '@/components/auth/whatsapp-support-link'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
+  const t = useTranslations('auth.forgotPassword')
+  const tAuth = useTranslations('auth')
   const [email, setEmail] = useState('')
   const [recoveryCode, setRecoveryCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -36,7 +39,7 @@ export default function ForgotPasswordPage() {
     const data = await res.json()
 
     if (!res.ok) {
-      setError(data.error || 'Réinitialisation impossible')
+      setError(data.error || t('errors.resetFailed'))
       setLoading(false)
       return
     }
@@ -49,58 +52,59 @@ export default function ForgotPasswordPage() {
   return (
     <AuthSplitLayout
       mode="recover"
-      title="Mot de passe oublié"
-      subtitle="Utilisez le code de secours reçu lors de la création de votre compte."
+      title={t('title')}
+      subtitle={t('subtitle')}
       footer={
         <>
           <Link href="/login" className="font-medium text-emerald-600 hover:text-emerald-700">
-            Retour à la connexion
+            {t('backToLogin')}
           </Link>
         </>
       }
     >
       {success ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-5 text-center">
-          <p className="text-sm font-semibold text-emerald-800">Mot de passe mis à jour</p>
-          <p className="mt-1 text-[13px] text-emerald-700">Redirection vers la connexion…</p>
+          <p className="text-sm font-semibold text-emerald-800">{t('successTitle')}</p>
+          <p className="mt-1 text-[13px] text-emerald-700">{t('successRedirect')}</p>
         </div>
       ) : (
         <>
           <AuthError message={error} />
 
           <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] leading-relaxed text-blue-800">
-            Le code ressemble à <strong className="font-mono">SM-XXXX-XXXX</strong>.
-            Il vous a été montré une seule fois à l&apos;inscription.
+            {t.rich('codeHint', {
+              strong: chunks => <strong className="font-mono">{chunks}</strong>,
+            })}
           </div>
 
           <div className="space-y-5">
             <AuthInput
               id="email"
-              label="Email du compte"
+              label={t('emailLabel')}
               icon={Mail}
               type="email"
               value={email}
               onChange={setEmail}
-              placeholder="directeur@ecole.cm"
+              placeholder={tAuth('emailPlaceholder')}
               autoComplete="email"
             />
             <AuthInput
               id="recovery"
-              label="Code de secours"
+              label={t('recoveryCodeLabel')}
               icon={KeyRound}
               value={recoveryCode}
               onChange={v => setRecoveryCode(v.toUpperCase())}
-              placeholder="SM-XXXX-XXXX"
+              placeholder={t('recoveryCodePlaceholder')}
               mono
             />
             <AuthInput
               id="new_password"
-              label="Nouveau mot de passe"
+              label={t('newPasswordLabel')}
               icon={Lock}
               type="password"
               value={newPassword}
               onChange={setNewPassword}
-              hint="8 caractères minimum."
+              hint={t('newPasswordHint')}
               minLength={8}
               autoComplete="new-password"
             />
@@ -109,12 +113,12 @@ export default function ForgotPasswordPage() {
               disabled={!email || !recoveryCode || newPassword.length < 8}
               loading={loading}
             >
-              Réinitialiser le mot de passe
+              {t('submit')}
             </AuthButton>
 
             <WhatsAppSupportLink
-              hint="Code perdu ? Contactez le support"
-              message="Bonjour, j'ai perdu mon code de secours SchoolManager."
+              hint={t('supportHint')}
+              message={t('supportMessage')}
             />
           </div>
         </>

@@ -2,16 +2,19 @@
 
 import Link from 'next/link'
 import { ExternalLink, KeyRound, Info } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 const CLOUD_ADMIN_URL = 'https://schoolmanager-eosin.vercel.app/admin-licences'
 
 export default function SuperAdminLicencesPage() {
+  const t = useTranslations('superAdmin')
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Licences — administration cloud</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t('licences.title')}</h1>
         <p className="text-slate-500 mt-1">
-          La gestion des clés pool et parrainages se fait désormais sur la console éditeur en ligne.
+          {t('licences.subtitle')}
         </p>
       </div>
 
@@ -21,10 +24,9 @@ export default function SuperAdminLicencesPage() {
             <KeyRound className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="font-semibold text-emerald-900">Console éditeur (Supabase)</p>
+            <p className="font-semibold text-emerald-900">{t('licences.consoleTitle')}</p>
             <p className="text-sm text-emerald-800/80 mt-1 leading-relaxed">
-              Générez des clés pool, suivez les établissements activés, gérez les parrainages et révoquez
-              des licences — le tout synchronisé avec les inscriptions desktop.
+              {t('licences.consoleDesc')}
             </p>
           </div>
         </div>
@@ -34,7 +36,7 @@ export default function SuperAdminLicencesPage() {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm"
         >
-          Ouvrir l&apos;admin cloud
+          {t('licences.openCloudAdmin')}
           <ExternalLink className="w-4 h-4" />
         </a>
       </div>
@@ -43,14 +45,19 @@ export default function SuperAdminLicencesPage() {
         <Info className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
         <div className="text-sm text-slate-600 space-y-2">
           <p>
-            Cette installation locale conserve les licences <strong>activées sur ce poste</strong> dans SQLite.
-            Les clés pool à distribuer se créent uniquement en cloud.
+            {t.rich('licences.localInfo', {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </p>
           <p>
-            Vue locale des écoles inscrites sur cette machine :{' '}
-            <Link href="/super-admin/ecoles" className="text-emerald-600 hover:underline">Écoles</Link>
+            {t('licences.localView')}{' '}
+            <Link href="/super-admin/ecoles" className="text-emerald-600 hover:underline">
+              {t('licences.schoolsLink')}
+            </Link>
             {' · '}
-            <Link href="/super-admin/dashboard" className="text-emerald-600 hover:underline">Tableau de bord</Link>
+            <Link href="/super-admin/dashboard" className="text-emerald-600 hover:underline">
+              {t('licences.dashboardLink')}
+            </Link>
           </p>
         </div>
       </div>

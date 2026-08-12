@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { Copy, Check, Sparkles, KeyRound } from 'lucide-react'
 import { PLAN_HINTS, PLAN_PRICES, defaultLicenceEndDate } from '@/lib/admin-licences-types'
+import { getIntlLocale, type Locale } from '@/i18n/config'
 
 const PLANS = ['starter', 'standard', 'premium'] as const
 
@@ -15,6 +17,10 @@ export function CreateKeyModal({
   onClose: () => void
   onCreated: () => void
 }) {
+  const t = useTranslations('adminLicences.createKeyModal')
+  const tc = useTranslations('components.createKeyModal')
+  const locale = useLocale() as Locale
+  const intlLocale = getIntlLocale(locale)
   const [form, setForm] = useState({ plan: 'standard', date_fin: defaultLicenceEndDate() })
   const [creating, setCreating] = useState(false)
   const [newKey, setNewKey] = useState('')
@@ -57,8 +63,8 @@ export function CreateKeyModal({
               <KeyRound className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Clé pool d&apos;activation</h2>
-              <p className="text-xs text-slate-400">Pour une nouvelle école — inscription /register</p>
+              <h2 className="text-lg font-bold text-white">{t('title')}</h2>
+              <p className="text-xs text-slate-400">{t('subtitle')}</p>
             </div>
           </div>
         </div>
@@ -67,15 +73,12 @@ export function CreateKeyModal({
           <div className="rounded-xl bg-slate-950/80 border border-slate-800 px-4 py-3 text-sm text-slate-400 leading-relaxed">
             <p className="flex items-start gap-2">
               <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span>
-                La clé générée reste <strong className="text-slate-200">disponible</strong> jusqu&apos;à ce qu&apos;une école
-                s&apos;inscrive. Son nom apparaîtra ici automatiquement après activation.
-              </span>
+              <span>{t.rich('hint', { strong: (chunks) => <strong className="text-slate-200">{chunks}</strong> })}</span>
             </p>
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Choisir le plan</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">{t('choosePlan')}</p>
             <div className="grid gap-2">
               {PLANS.map(plan => (
                 <button
@@ -91,7 +94,7 @@ export function CreateKeyModal({
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold text-white capitalize">{plan}</span>
                     <span className="text-sm text-emerald-400 tabular-nums">
-                      {PLAN_PRICES[plan].toLocaleString('fr-FR')} F
+                      {PLAN_PRICES[plan].toLocaleString(intlLocale)} F
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">{PLAN_HINTS[plan]}</p>
@@ -102,7 +105,7 @@ export function CreateKeyModal({
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
-              Date d&apos;expiration
+              {t('expirationDate')}
             </label>
             <input
               type="date"
@@ -113,7 +116,7 @@ export function CreateKeyModal({
           </div>
 
           <div className="rounded-xl border border-dashed border-slate-700 px-4 py-3">
-            <p className="text-[10px] uppercase tracking-wide text-slate-600 mb-1">Format de la clé</p>
+            <p className="text-[10px] uppercase tracking-wide text-slate-600 mb-1">{t('keyFormat')}</p>
             <code className="text-xs font-mono text-slate-400">
               {form.plan.toUpperCase()}-POOL-{year}-XXXXXXXX
             </code>
@@ -121,23 +124,21 @@ export function CreateKeyModal({
 
           {newKey && (
             <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-4 space-y-2">
-              <p className="text-[10px] uppercase tracking-wide text-emerald-400 font-semibold">Clé prête à distribuer</p>
+              <p className="text-[10px] uppercase tracking-wide text-emerald-400 font-semibold">{t('keyReady')}</p>
               <div className="flex items-start gap-2">
                 <code className="flex-1 text-sm font-mono text-white break-all">{newKey}</code>
                 <button type="button" onClick={copy} className="p-2 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30">
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-xs text-slate-400">
-                Communiquez cette clé au directeur — il la saisira lors de la création du compte école.
-              </p>
+              <p className="text-xs text-slate-400">{t('keyReadyHint')}</p>
             </div>
           )}
         </div>
 
         <div className="flex gap-2 p-6 pt-0">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm hover:bg-slate-800">
-            Fermer
+            {t('close')}
           </button>
           <button
             type="button"
@@ -145,7 +146,7 @@ export function CreateKeyModal({
             disabled={creating || !form.date_fin}
             className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm disabled:opacity-50"
           >
-            {creating ? 'Génération...' : newKey ? 'Regénérer' : 'Générer la clé'}
+            {creating ? tc('generating') : newKey ? t('regenerate') : t('generate')}
           </button>
         </div>
       </div>

@@ -1,0 +1,74 @@
+{
+  "paymentStatus": {
+    "paye": "Paid in full",
+    "partiel": "Partial",
+    "impaye": "Unpaid",
+    "non_configure": "Not configured"
+  },
+  "sex": {
+    "M": "Male",
+    "F": "Female"
+  },
+  "section": {
+    "francophone": "Francophone",
+    "anglophone": "Anglophone",
+    "maternelle": "Nursery"
+  },
+  "presenceStatus": {
+    "present": "Present",
+    "absent": "Absent",
+    "retard": "Late",
+    "excuse": "Excused"
+  },
+  "personnelType": {
+    "enseignant": "Teacher",
+    "administratif": "Administrative",
+    "assistant_maternelle": "Nursery assistant",
+    "securite": "Security",
+    "entretien": "Maintenance",
+    "chauffeur": "Driver"
+  },
+  "contractType": {
+    "cdi": "Permanent",
+    "cdd": "Fixed-term",
+    "vacataire": "Temporary",
+    "benevole": "Volunteer"
+  },
+  "announcementTarget": {
+    "tous": "Everyone",
+    "personnel": "Staff",
+    "parents": "Parents",
+    "enseignants": "Teachers"
+  },
+  "announcementPriority": {
+    "normale": "Normal",
+    "importante": "Important",
+    "urgente": "Urgent"
+  },
+  "maternelleStatus": {
+    "acquis": "Achieved",
+    "en_cours": "In progress",
+    "non_acquis": "Not achieved",
+    "non_evalue": "Not assessed"
+  },
+  "paymentMethod": {
+    "especes": "Cash",
+    "orange_money": "Orange Money",
+    "mtn_momo": "MTN MoMo",
+    "virement": "Bank transfer"
+  },
+  "annualStatus": {
+    "admis": "Promoted",
+    "redoublant": "Repeating",
+    "en_attente": "Pending"
+  },
+  "parentLink": {
+    "père": "Father",
+    "mère": "Mother",
+    "tuteur": "Guardian"
+  },
+  "studentStatus": {
+    "actif": "Active",
+    "inactif": "Inactive"
+  }
+}

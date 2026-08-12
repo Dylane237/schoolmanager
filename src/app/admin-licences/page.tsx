@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Building2, KeyRound, AlertTriangle, TrendingUp } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { AdminLicencesShell, AdminBadge } from '@/components/admin-licences/AdminShell'
 import { SchoolIdentity } from '@/components/admin-licences/SchoolIdentity'
 import {
@@ -41,8 +42,18 @@ function StatCard({
 }
 
 function DashboardContent() {
+  const t = useTranslations('adminLicences')
+  const tc = useTranslations('common')
   const [licences, setLicences] = useState<AdminLicence[]>([])
   const [loading, setLoading] = useState(true)
+
+  const statusLabel = (l: AdminLicence) => {
+    const { daysLeft } = licenceStatus(l)
+    if (!l.is_active) return t('licences.status.revoked')
+    if (daysLeft < 0) return t('licences.status.expired')
+    if (daysLeft <= 30) return t('licences.status.daysLeft', { days: daysLeft })
+    return t('licences.status.active')
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -71,20 +82,29 @@ function DashboardContent() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Vue globale</h1>
-        <p className="text-sm text-slate-500 mt-1">Pilotage licences · établissements · parrainages</p>
+        <h1 className="text-2xl font-bold text-white">{t('dashboard.title')}</h1>
+        <p className="text-sm text-slate-500 mt-1">{t('dashboard.subtitle')}</p>
       </div>
 
       {loading ? (
-        <p className="text-slate-500">Chargement...</p>
+        <p className="text-slate-500">{tc('loading')}</p>
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <StatCard label="Licences actives" value={actives.length} icon={KeyRound} />
-            <StatCard label="Établissements" value={attribuees.length} hint="Clés activées" icon={Building2} />
-            <StatCard label="Clés en pool" value={disponibles.length} hint="Disponibles à l'inscription" />
+            <StatCard label={t('dashboard.stats.activeLicences')} value={actives.length} icon={KeyRound} />
             <StatCard
-              label="Expirent sous 30j"
+              label={t('dashboard.stats.establishments')}
+              value={attribuees.length}
+              hint={t('dashboard.stats.establishmentsHint')}
+              icon={Building2}
+            />
+            <StatCard
+              label={t('dashboard.stats.poolKeys')}
+              value={disponibles.length}
+              hint={t('dashboard.stats.poolKeysHint')}
+            />
+            <StatCard
+              label={t('dashboard.stats.expiringSoon')}
               value={expirant.length}
               accent={expirant.length ? 'text-amber-400' : undefined}
             />
@@ -92,32 +112,43 @@ function DashboardContent() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             <StatCard
-              label="Revenu estimé (actives)"
+              label={t('dashboard.stats.estimatedRevenue')}
               value={`${revenu.toLocaleString('fr-FR')} F`}
               accent="text-emerald-400"
               icon={TrendingUp}
             />
-            <StatCard label="Total clés" value={licences.length} hint={`${sansNom} sans nom sync.`} />
+            <StatCard
+              label={t('dashboard.stats.totalKeys')}
+              value={licences.length}
+              hint={t('dashboard.stats.noNameHint', { count: sansNom })}
+            />
           </div>
 
           {sansNom > 0 && (
             <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 px-4 py-3 text-sm text-amber-100/90 mb-6 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>
-                {sansNom} établissement(s) sans nom en cloud — les noms remontent automatiquement quand
-                l&apos;école ouvre SchoolManager, ou renseignez-les dans{' '}
-                <Link href="/admin-licences/licences" className="text-amber-200 underline">Licences</Link>.
+                {t.rich('dashboard.noNameWarning', {
+                  count: sansNom,
+                  link: (chunks) => (
+                    <Link href="/admin-licences/licences" className="text-amber-200 underline">
+                      {chunks}
+                    </Link>
+                  ),
+                })}
               </span>
             </div>
           )}
 
           <section className="rounded-2xl border border-slate-800 bg-slate-900/50 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
-              <h2 className="font-semibold text-white text-sm">Établissements récents</h2>
-              <Link href="/admin-licences/licences" className="text-xs text-emerald-400 hover:underline">Toutes les licences →</Link>
+              <h2 className="font-semibold text-white text-sm">{t('dashboard.recentEstablishments')}</h2>
+              <Link href="/admin-licences/licences" className="text-xs text-emerald-400 hover:underline">
+                {t('dashboard.allLicences')}
+              </Link>
             </div>
             {recentSchools.length === 0 ? (
-              <p className="p-8 text-sm text-slate-500 text-center">Aucune école activée.</p>
+              <p className="p-8 text-sm text-slate-500 text-center">{t('dashboard.noActivatedSchool')}</p>
             ) : (
               <ul className="divide-y divide-slate-800">
                 {recentSchools.map(l => {
@@ -130,7 +161,7 @@ function DashboardContent() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0 flex-wrap">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border capitalize ${planClass}`}>{l.type}</span>
-                        <AdminBadge tone={status.tone}>{status.label}</AdminBadge>
+                        <AdminBadge tone={status.tone}>{statusLabel(l)}</AdminBadge>
                         <span className="text-xs text-slate-500">{formatDateFr(l.date_fin)}</span>
                       </div>
                     </li>

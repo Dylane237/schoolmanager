@@ -1,19 +1,27 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Mail, Lock } from 'lucide-react'
 import { AuthSplitLayout } from '@/components/auth/auth-split-layout'
 import { AuthInput } from '@/components/auth/auth-input'
 import { AuthButton } from '@/components/auth/auth-button'
 import { AuthError } from '@/components/auth/auth-error'
 import { WhatsAppSupportLink } from '@/components/auth/whatsapp-support-link'
+import { getLastLoginEmail, setLastLoginEmail } from '@/lib/last-login-email'
 
 export default function LoginPage() {
+  const t = useTranslations('auth')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const saved = getLastLoginEmail()
+    if (saved) setEmail(saved)
+  }, [])
 
   const handleLogin = async (e?: FormEvent) => {
     e?.preventDefault()
@@ -39,10 +47,12 @@ export default function LoginPage() {
         window.location.href = '/licence-expiree'
         return
       }
-      setError(data.error || 'Erreur de connexion')
+      setError(data.error || t('loginError'))
       setLoading(false)
       return
     }
+
+    setLastLoginEmail(email)
 
     const { user } = data
 
@@ -51,7 +61,7 @@ export default function LoginPage() {
     } else if (user.ecole_slug) {
       window.location.href = `/${user.ecole_slug}/dashboard`
     } else {
-      setError('Aucune école associée à ce compte.')
+      setError(t('noSchool'))
       setLoading(false)
     }
   }
@@ -59,14 +69,19 @@ export default function LoginPage() {
   return (
     <AuthSplitLayout
       mode="login"
-      title="Bon retour"
-      subtitle="Connectez-vous pour gérer les tranches, les élèves et les reçus de votre école."
+      title={t('loginTitle')}
+      subtitle={t('loginSubtitle')}
       footer={
         <>
-          Pas encore de compte ?{' '}
+          {t('noAccount')}{' '}
           <Link href="/register" className="font-medium text-emerald-600 transition-colors hover:text-emerald-700">
-            Créer mon école
+            {t('registerLink')}
           </Link>
+          <span className="mt-3 block text-[12px] text-gray-400">
+            <Link href="/telecharger" className="hover:text-emerald-600">{t('downloadApp')}</Link>
+            {' · '}
+            <Link href="/" className="hover:text-emerald-600">{t('backHome')}</Link>
+          </span>
         </>
       }
     >
@@ -75,23 +90,23 @@ export default function LoginPage() {
       <form onSubmit={handleLogin} className="space-y-5">
         <AuthInput
           id="email"
-          label="Adresse email"
+          label={t('email')}
           icon={Mail}
           type="email"
           value={email}
           onChange={setEmail}
-          placeholder="directeur@ecole.cm"
+          placeholder={t('emailPlaceholder')}
           autoComplete="email"
         />
         <div>
           <AuthInput
             id="password"
-            label="Mot de passe"
+            label={t('password')}
             icon={Lock}
             type="password"
             value={password}
             onChange={setPassword}
-            placeholder="Votre mot de passe"
+            placeholder={t('passwordPlaceholder')}
             autoComplete="current-password"
           />
           <div className="mt-2 text-right">
@@ -99,7 +114,7 @@ export default function LoginPage() {
               href="/mot-de-passe-oublie"
               className="text-[12px] font-medium text-emerald-600 hover:text-emerald-700"
             >
-              Mot de passe oublié ?
+              {t('forgotPasswordLink')}
             </Link>
           </div>
         </div>
@@ -108,7 +123,7 @@ export default function LoginPage() {
           disabled={!email || !password}
           loading={loading}
         >
-          Se connecter
+          {t('submitLogin')}
         </AuthButton>
 
         <WhatsAppSupportLink />

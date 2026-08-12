@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Camera, Loader2, User } from 'lucide-react'
 
 interface PhotoUploadProps {
@@ -18,6 +19,7 @@ export default function PhotoUpload({
   onSelected,
   compact = false,
 }: PhotoUploadProps) {
+  const t = useTranslations('components.photoUpload')
   const inputRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(photoUrl || null)
   const [loading, setLoading] = useState(false)
@@ -44,7 +46,7 @@ export default function PhotoUpload({
     const data = await res.json()
 
     if (!res.ok) {
-      setError(data.error || 'Erreur upload')
+      setError(data.error || t('uploadError'))
       setLoading(false)
       return
     }
@@ -87,7 +89,7 @@ export default function PhotoUpload({
         }}
       />
       {!compact && (
-        <p className="text-sm text-slate-500">Photo de l&apos;élève (JPEG, PNG, max 5 Mo)</p>
+        <p className="text-sm text-slate-500">{t('hint')}</p>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>

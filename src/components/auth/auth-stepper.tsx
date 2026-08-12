@@ -1,13 +1,17 @@
 'use client'
 
-const STEP_LABELS = ['Compte', 'École', 'Sections']
+import { useTranslations } from 'next-intl'
 
 type AuthStepperProps = {
   step: number
   total?: number
 }
 
+const STEP_KEYS = ['account', 'school', 'sections'] as const
+
 export function AuthStepper({ step, total = 3 }: AuthStepperProps) {
+  const t = useTranslations('auth.stepper')
+
   return (
     <div className="mb-8">
       <div className="flex items-center justify-center gap-0">
@@ -40,9 +44,11 @@ export function AuthStepper({ step, total = 3 }: AuthStepperProps) {
         })}
       </div>
       <p className="mt-3 text-center text-[13px] text-gray-500">
-        Étape {step} sur {total}
-        <span className="text-gray-300"> · </span>
-        <span className="font-medium text-gray-700">{STEP_LABELS[step - 1]}</span>
+        {t('progress', {
+          step,
+          total,
+          stepName: t(`steps.${STEP_KEYS[step - 1]}`),
+        })}
       </p>
     </div>
   )

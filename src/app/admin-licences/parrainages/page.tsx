@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { AdminLicencesShell, AdminBadge, STATUT_LABELS, STATUT_COLORS } from '@/components/admin-licences/AdminShell'
+import { useTranslations } from 'next-intl'
+import { AdminLicencesShell, AdminBadge, STATUT_COLORS } from '@/components/admin-licences/AdminShell'
 import { formatDateFr } from '@/lib/admin-licences-types'
 
 type Parrainage = {
@@ -20,7 +21,11 @@ type Parrainage = {
 
 type Stats = { enCours: number; actifs: number; verses: number; totalCommission: number }
 
+const REFERRAL_STATUSES = ['en_cours', 'abonnement_actif', 'commission_versee', 'annule'] as const
+
 function EditModal({ p, onClose, onSaved }: { p: Parrainage; onClose: () => void; onSaved: () => void }) {
+  const t = useTranslations('adminLicences')
+  const tc = useTranslations('common')
   const [statut, setStatut] = useState(p.statut)
   const [montant, setMontant] = useState(p.montant_abonnement?.toString() ?? '')
   const [commission, setCommission] = useState(p.commission_montant?.toString() ?? '')
@@ -29,6 +34,13 @@ function EditModal({ p, onClose, onSaved }: { p: Parrainage; onClose: () => void
   const [error, setError] = useState('')
 
   const inputClass = 'w-full px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-slate-100 text-sm outline-none focus:ring-2 focus:ring-emerald-500/30'
+
+  const referralStatusLabel = (status: string) => {
+    if (REFERRAL_STATUSES.includes(status as typeof REFERRAL_STATUSES[number])) {
+      return t(`referrals.status.${status}` as 'referrals.status.en_cours')
+    }
+    return status
+  }
 
   const save = async () => {
     setSaving(true)
@@ -46,7 +58,7 @@ function EditModal({ p, onClose, onSaved }: { p: Parrainage; onClose: () => void
     })
     const data = await res.json()
     setSaving(false)
-    if (!res.ok) { setError(data.error || 'Erreur'); return }
+    if (!res.ok) { setError(data.error || tc('errorLoad')); return }
     onSaved()
     onClose()
   }
@@ -55,34 +67,36 @@ function EditModal({ p, onClose, onSaved }: { p: Parrainage; onClose: () => void
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60" onClick={onClose}>
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6" onClick={e => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-white">{p.contact_nom}</h3>
-        <p className="text-xs text-slate-500 mb-5">Parrain {p.parrain_code} · {p.parrain_ecole_nom}</p>
+        <p className="text-xs text-slate-500 mb-5">
+          {t('referrals.referralOf', { code: p.parrain_code, school: p.parrain_ecole_nom })}
+        </p>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Statut</label>
+            <label className="block text-xs text-slate-400 mb-1">{t('referrals.fields.status')}</label>
             <select value={statut} onChange={e => setStatut(e.target.value)} className={inputClass}>
-              {Object.entries(STATUT_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+              {REFERRAL_STATUSES.map(k => (
+                <option key={k} value={k}>{referralStatusLabel(k)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Montant abonnement (FCFA)</label>
+            <label className="block text-xs text-slate-400 mb-1">{t('referrals.fields.subscriptionAmount')}</label>
             <input type="number" value={montant} onChange={e => setMontant(e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Commission versée (FCFA)</label>
+            <label className="block text-xs text-slate-400 mb-1">{t('referrals.fields.commissionPaid')}</label>
             <input type="number" value={commission} onChange={e => setCommission(e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">École filleul</label>
+            <label className="block text-xs text-slate-400 mb-1">{t('referrals.fields.referralSchool')}</label>
             <input value={filleulNom} onChange={e => setFilleulNom(e.target.value)} className={inputClass} />
           </div>
         </div>
         {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
         <div className="flex gap-2 mt-6">
-          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm">Annuler</button>
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm">{tc('cancel')}</button>
           <button type="button" onClick={save} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm disabled:opacity-50">
-            {saving ? 'Enregistrement...' : 'Enregistrer'}
+            {saving ? tc('saving') : tc('save')}
           </button>
         </div>
       </div>
@@ -91,6 +105,8 @@ function EditModal({ p, onClose, onSaved }: { p: Parrainage; onClose: () => void
 }
 
 function ParrainagesContent() {
+  const t = useTranslations('adminLicences')
+  const tc = useTranslations('common')
   const [parrainages, setParrainages] = useState<Parrainage[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -98,13 +114,21 @@ function ParrainagesContent() {
   const [edit, setEdit] = useState<Parrainage | null>(null)
   const [configError, setConfigError] = useState('')
 
+  const referralStatusLabel = (status: string) => {
+    if (REFERRAL_STATUSES.includes(status as typeof REFERRAL_STATUSES[number])) {
+      return t(`referrals.status.${status}` as 'referrals.status.en_cours')
+    }
+    return status
+  }
+
   const load = useCallback(async () => {
     setLoading(true)
+    setConfigError('')
     const url = filter ? `/api/admin-licences/parrainages?statut=${filter}` : '/api/admin-licences/parrainages'
     const res = await fetch(url)
     const data = await res.json()
     if (res.status === 503) {
-      setConfigError('Supabase non configuré — vérifiez les variables sur Vercel.')
+      setConfigError(t('referrals.configError'))
       setLoading(false)
       return
     }
@@ -113,22 +137,24 @@ function ParrainagesContent() {
       setStats(data.stats ?? null)
     }
     setLoading(false)
-  }, [filter])
+  }, [filter, t])
 
   useEffect(() => { load() }, [load])
 
   const statCards = stats ? [
-    { label: 'En cours', value: stats.enCours },
-    { label: 'Actifs', value: stats.actifs },
-    { label: 'Versées', value: stats.verses },
-    { label: 'FCFA versés', value: stats.totalCommission > 0 ? stats.totalCommission.toLocaleString('fr-FR') : '—' },
+    { label: t('referrals.stats.inProgress'), value: stats.enCours },
+    { label: t('referrals.stats.active'), value: stats.actifs },
+    { label: t('referrals.stats.paid'), value: stats.verses },
+    { label: t('referrals.stats.totalPaid'), value: stats.totalCommission > 0 ? stats.totalCommission.toLocaleString('fr-FR') : '—' },
   ] : []
+
+  const filterOptions = ['', ...REFERRAL_STATUSES] as const
 
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Parrainages</h1>
-        <p className="text-sm text-slate-500 mt-1">Leads synchronisés · commissions 10 %</p>
+        <h1 className="text-2xl font-bold text-white">{t('referrals.title')}</h1>
+        <p className="text-sm text-slate-500 mt-1">{t('referrals.subtitle')}</p>
       </div>
 
       {configError && (
@@ -147,7 +173,7 @@ function ParrainagesContent() {
       )}
 
       <div className="flex flex-wrap gap-2 mb-4">
-        {['', 'en_cours', 'abonnement_actif', 'commission_versee', 'annule'].map(s => (
+        {filterOptions.map(s => (
           <button
             key={s || 'all'}
             type="button"
@@ -156,15 +182,15 @@ function ParrainagesContent() {
               filter === s ? 'bg-slate-800 border-slate-600 text-white' : 'border-slate-800 text-slate-500'
             }`}
           >
-            {s ? STATUT_LABELS[s] : 'Tous'}
+            {s ? referralStatusLabel(s) : t('referrals.all')}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <p className="text-center text-slate-500 py-16">Chargement...</p>
+        <p className="text-center text-slate-500 py-16">{tc('loading')}</p>
       ) : parrainages.length === 0 ? (
-        <p className="text-center text-slate-500 py-16">Aucun parrainage.</p>
+        <p className="text-center text-slate-500 py-16">{t('referrals.empty')}</p>
       ) : (
         <div className="space-y-3">
           {parrainages.map(p => (
@@ -177,19 +203,23 @@ function ParrainagesContent() {
                   <p className="text-xs text-violet-400 font-mono mt-2">{p.parrain_code} · {p.parrain_ecole_nom}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <AdminBadge tone={STATUT_COLORS[p.statut] ?? 'neutral'}>{STATUT_LABELS[p.statut] ?? p.statut}</AdminBadge>
+                  <AdminBadge tone={STATUT_COLORS[p.statut] ?? 'neutral'}>{referralStatusLabel(p.statut)}</AdminBadge>
                   <button type="button" onClick={() => setEdit(p)} className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-medium hover:bg-slate-700">
-                    Gérer
+                    {t('referrals.manage')}
                   </button>
                 </div>
               </div>
               {(p.montant_abonnement != null || p.commission_montant != null) && (
                 <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-slate-800 text-sm">
                   {p.montant_abonnement != null && (
-                    <span className="text-slate-400">Abonnement : <strong className="text-white tabular-nums">{Number(p.montant_abonnement).toLocaleString('fr-FR')} F</strong></span>
+                    <span className="text-slate-400">
+                      {t('referrals.subscription')} : <strong className="text-white tabular-nums">{Number(p.montant_abonnement).toLocaleString('fr-FR')} F</strong>
+                    </span>
                   )}
                   {p.commission_montant != null && (
-                    <span className="text-violet-400">Commission : <strong className="tabular-nums">{Number(p.commission_montant).toLocaleString('fr-FR')} F</strong></span>
+                    <span className="text-violet-400">
+                      {t('referrals.commission')} : <strong className="tabular-nums">{Number(p.commission_montant).toLocaleString('fr-FR')} F</strong>
+                    </span>
                   )}
                 </div>
               )}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Copy, Check, Plus, Gift, Pencil, Search } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { AdminLicencesShell, AdminBadge } from '@/components/admin-licences/AdminShell'
 import { SchoolIdentity } from '@/components/admin-licences/SchoolIdentity'
 import { CreateKeyModal } from '@/components/admin-licences/CreateKeyModal'
@@ -31,15 +32,23 @@ function LicenceCard({
   onEdit: (l: AdminLicence) => void
   copied: string
 }) {
+  const t = useTranslations('adminLicences')
   const assigned = isLicenceAssigned(l)
   const status = licenceStatus(l)
+
+  const statusLabel = () => {
+    if (!l.is_active) return t('licences.status.revoked')
+    if (status.daysLeft < 0) return t('licences.status.expired')
+    if (status.daysLeft <= 30) return t('licences.status.daysLeft', { days: status.daysLeft })
+    return t('licences.status.active')
+  }
 
   return (
     <article className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/90 to-slate-950/90 p-4 space-y-4">
       <SchoolIdentity licence={l} onEdit={assigned && !hasSchoolName(l) ? () => onEdit(l) : undefined} />
 
       <div className="rounded-xl bg-slate-950 border border-slate-800 p-3">
-        <p className="text-[10px] uppercase tracking-wide text-slate-600 mb-1.5">Clé de licence</p>
+        <p className="text-[10px] uppercase tracking-wide text-slate-600 mb-1.5">{t('licences.columns.key')}</p>
         <div className="flex items-center gap-2">
           <code className="flex-1 text-xs font-mono text-slate-200 break-all">{l.cle_licence}</code>
           <button type="button" onClick={() => onCopy(l.cle_licence)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400">
@@ -49,14 +58,14 @@ function LicenceCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <AdminBadge tone={status.tone}>{status.label}</AdminBadge>
+        <AdminBadge tone={status.tone}>{statusLabel()}</AdminBadge>
         {l.parrain_code && (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-violet-500/10 text-violet-300 border border-violet-500/25">
             <Gift className="w-3 h-3" />
             {l.parrain_code}
           </span>
         )}
-        <span className="text-xs text-slate-500 ml-auto">Expire {formatDateFr(l.date_fin)}</span>
+        <span className="text-xs text-slate-500 ml-auto">{t('licences.expiresOn', { date: formatDateFr(l.date_fin) })}</span>
       </div>
 
       <div className="flex gap-2">
@@ -67,7 +76,7 @@ function LicenceCard({
             className="flex-1 py-2 rounded-xl border border-slate-700 text-slate-300 text-sm hover:bg-slate-800 inline-flex items-center justify-center gap-1.5"
           >
             <Pencil className="w-3.5 h-3.5" />
-            Établissement
+            {t('licences.establishment')}
           </button>
         )}
         {!!l.is_active && (
@@ -76,7 +85,7 @@ function LicenceCard({
             onClick={() => onRevoke(l.id)}
             className="flex-1 py-2 rounded-xl border border-red-500/30 text-red-400 text-sm hover:bg-red-500/10"
           >
-            Révoquer
+            {t('licences.revoke')}
           </button>
         )}
       </div>
@@ -85,6 +94,8 @@ function LicenceCard({
 }
 
 function LicencesContent() {
+  const t = useTranslations('adminLicences')
+  const tc = useTranslations('common')
   const [licences, setLicences] = useState<AdminLicence[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('toutes')
@@ -92,6 +103,14 @@ function LicencesContent() {
   const [showForm, setShowForm] = useState(false)
   const [editLicence, setEditLicence] = useState<AdminLicence | null>(null)
   const [copied, setCopied] = useState('')
+
+  const statusLabel = (l: AdminLicence) => {
+    const { daysLeft } = licenceStatus(l)
+    if (!l.is_active) return t('licences.status.revoked')
+    if (daysLeft < 0) return t('licences.status.expired')
+    if (daysLeft <= 30) return t('licences.status.daysLeft', { days: daysLeft })
+    return t('licences.status.active')
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -112,7 +131,7 @@ function LicencesContent() {
   }
 
   const revoke = async (id: string) => {
-    if (!confirm('Révoquer cette licence ?')) return
+    if (!confirm(t('licences.revokeConfirm'))) return
     await fetch('/api/admin-licences/revoke', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -143,21 +162,31 @@ function LicencesContent() {
   })
 
   const filters: { id: Filter; label: string; count?: number; warn?: boolean }[] = [
-    { id: 'toutes', label: 'Toutes', count: licences.length },
-    { id: 'attribuees', label: 'Attribuées', count: attribuees },
-    { id: 'disponibles', label: 'Disponibles', count: disponibles },
-    { id: 'sans_nom', label: 'Sans nom', count: sansNom, warn: sansNom > 0 },
+    { id: 'toutes', label: t('licences.filters.all'), count: licences.length },
+    { id: 'attribuees', label: t('licences.filters.assigned'), count: attribuees },
+    { id: 'disponibles', label: t('licences.filters.available'), count: disponibles },
+    { id: 'sans_nom', label: t('licences.filters.noName'), count: sansNom, warn: sansNom > 0 },
+  ]
+
+  const tableColumns = [
+    t('licences.columns.establishment'),
+    t('licences.columns.key'),
+    t('licences.columns.plan'),
+    t('licences.columns.referral'),
+    t('licences.columns.status'),
+    t('licences.columns.expiration'),
+    t('licences.columns.actions'),
   ]
 
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Licences & établissements</h1>
+          <h1 className="text-2xl font-bold text-white">{t('licences.title')}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            {attribuees} école(s) activée(s) · {disponibles} clé(s) en pool
+            {t('licences.subtitle', { assigned: attribuees, available: disponibles })}
             {sansNom > 0 && (
-              <span className="text-amber-400"> · {sansNom} sans nom synchronisé</span>
+              <span className="text-amber-400">{t('licences.noNameSync', { count: sansNom })}</span>
             )}
           </p>
         </div>
@@ -167,14 +196,13 @@ function LicencesContent() {
           className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shrink-0 shadow-lg shadow-emerald-500/20"
         >
           <Plus className="w-4 h-4" />
-          Nouvelle clé pool
+          {t('licences.newPoolKey')}
         </button>
       </div>
 
       {sansNom > 0 && (
         <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 px-4 py-3 text-sm text-amber-100/90 mb-6">
-          <strong>{sansNom} licence(s)</strong> activée(s) sans nom d&apos;établissement en cloud.
-          Ouvrez SchoolManager sur chaque poste (sync auto) ou renseignez manuellement via « Établissement ».
+          {t('licences.noNameBanner', { count: sansNom })}
         </div>
       )}
 
@@ -203,16 +231,16 @@ function LicencesContent() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher par nom d'école, clé, slug..."
+            placeholder={t('licences.searchPlaceholder')}
             className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-200 text-sm placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-emerald-500/30"
           />
         </div>
       </div>
 
       {loading ? (
-        <p className="text-center text-slate-500 py-16">Chargement...</p>
+        <p className="text-center text-slate-500 py-16">{tc('loading')}</p>
       ) : filtered.length === 0 ? (
-        <p className="text-center text-slate-500 py-16">Aucune licence trouvée.</p>
+        <p className="text-center text-slate-500 py-16">{t('licences.empty')}</p>
       ) : (
         <>
           <div className="grid gap-3 lg:hidden">
@@ -226,7 +254,7 @@ function LicencesContent() {
               <table className="w-full min-w-[960px]">
                 <thead>
                   <tr className="border-b border-slate-800 bg-slate-900/80 text-left">
-                    {['Établissement', 'Clé', 'Plan', 'Parrain', 'Statut', 'Expiration', 'Actions'].map(h => (
+                    {tableColumns.map(h => (
                       <th key={h} className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{h}</th>
                     ))}
                   </tr>
@@ -255,18 +283,18 @@ function LicencesContent() {
                           </span>
                         </td>
                         <td className="px-4 py-4 align-top font-mono text-xs text-violet-300">{l.parrain_code || '—'}</td>
-                        <td className="px-4 py-4 align-top"><AdminBadge tone={status.tone}>{status.label}</AdminBadge></td>
+                        <td className="px-4 py-4 align-top"><AdminBadge tone={status.tone}>{statusLabel(l)}</AdminBadge></td>
                         <td className="px-4 py-4 align-top text-sm text-slate-400 tabular-nums whitespace-nowrap">{formatDateFr(l.date_fin)}</td>
                         <td className="px-4 py-4 align-top">
                           <div className="flex flex-col gap-1.5">
                             {assigned && (
                               <button type="button" onClick={() => setEditLicence(l)} className="text-xs text-slate-400 hover:text-white text-left">
-                                Établissement
+                                {t('licences.establishment')}
                               </button>
                             )}
                             {!!l.is_active && (
                               <button type="button" onClick={() => revoke(l.id)} className="text-xs text-red-400 hover:text-red-300 text-left">
-                                Révoquer
+                                {t('licences.revoke')}
                               </button>
                             )}
                           </div>

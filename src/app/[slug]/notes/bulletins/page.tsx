@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
 import { Printer, FileText, Download, Users, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
@@ -14,6 +15,7 @@ import { useSmartFilters } from '@/hooks/useSmartFilters'
 import { useStudentDeepLink } from '@/hooks/useStudentDeepLink'
 import { studentLinks } from '@/lib/student-context-links'
 import { useClasses } from '@/hooks/useClasses'
+import { useTranslatedEnums } from '@/hooks/useTranslatedEnums'
 import type { DocumentSection } from '@/lib/school-documents'
 
 interface Classe { id: string; nom: string; section: string }
@@ -42,16 +44,27 @@ interface BulletinData {
   }[]
 }
 
-function formatDateFr(dateStr: string | null | undefined): string {
+function formatDate(dateStr: string | null | undefined, locale: string): string {
   if (!dateStr) return '—'
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return dateStr
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function BulletinsPageFallback() {
+  const t = useTranslations('notes')
+  const tc = useTranslations('common')
+
+  return (
+    <PageShell title={t('bulletins.title')} breadcrumb={t('bulletins.breadcrumb')}>
+      <div className="card p-16 text-center text-slate-400">{tc('loading')}</div>
+    </PageShell>
+  )
 }
 
 export default function BulletinsPage() {
   return (
-    <Suspense fallback={<PageShell title="Bulletins scolaires" breadcrumb="Bulletins"><div className="card p-16 text-center text-slate-400">Chargement...</div></PageShell>}>
+    <Suspense fallback={<BulletinsPageFallback />}>
       <BulletinsPageContent />
     </Suspense>
   )
@@ -59,6 +72,11 @@ export default function BulletinsPage() {
 
 function BulletinsPageContent() {
   const { slug } = useParams() as { slug: string }
+  const locale = useLocale()
+  const t = useTranslations('notes')
+  const tc = useTranslations('common')
+  const tf = useTranslations('filters')
+  const te = useTranslatedEnums()
   const { classes } = useClasses()
   const [section, setSection] = useState('francophone')
   const [data, setData] = useState<BulletinData | null>(null)
@@ -79,38 +97,41 @@ function BulletinsPageContent() {
     {
       key: 'classe',
       type: 'select' as const,
-      label: 'Classe',
-      options: [{ value: '', label: 'Sélectionner une classe' }, ...classes.map(c => ({ value: c.id, label: `${c.nom} (${c.section})` }))],
+      label: tf('labels.class'),
+      options: [
+        { value: '', label: t('bulletins.selectClassOption') },
+        ...classes.map(c => ({ value: c.id, label: `${c.nom} (${te.section(c.section)})` })),
+      ],
       defaultValue: '',
     },
     {
       key: 'periode',
       type: 'select' as const,
-      label: 'Période',
+      label: tf('labels.period'),
       options: periodes.map(p => ({ value: p, label: p })),
       defaultValue: section === 'anglophone' ? 'S1' : 'T1',
     },
     {
       key: 'q',
       type: 'search' as const,
-      placeholder: 'Rechercher un élève dans la liste...',
+      placeholder: t('bulletins.searchPlaceholder'),
       debounce: true,
     },
     {
       key: 'mention',
       type: 'pills' as const,
-      label: 'Mention',
+      label: tf('labels.mention'),
       options: [
-        { value: 'tous', label: 'Tous' },
-        { value: 'TB', label: 'Très Bien' },
-        { value: 'B', label: 'Bien' },
-        { value: 'AB', label: 'Assez Bien' },
-        { value: 'P', label: 'Passable' },
-        { value: 'I', label: 'Insuffisant' },
+        { value: 'tous', label: t('bulletins.mentionFilters.all') },
+        { value: 'TB', label: t('bulletins.mentionFilters.TB') },
+        { value: 'B', label: t('bulletins.mentionFilters.B') },
+        { value: 'AB', label: t('bulletins.mentionFilters.AB') },
+        { value: 'P', label: t('bulletins.mentionFilters.P') },
+        { value: 'I', label: t('bulletins.mentionFilters.I') },
       ],
       defaultValue: 'tous',
     },
-  ], [classes, periodes, section])
+  ], [classes, periodes, section, t, tf, te])
 
   const { values, debouncedValues, setFilter, setFilters, reset, activeFilters } = useSmartFilters(filterFields)
   const { student } = useStudentDeepLink(setFilters, {
@@ -137,22 +158,22 @@ function BulletinsPageContent() {
     }
   }, [classeId, classes])
 
-  const loadBulletins = async () => {
+  const loadBulletins = useCallback(async () => {
     if (!classeId || !periode) return
     setLoading(true)
     const res = await fetch(`/api/bulletins?classe_id=${classeId}&periode=${periode}`)
     const d = await res.json()
     if (!res.ok) {
-      toast.error(d.error || 'Erreur de chargement')
+      toast.error(d.error || tc('errorLoad'))
       setLoading(false)
       return
     }
     setData(d)
     if (!targetEleveId.current) setSelectedIdx(0)
     setLoading(false)
-  }
+  }, [classeId, periode, tc])
 
-  useEffect(() => { loadBulletins() }, [classeId, periode])
+  useEffect(() => { loadBulletins() }, [loadBulletins])
 
   const mentionMatch = (mention: string | null, filter: string) => {
     if (!filter || filter === 'tous' || !mention) return filter === 'tous'
@@ -196,6 +217,9 @@ function BulletinsPageContent() {
 
   const bulletin = filteredBulletins[selectedIdx] ?? filteredBulletins[0]
   const isAng = data?.classe.section === 'anglophone'
+  const docPrefix = isAng ? 'bulletins.docAng' : 'bulletins.docFr'
+  const doc = (key: string, values?: Record<string, string | number>) =>
+    t(`${docPrefix}.${key}` as 'bulletins.docFr.fullName', values)
 
   useEffect(() => {
     if (!bulletin?.eleve.id) {
@@ -222,7 +246,10 @@ function BulletinsPageContent() {
   const showExamWarningToast = () => {
     if (!examWarning) return
     toast(
-      `Frais d'examen non soldés : ${examWarning.label} (reste ${Number(examWarning.reste).toLocaleString('fr-FR')} FCFA). Le bulletin sera imprimé quand même.`,
+      t('bulletins.toasts.examUnpaid', {
+        label: examWarning.label,
+        amount: Number(examWarning.reste).toLocaleString(locale),
+      }),
       { icon: '⚠️', duration: 6000 },
     )
   }
@@ -232,7 +259,7 @@ function BulletinsPageContent() {
     showExamWarningToast()
     const url = `/api/bulletins/print?classe_id=${classeId}&periode=${periode}&eleve_id=${bulletin.eleve.id}`
     const win = window.open(url, '_blank', 'width=800,height=1000')
-    if (!win) toast.error('Autorisez les pop-ups pour imprimer')
+    if (!win) toast.error(t('bulletins.toasts.popupBlocked'))
   }
 
   const handlePrintAll = async () => {
@@ -241,30 +268,33 @@ function BulletinsPageContent() {
     const d = res.ok ? await res.json() : null
     if (d?.frais_examen && d.impayes > 0) {
       toast(
-        `${d.impayes} élève(s) n'ont pas soldé les frais d'examen (${d.frais_examen.label}). Impression lancée quand même.`,
+        t('bulletins.toasts.examUnpaidBulk', {
+          count: d.impayes,
+          label: d.frais_examen.label,
+        }),
         { icon: '⚠️', duration: 6000 },
       )
     }
     const url = `/api/bulletins/print?classe_id=${classeId}&periode=${periode}`
     const win = window.open(url, '_blank', 'width=800,height=1000')
-    if (!win) toast.error('Autorisez les pop-ups pour imprimer')
-    else toast.success(`Impression de ${data?.bulletins.length ?? 0} bulletin(s)`)
+    if (!win) toast.error(t('bulletins.toasts.popupBlocked'))
+    else toast.success(t('bulletins.toasts.printAll', { count: data?.bulletins.length ?? 0 }))
   }
 
   return (
     <PageShell
-      title="Bulletins scolaires"
-      subtitle="Génération et impression des bulletins conformes MINEDUB"
-      breadcrumb="Bulletins"
+      title={t('bulletins.title')}
+      subtitle={t('bulletins.subtitle')}
+      breadcrumb={t('bulletins.breadcrumb')}
       actions={
         data && data.bulletins.length > 0 ? (
           <div className="flex gap-2">
             <button onClick={handlePrint} className="btn-primary flex items-center gap-2 py-2.5">
-              <Printer className="w-4 h-4" /> Imprimer
+              <Printer className="w-4 h-4" /> {t('bulletins.print')}
             </button>
             <button onClick={handlePrintAll}
               className="border border-slate-200 text-slate-700 font-semibold rounded-xl px-4 py-2.5 text-base hover:bg-white transition-colors flex items-center gap-2 bg-white">
-              <Download className="w-4 h-4" /> Toute la classe
+              <Download className="w-4 h-4" /> {t('bulletins.printAll')}
             </button>
           </div>
         ) : undefined
@@ -277,7 +307,7 @@ function BulletinsPageContent() {
         onReset={reset}
         activeFilters={activeFilters}
         resultCount={data ? filteredBulletins.length : undefined}
-        resultLabel="bulletin(s)"
+        resultLabel={t('bulletins.resultLabel')}
         loading={loading}
         className="mb-4"
       />
@@ -290,10 +320,12 @@ function BulletinsPageContent() {
         <div className="flex items-start gap-3 px-4 py-3 mb-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-amber-900">Frais d&apos;examen non soldés</p>
+            <p className="font-semibold text-amber-900">{t('bulletins.examWarningTitle')}</p>
             <p className="text-amber-800 mt-0.5">
-              {examWarning.label} — reste {Number(examWarning.reste).toLocaleString('fr-FR')} FCFA.
-              Vous pouvez imprimer le bulletin ; pensez à relancer le paiement.
+              {t('bulletins.examWarningBody', {
+                label: examWarning.label,
+                amount: Number(examWarning.reste).toLocaleString(locale),
+              })}
             </p>
           </div>
         </div>
@@ -302,16 +334,16 @@ function BulletinsPageContent() {
       {!classeId ? (
         <EmptyState
           icon={FileText}
-          title="Sélectionnez une classe"
-          description="Choisissez une classe et une période pour générer les bulletins."
+          title={t('bulletins.emptySelectClass')}
+          description={t('bulletins.emptySelectClassDesc')}
         />
       ) : loading ? (
-        <div className="card p-16 text-center text-slate-400 text-base">Génération des bulletins...</div>
+        <div className="card p-16 text-center text-slate-400 text-base">{t('bulletins.generating')}</div>
       ) : !bulletin ? (
         <EmptyState
           icon={Users}
-          title="Aucun bulletin correspondant"
-          description="Modifiez vos filtres ou saisissez des notes pour cette période."
+          title={t('bulletins.emptyNone')}
+          description={t('bulletins.emptyNoneDesc')}
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -340,7 +372,7 @@ function BulletinsPageContent() {
                     numero_matricule: b.eleve.numero_matricule,
                   }).fiche}
                     className="text-xs text-emerald-600 hover:underline font-medium">
-                    Voir la fiche →
+                    {t('bulletins.viewProfile')}
                   </Link>
                 </div>
               </div>
@@ -358,22 +390,22 @@ function BulletinsPageContent() {
               />
 
               <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
-                <div><span className="text-slate-500">{isAng ? 'Name' : 'Nom et prénom(s)'} : </span><strong>{bulletin.eleve.nom} {bulletin.eleve.prenom}</strong></div>
-                <div><span className="text-slate-500">{isAng ? 'ID No.' : 'Matricule'} : </span>{bulletin.eleve.numero_matricule}</div>
-                <div><span className="text-slate-500">{isAng ? 'Date & place of birth' : 'Date et lieu de naissance'} : </span>{formatDateFr(bulletin.eleve.date_naissance)} {isAng ? 'at' : 'à'} {bulletin.eleve.lieu_naissance || '—'}</div>
-                <div><span className="text-slate-500">{isAng ? 'Gender' : 'Sexe'} : </span>{bulletin.eleve.sexe === 'M' ? (isAng ? 'Male' : 'Masculin') : (isAng ? 'Female' : 'Féminin')}</div>
-                <div><span className="text-slate-500">{isAng ? 'Class' : 'Classe'} : </span><strong>{data!.classe.nom}</strong></div>
-                <div><span className="text-slate-500">{isAng ? 'Class size' : 'Effectif'} : </span>{data!.effectif} {isAng ? 'students' : 'élèves'}</div>
+                <div><span className="text-slate-500">{doc('fullName')} : </span><strong>{bulletin.eleve.nom} {bulletin.eleve.prenom}</strong></div>
+                <div><span className="text-slate-500">{doc('matricule')} : </span>{bulletin.eleve.numero_matricule}</div>
+                <div><span className="text-slate-500">{doc('birth')} : </span>{formatDate(bulletin.eleve.date_naissance, locale)} {doc('birthAt')} {bulletin.eleve.lieu_naissance || '—'}</div>
+                <div><span className="text-slate-500">{doc('sex')} : </span>{bulletin.eleve.sexe === 'M' ? doc('sexMale') : doc('sexFemale')}</div>
+                <div><span className="text-slate-500">{doc('class')} : </span><strong>{data!.classe.nom}</strong></div>
+                <div><span className="text-slate-500">{doc('classSize')} : </span>{data!.effectif} {doc('students')}</div>
               </div>
 
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-50">
-                    <th className="text-left p-2.5 border border-slate-200 text-xs uppercase">{isAng ? 'Subject' : 'Discipline / Matière'}</th>
-                    <th className="text-center p-2.5 border border-slate-200 text-xs uppercase w-16">Coef.</th>
-                    <th className="text-center p-2.5 border border-slate-200 text-xs uppercase w-20">Note/{data!.noteMax}</th>
-                    <th className="text-left p-2.5 border border-slate-200 text-xs uppercase">{isAng ? "Teacher's remark" : 'Appréciation'}</th>
-                    <th className="text-center p-2.5 border border-slate-200 text-xs uppercase w-14">Sign.</th>
+                    <th className="text-left p-2.5 border border-slate-200 text-xs uppercase">{doc('subject')}</th>
+                    <th className="text-center p-2.5 border border-slate-200 text-xs uppercase w-16">{doc('coef')}</th>
+                    <th className="text-center p-2.5 border border-slate-200 text-xs uppercase w-20">{doc('grade', { max: data!.noteMax })}</th>
+                    <th className="text-left p-2.5 border border-slate-200 text-xs uppercase">{doc('appreciation')}</th>
+                    <th className="text-center p-2.5 border border-slate-200 text-xs uppercase w-14">{doc('sign')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -398,40 +430,40 @@ function BulletinsPageContent() {
                   <p className="text-2xl font-bold text-emerald-600">
                     {bulletin.moyenne !== null ? bulletin.moyenne.toFixed(2) : '—'}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">{isAng ? `Average/${data!.noteMax}` : `Moyenne/${data!.noteMax}`}</p>
+                  <p className="text-xs text-slate-500 mt-1">{doc('average', { max: data!.noteMax })}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-slate-800">
                     {bulletin.rang ? `${bulletin.rang} / ${data!.effectif}` : '—'}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">{isAng ? 'Rank / Size' : 'Rang / Effectif'}</p>
+                  <p className="text-xs text-slate-500 mt-1">{doc('rank')}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xl font-bold text-blue-600">{bulletin.mention ?? '—'}</p>
-                  <p className="text-xs text-slate-500 mt-1">{isAng ? 'Grade' : 'Mention'}</p>
+                  <p className="text-xs text-slate-500 mt-1">{doc('gradeLabel')}</p>
                 </div>
               </div>
 
               <div className="text-sm mb-6 space-y-3">
                 <div>
-                  <strong>{isAng ? 'Conduct' : 'Conduite'} :</strong>
+                  <strong>{doc('conduct')} :</strong>
                   <div className="border-b border-dotted border-slate-300 mt-1 min-h-[20px]"></div>
                 </div>
                 <div>
-                  <strong>{isAng ? 'Class council observations' : 'Observations du conseil de classe'} :</strong>
+                  <strong>{doc('councilObs')} :</strong>
                   <div className="border-b border-dotted border-slate-300 mt-1 min-h-[20px]"></div>
                 </div>
               </div>
 
               <div className="flex justify-between mt-10 gap-4">
                 <div className="border-t border-slate-300 pt-2 w-[30%] text-center text-xs text-slate-500">
-                  {isAng ? 'Parent / Guardian' : 'Le parent / tuteur'}
+                  {doc('parent')}
                 </div>
                 <div className="border-t border-slate-300 pt-2 w-[30%] text-center text-xs text-slate-500">
-                  {isAng ? 'Class teacher' : "L'enseignant titulaire"}
+                  {doc('teacher')}
                 </div>
                 <div className="border-t border-slate-300 pt-2 w-[30%] text-center text-xs text-slate-500">
-                  {data!.ecole.directeur_nom || (isAng ? 'The Principal' : 'Le Directeur')}
+                  {data!.ecole.directeur_nom || doc('director')}
                 </div>
               </div>
             </div>

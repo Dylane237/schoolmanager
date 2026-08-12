@@ -1,0 +1,152 @@
+{
+  "list": {
+    "title": "Students",
+    "subtitle": "{count} student(s) enrolled",
+    "breadcrumb": "Students",
+    "newStudent": "New student",
+    "searchPlaceholder": "Search by name, first name, ID, parent...",
+    "resultLabel": "student(s)",
+    "loadingFilters": "Loading filters...",
+    "emptyTitle": "No students found",
+    "emptyDescription": "Adjust your filters or enroll your first student.",
+    "emptyAction": "Enroll a student",
+    "columns": {
+      "student": "Student",
+      "matricule": "Student ID",
+      "class": "Class",
+      "section": "Section",
+      "parentContact": "Parent contact",
+      "payment": "Payment"
+    },
+    "noClass": "No class",
+    "allClasses": "All classes",
+    "paymentNa": "N/A"
+  },
+  "detail": {
+    "back": "Back to students",
+    "yearsOld": "{age} years old",
+    "noClass": "No class",
+    "printCard": "Print profile",
+    "collectPayment": "Collect payment",
+    "examFees": "Exam fees",
+    "financialSituation": "Financial status",
+    "remaining": "Balance: {amount} F",
+    "totalPaid": "Total paid",
+    "average": "Average {period}",
+    "attendanceRate": "Attendance rate",
+    "gradesCount": "Grades entered",
+    "quickActions": {
+      "bulletin": "Report card",
+      "attendance": "Attendance",
+      "class": "Class",
+      "transfer": "Transfer"
+    },
+    "tabs": {
+      "info": "Information",
+      "payments": "Payments",
+      "grades": "Grades",
+      "attendance": "Attendance"
+    },
+    "personalInfo": "Personal information",
+    "parents": "Parents / Guardians",
+    "noParent": "No parent registered",
+    "principal": "Primary",
+    "installmentsDetail": "Instalment breakdown",
+    "installment": "Instalment {n}",
+    "amount": "Amount",
+    "paid": "Paid",
+    "remainingLabel": "Balance",
+    "dueDateOverdue": "Overdue ({days} d)",
+    "dueDateRemaining": "Due: {date} ({days} d remaining)",
+    "dueDate": "Due: {date}",
+    "collect": "Collect payment →",
+    "examLabel": "Exam: {status}",
+    "deleteConfirmTitle": "Confirm deletion",
+    "deleteConfirmBody": "This student has recorded payments. All associated data will be permanently deleted.",
+    "deleteAnyway": "Delete anyway",
+    "noPayments": "No payments recorded",
+    "recordPayment": "Record a payment",
+    "columns": {
+      "date": "Date",
+      "installment": "Instalment",
+      "amount": "Amount",
+      "method": "Method",
+      "receipt": "Receipt",
+      "subject": "Subject",
+      "period": "Period",
+      "grade": "Grade /{max}",
+      "coef": "Coef.",
+      "appreciation": "Remarks",
+      "status": "Status",
+      "observation": "Note"
+    },
+    "miscFees": "Additional fee",
+    "total": "Total",
+    "period": "Period:",
+    "allPeriods": "All",
+    "noGrades": "No grades recorded",
+    "noAttendance": "No attendance recorded",
+    "fields": {
+      "lastName": "Last name",
+      "firstName": "First name",
+      "birthDate": "Date of birth",
+      "birthPlace": "Place of birth",
+      "class": "Class",
+      "annualStatus": "Annual status",
+      "entryYear": "Entry year",
+      "sex": "Sex",
+      "birthDateShort": "Birth date",
+      "birthPlaceShort": "Birth place"
+    },
+    "noneOption": "— None —",
+    "toasts": {
+      "saveError": "Error saving",
+      "saved": "Profile updated",
+      "deleteError": "Error deleting",
+      "popupBlocked": "Please allow pop-ups"
+    }
+  },
+  "new": {
+    "title": "Enroll a student",
+    "breadcrumb": "New student",
+    "subtitle": "3-step enrolment form",
+    "steps": {
+      "identity": "Identity",
+      "assignment": "Assignment",
+      "guardian": "Parent / Guardian"
+    },
+    "personalInfo": "Personal information",
+    "schoolAssignment": "School assignment",
+    "guardianTitle": "Parent / Legal guardian",
+    "select": "Select",
+    "selectSection": "Select section",
+    "selectClass": "Select class",
+    "sectionFrancophone": "Francophone (SIL - CM2)",
+    "sectionAnglophone": "Anglophone (Class 1 - Class 6)",
+    "sectionMaternelle": "Nursery",
+    "placeholders": {
+      "lastName": "MBALLA",
+      "firstName": "Jean-Pierre",
+      "birthPlace": "Douala, Cameroon",
+      "guardianFirstName": "Paul",
+      "phone": "699 000 000"
+    },
+    "fields": {
+      "lastName": "Last name *",
+      "firstName": "First name *",
+      "birthDate": "Date of birth",
+      "sex": "Sex *",
+      "birthPlace": "Place of birth",
+      "section": "Section *",
+      "class": "Class *",
+      "parentLastName": "Last name *",
+      "parentFirstName": "First name",
+      "phone": "Phone *",
+      "link": "Relationship"
+    },
+    "submit": "Enroll student",
+    "errors": {
+      "enrollFailed": "Error during enrolment"
+    }
+  }
+}

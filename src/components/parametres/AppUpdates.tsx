@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { Download, RefreshCw, Zap, Package } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -14,6 +15,7 @@ type UpdateStatus =
   | 'error'
 
 export default function AppUpdates() {
+  const t = useTranslations('parametres.appUpdates')
   const [version, setVersion] = useState<string | null>(null)
   const [status, setStatus] = useState<UpdateStatus>('idle')
   const [updateVersion, setUpdateVersion] = useState<string | null>(null)
@@ -34,7 +36,7 @@ export default function AppUpdates() {
         setIsElectron(true)
         setVersion(v)
       } catch {
-        // Handler IPC absent (redémarrer Electron après mise à jour de main.js)
+        // Handler IPC absent
       }
     })()
 
@@ -67,10 +69,10 @@ export default function AppUpdates() {
       }
     } catch {
       setStatus('error')
-      setError('Impossible de vérifier les mises à jour')
-      toast.error('Impossible de vérifier les mises à jour')
+      setError(t('checkFailed'))
+      toast.error(t('checkFailed'))
     }
-  }, [])
+  }, [t])
 
   const handleDownload = async () => {
     const api = window.electronAPI
@@ -92,9 +94,9 @@ export default function AppUpdates() {
           <Package className="w-4 h-4 text-sky-600" />
         </div>
         <div>
-          <h2 className="font-semibold text-slate-800">Mises à jour de l&apos;application</h2>
+          <h2 className="font-semibold text-slate-800">{t('title')}</h2>
           <p className="text-xs text-slate-400">
-            Version {version || '—'} · Corrections et nouvelles fonctionnalités
+            {t('versionHint', { version: version || '—' })}
           </p>
         </div>
       </div>
@@ -105,11 +107,9 @@ export default function AppUpdates() {
             <Zap className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-sky-800">
-                Version {updateVersion} disponible
+                {t('available', { version: updateVersion })}
               </p>
-              <p className="text-xs text-sky-700 mt-1">
-                Téléchargez et installez pour bénéficier des dernières améliorations.
-              </p>
+              <p className="text-xs text-sky-700 mt-1">{t('availableHint')}</p>
             </div>
           </div>
         )}
@@ -118,9 +118,9 @@ export default function AppUpdates() {
           <div className="flex items-start gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
             <Download className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-emerald-800">Mise à jour prête</p>
+              <p className="text-sm font-semibold text-emerald-800">{t('ready')}</p>
               <p className="text-xs text-emerald-700 mt-1">
-                Redémarrez l&apos;application pour appliquer la version {updateVersion}.
+                {t('readyHint', { version: updateVersion ?? '' })}
               </p>
             </div>
           </div>
@@ -129,7 +129,7 @@ export default function AppUpdates() {
         {status === 'downloading' && (
           <div>
             <div className="flex justify-between text-xs text-slate-500 mb-1">
-              <span>Téléchargement...</span>
+              <span>{t('downloading')}</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -158,11 +158,11 @@ export default function AppUpdates() {
               {status === 'checking' ? (
                 <>
                   <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-                  Vérification...
+                  {t('checking')}
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-4 h-4" /> Vérifier les mises à jour
+                  <RefreshCw className="w-4 h-4" /> {t('checkUpdates')}
                 </>
               )}
             </button>
@@ -170,18 +170,18 @@ export default function AppUpdates() {
 
           {status === 'available' && (
             <button type="button" onClick={handleDownload} className="btn-primary flex items-center gap-2">
-              <Download className="w-4 h-4" /> Télécharger
+              <Download className="w-4 h-4" /> {t('download')}
             </button>
           )}
 
           {status === 'downloaded' && (
             <button type="button" onClick={handleInstall} className="btn-primary flex items-center gap-2">
-              <Zap className="w-4 h-4" /> Redémarrer et installer
+              <Zap className="w-4 h-4" /> {t('install')}
             </button>
           )}
 
           {status === 'not-available' && (
-            <p className="text-sm text-slate-500 self-center">Vous utilisez la dernière version.</p>
+            <p className="text-sm text-slate-500 self-center">{t('latest')}</p>
           )}
         </div>
       </div>

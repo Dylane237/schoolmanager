@@ -1,6 +1,13 @@
 import { cookies } from 'next/headers'
+import { getLocale, getTranslations } from 'next-intl/server'
+import { getIntlLocale, type Locale } from '@/i18n/config'
 
 export default async function SuperAdminDashboard() {
+  const t = await getTranslations('superAdmin')
+  const tCommon = await getTranslations('common')
+  const locale = (await getLocale()) as Locale
+  const intlLocale = getIntlLocale(locale)
+
   const cookieStore = await cookies()
   const token = cookieStore.get('sm_token')?.value
 
@@ -21,26 +28,26 @@ export default async function SuperAdminDashboard() {
   }
 
   const licenceLabel = (fin: string, active: number) => {
-    if (!active) return 'Inactive'
+    if (!active) return t('dashboard.licenceStatus.inactive')
     const days = Math.floor((new Date(fin).getTime() - Date.now()) / 86400000)
-    if (days < 0)  return 'Expirée'
-    if (days < 30) return `Expire dans ${days}j`
-    return 'Active'
+    if (days < 0)  return t('dashboard.licenceStatus.expired')
+    if (days < 30) return t('dashboard.licenceStatus.expiringIn', { days })
+    return t('dashboard.licenceStatus.active')
   }
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="page-title">Vue globale</h1>
-        <p className="page-subtitle">Pilotage commercial et opérationnel</p>
+        <h1 className="page-title">{t('dashboard.title')}</h1>
+        <p className="page-subtitle">{t('dashboard.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Écoles clientes', value: stats?.totalEcoles ?? 0 },
-          { label: 'Élèves total', value: stats?.totalEleves ?? 0 },
-          { label: 'Licences actives', value: stats?.licencesActives ?? 0 },
-          { label: 'Expirent sous 30j', value: stats?.licencesExpirant ?? 0 },
+          { label: t('dashboard.stats.clientSchools'), value: stats?.totalEcoles ?? 0 },
+          { label: t('dashboard.stats.totalStudents'), value: stats?.totalEleves ?? 0 },
+          { label: t('dashboard.stats.activeLicences'), value: stats?.licencesActives ?? 0 },
+          { label: t('dashboard.stats.expiringSoon'), value: stats?.licencesExpirant ?? 0 },
         ].map((s, i) => (
           <div key={i} className="card p-6">
             <p className="text-base text-slate-500 mb-2">{s.label}</p>
@@ -49,24 +56,24 @@ export default async function SuperAdminDashboard() {
         ))}
       </div>
 
-      <h2 className="text-xl font-bold text-slate-800 mb-4">Indicateurs business</h2>
+      <h2 className="text-xl font-bold text-slate-800 mb-4">{t('dashboard.businessTitle')}</h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         <div className="card p-6 border-emerald-200 bg-emerald-50/50">
-          <p className="text-base text-slate-500 mb-2">Chiffre d&apos;affaires licences</p>
+          <p className="text-base text-slate-500 mb-2">{t('dashboard.revenue')}</p>
           <p className="text-2xl font-bold text-emerald-700">
-            {(stats?.chiffreAffaires ?? 0).toLocaleString('fr-FR')} FCFA
+            {(stats?.chiffreAffaires ?? 0).toLocaleString(intlLocale)} {tCommon('currency')}
           </p>
         </div>
         <div className="card p-6">
-          <p className="text-base text-slate-500 mb-2">Nouvelles écoles ce mois</p>
+          <p className="text-base text-slate-500 mb-2">{t('dashboard.newSchoolsMonth')}</p>
           <p className="text-2xl font-bold text-slate-800">{stats?.nouvellesEcolesMois ?? 0}</p>
         </div>
         <div className="card p-6">
-          <p className="text-base text-slate-500 mb-2">Taux de conversion</p>
+          <p className="text-base text-slate-500 mb-2">{t('dashboard.conversionRate')}</p>
           <p className="text-2xl font-bold text-slate-800">{stats?.tauxConversion ?? 0}%</p>
         </div>
         <div className="card p-6">
-          <p className="text-base text-slate-500 mb-2">Licences expirées</p>
+          <p className="text-base text-slate-500 mb-2">{t('dashboard.expiredLicences')}</p>
           <p className="text-2xl font-bold text-red-600">{stats?.licencesExpirees ?? 0}</p>
         </div>
       </div>
@@ -74,12 +81,16 @@ export default async function SuperAdminDashboard() {
       {business?.plans?.length > 0 && (
         <div className="card mb-8 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-200">
-            <h2 className="font-semibold text-slate-800 text-lg">Répartition par plan</h2>
+            <h2 className="font-semibold text-slate-800 text-lg">{t('dashboard.planDistribution')}</h2>
           </div>
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                {['Plan', 'Licences actives', 'Revenu estimé'].map(h => (
+                {[
+                  t('dashboard.planColumns.plan'),
+                  t('dashboard.planColumns.activeLicences'),
+                  t('dashboard.planColumns.estimatedRevenue'),
+                ].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-sm font-semibold text-slate-500 uppercase">{h}</th>
                 ))}
               </tr>
@@ -90,7 +101,7 @@ export default async function SuperAdminDashboard() {
                   <td className="px-4 py-3 capitalize font-semibold text-base">{p.plan}</td>
                   <td className="px-4 py-3 text-base">{p.count}</td>
                   <td className="px-4 py-3 font-semibold text-emerald-700 text-base">
-                    {p.revenu.toLocaleString('fr-FR')} FCFA
+                    {p.revenu.toLocaleString(intlLocale)} {tCommon('currency')}
                   </td>
                 </tr>
               ))}
@@ -102,12 +113,16 @@ export default async function SuperAdminDashboard() {
       {business?.renouvellements30j?.length > 0 && (
         <div className="card mb-8 overflow-hidden border-amber-200">
           <div className="px-6 py-4 bg-amber-50 border-b border-amber-200">
-            <h2 className="font-semibold text-amber-800 text-lg">Renouvellements à venir (30 jours)</h2>
+            <h2 className="font-semibold text-amber-800 text-lg">{t('dashboard.renewalsTitle')}</h2>
           </div>
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                {['École', 'Plan', 'Expiration'].map(h => (
+                {[
+                  t('dashboard.renewalColumns.school'),
+                  t('dashboard.renewalColumns.plan'),
+                  t('dashboard.renewalColumns.expiration'),
+                ].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-sm font-semibold text-slate-500 uppercase">{h}</th>
                 ))}
               </tr>
@@ -127,12 +142,19 @@ export default async function SuperAdminDashboard() {
 
       <div className="card overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200">
-          <h2 className="font-semibold text-slate-800 text-lg">Écoles clientes</h2>
+          <h2 className="font-semibold text-slate-800 text-lg">{t('dashboard.schoolsTitle')}</h2>
         </div>
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
-              {['École', 'Slug', 'Élèves', 'Plan', 'Licence', 'Expiration'].map(h => (
+              {[
+                t('dashboard.schoolColumns.school'),
+                t('dashboard.schoolColumns.slug'),
+                t('dashboard.schoolColumns.students'),
+                t('dashboard.schoolColumns.plan'),
+                t('dashboard.schoolColumns.licence'),
+                t('dashboard.schoolColumns.expiration'),
+              ].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-sm font-semibold text-slate-500 uppercase tracking-wide">
                   {h}
                 </th>

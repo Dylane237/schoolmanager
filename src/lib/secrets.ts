@@ -2,12 +2,14 @@ import 'server-only'
 import crypto from 'crypto'
 import fs from 'fs'
 import { getMachineFingerprint, getSecretPath, ensureUserDataDir } from './paths'
+import { runtimeEnv } from './runtime-env'
 
 let cachedSecret: string | null = null
 
 export function getJwtSecret(): string {
-  if (process.env.SM_JWT_SECRET) {
-    return process.env.SM_JWT_SECRET
+  const envSecret = runtimeEnv('SM_JWT_SECRET')
+  if (envSecret) {
+    return envSecret
   }
 
   if (cachedSecret) {

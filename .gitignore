@@ -7,6 +7,7 @@ out/
 
 # Electron build output
 dist/
+dist2/
 
 # Base de données locale
 *.db
@@ -29,6 +30,7 @@ exports/
 # Logs
 *.log
 npm-debug.log*
+build-log.txt
 
 # OS
 .DS_Store
@@ -41,3 +43,9 @@ Thumbs.db
 # Cache
 .turbo/
 .cache/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

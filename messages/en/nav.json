@@ -1,0 +1,26 @@
+{
+  "openMenu": "Open menu",
+  "closeMenu": "Close menu",
+  "logout": "Sign out",
+  "lightMode": "Light mode",
+  "darkMode": "Dark mode",
+  "groups": {
+    "schooling": "Schooling",
+    "finance": "Finance",
+    "pedagogy": "Pedagogy",
+    "admin": "Administration"
+  },
+  "items": {
+    "dashboard": "Dashboard",
+    "students": "Students",
+    "classes": "Classes",
+    "attendance": "Attendance",
+    "nursery": "Nursery",
+    "payments": "Payments",
+    "gradesEntry": "Grade entry",
+    "reportCards": "Report cards",
+    "staff": "Staff",
+    "announcements": "Announcements",
+    "settings": "Settings"
+  }
+}

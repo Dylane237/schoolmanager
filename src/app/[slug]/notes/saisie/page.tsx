@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Save, Plus, X, ClipboardList } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
@@ -19,9 +20,20 @@ interface Matiere { id: string; nom: string; coefficient: number }
 interface Eleve { id: string; nom: string; prenom: string; numero_matricule: string }
 interface Note { eleve_id: string; note: number; appreciation: string }
 
+function SaisieNotesPageFallback() {
+  const t = useTranslations('notes')
+  const tc = useTranslations('common')
+
+  return (
+    <PageShell title={t('entry.title')} breadcrumb={t('entry.breadcrumb')}>
+      <div className="card p-12 text-center text-slate-400">{tc('loading')}</div>
+    </PageShell>
+  )
+}
+
 export default function SaisieNotesPage() {
   return (
-    <Suspense fallback={<PageShell title="Saisie des notes" breadcrumb="Notes"><div className="card p-12 text-center text-slate-400">Chargement...</div></PageShell>}>
+    <Suspense fallback={<SaisieNotesPageFallback />}>
       <SaisieNotesPageContent />
     </Suspense>
   )
@@ -29,6 +41,9 @@ export default function SaisieNotesPage() {
 
 function SaisieNotesPageContent() {
   const { slug } = useParams() as { slug: string }
+  const t = useTranslations('notes')
+  const tc = useTranslations('common')
+  const tf = useTranslations('filters')
   const { classes } = useClasses()
   const [matieres, setMatieres] = useState<Matiere[]>([])
   const [eleves, setEleves] = useState<Eleve[]>([])
@@ -44,39 +59,42 @@ function SaisieNotesPageContent() {
     : ['T1', 'T2', 'T3']
 
   const matiereOptions = useMemo(() => [
-    { value: '', label: 'Sélectionner une matière' },
-    ...matieres.map(m => ({ value: m.id, label: `${m.nom} (coef. ${m.coefficient})` })),
-  ], [matieres])
+    { value: '', label: t('entry.selectSubjectOption') },
+    ...matieres.map(m => ({
+      value: m.id,
+      label: t('entry.subjectWithCoef', { name: m.nom, coef: m.coefficient }),
+    })),
+  ], [matieres, t])
 
   const filterFields = useMemo(() => [
     {
       key: 'classe',
       type: 'select' as const,
-      label: 'Classe',
-      options: [{ value: '', label: 'Sélectionner' }, ...classes.map(c => ({ value: c.id, label: c.nom }))],
+      label: tf('labels.class'),
+      options: [{ value: '', label: t('entry.selectClassOption') }, ...classes.map(c => ({ value: c.id, label: c.nom }))],
       defaultValue: '',
     },
     {
       key: 'matiere',
       type: 'select' as const,
-      label: 'Matière',
+      label: tf('labels.subject'),
       options: matiereOptions,
       defaultValue: '',
     },
     {
       key: 'periode',
       type: 'select' as const,
-      label: 'Période',
+      label: tf('labels.period'),
       options: periodes.map(p => ({ value: p, label: p })),
       defaultValue: section === 'anglophone' ? 'S1' : 'T1',
     },
     {
       key: 'q',
       type: 'search' as const,
-      placeholder: 'Filtrer un élève...',
+      placeholder: t('entry.filterStudent'),
       debounce: true,
     },
-  ], [classes, matiereOptions, periodes, section])
+  ], [classes, matiereOptions, periodes, section, t, tf])
 
   const { values, debouncedValues, setFilter, setFilters, reset, activeFilters } = useSmartFilters(filterFields)
   const { student } = useStudentDeepLink(setFilters)
@@ -137,7 +155,7 @@ function SaisieNotesPageContent() {
     await Promise.all(promises)
     setSaving(false)
     setSaved(true)
-    toast.success('Notes sauvegardées')
+    toast.success(t('entry.toasts.saved'))
     setTimeout(() => setSaved(false), 2000)
   }
 
@@ -159,9 +177,9 @@ function SaisieNotesPageContent() {
 
   return (
     <PageShell
-      title="Saisie des notes"
-      subtitle={section === 'anglophone' ? 'Notation sur 100 (grades A-F)' : 'Notation sur 20'}
-      breadcrumb="Notes"
+      title={t('entry.title')}
+      subtitle={section === 'anglophone' ? t('entry.subtitleAnglophone') : t('entry.subtitleFrancophone')}
+      breadcrumb={t('entry.breadcrumb')}
     >
       <SmartFilterBar
         fields={filterFields}
@@ -170,20 +188,20 @@ function SaisieNotesPageContent() {
         onReset={reset}
         activeFilters={activeFilters}
         resultCount={matiereId ? filteredEleves.length : undefined}
-        resultLabel="élève(s)"
+        resultLabel={t('entry.resultLabel')}
         extra={
           <div className="flex gap-2">
             {classeId && (
               <button onClick={() => setShowMatForm(true)}
                 className="text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
-                <Plus className="w-3.5 h-3.5 inline mr-1" /> Matière
+                <Plus className="w-3.5 h-3.5 inline mr-1" /> {t('entry.addSubject')}
               </button>
             )}
             {matiereId && (
               <button onClick={handleSave} disabled={saving}
                 className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 text-white text-xs font-semibold px-3 py-1.5 rounded-full">
                 <Save className="w-3.5 h-3.5" />
-                {saving ? 'Sauvegarde...' : saved ? 'Sauvegardé !' : 'Sauvegarder'}
+                {saving ? tc('saving') : saved ? tc('saved') : tc('save')}
               </button>
             )}
           </div>
@@ -197,20 +215,20 @@ function SaisieNotesPageContent() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-slate-800">Nouvelle matière</h3>
+              <h3 className="font-bold text-slate-800">{t('entry.newSubjectTitle')}</h3>
               <button onClick={() => setShowMatForm(false)}><X className="w-5 h-5 text-slate-400" /></button>
             </div>
             <div className="space-y-3">
               <input value={newMat.nom} onChange={e => setNewMat(p => ({ ...p, nom: e.target.value }))}
-                placeholder="Nom de la matière"
+                placeholder={t('entry.subjectNamePlaceholder')}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
               <input type="number" value={newMat.coefficient}
                 onChange={e => setNewMat(p => ({ ...p, coefficient: e.target.value }))}
-                placeholder="Coefficient"
+                placeholder={t('entry.coefficientPlaceholder')}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
               <button onClick={handleAddMatiere}
                 className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg px-4 py-2.5 text-sm">
-                Ajouter
+                {tc('add')}
               </button>
             </div>
           </div>
@@ -218,14 +236,14 @@ function SaisieNotesPageContent() {
       )}
 
       {!classeId ? (
-        <div className="card p-12 text-center text-slate-400 text-sm">Sélectionnez une classe pour commencer la saisie</div>
+        <div className="card p-12 text-center text-slate-400 text-sm">{t('entry.selectClass')}</div>
       ) : !matiereId ? (
-        <div className="card p-12 text-center text-slate-400 text-sm">Sélectionnez une matière</div>
+        <div className="card p-12 text-center text-slate-400 text-sm">{t('entry.selectSubject')}</div>
       ) : filteredEleves.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
-          title="Aucun élève trouvé"
-          description="Sélectionnez une classe et une période, ou ajustez votre recherche."
+          title={t('entry.emptyTitle')}
+          description={t('entry.emptyDescription')}
         />
       ) : (
         <div className="card overflow-hidden">
@@ -233,9 +251,9 @@ function SaisieNotesPageContent() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">#</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Élève</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-500 uppercase tracking-wide w-32">Note /{noteMax || 20}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Mention</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('entry.columns.student')}</th>
+                <th className="text-left px-4 py-3 text-sm font-semibold text-slate-500 uppercase tracking-wide w-32">{t('entry.columns.grade', { max: noteMax || 20 })}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('entry.columns.mention')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

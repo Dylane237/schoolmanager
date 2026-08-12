@@ -1,0 +1,28 @@
+{
+  "openMenu": "Ouvrir le menu",
+  "closeMenu": "Fermer le menu",
+  "logout": "Déconnexion",
+  "lightMode": "Mode clair",
+  "darkMode": "Mode sombre",
+  "licence": "Licence",
+  "groups": {
+    "schooling": "Scolarité",
+    "finance": "Finances",
+    "pedagogy": "Pédagogie",
+    "admin": "Administration"
+  },
+  "items": {
+    "dashboard": "Tableau de bord",
+    "students": "Élèves",
+    "classes": "Classes",
+    "attendance": "Présences",
+    "nursery": "Maternelle",
+    "payments": "Paiements",
+    "gradesEntry": "Saisie notes",
+    "reportCards": "Bulletins",
+    "staff": "Personnel",
+    "announcements": "Annonces",
+    "settings": "Paramètres",
+    "transfers": "Transferts"
+  }
+}

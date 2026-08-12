@@ -1,0 +1,98 @@
+{
+  "all": "All",
+  "allFeminine": "All",
+  "labels": {
+    "recipients": "Recipients",
+    "priority": "Priority",
+    "state": "Status",
+    "type": "Type",
+    "contract": "Contract"
+  },
+  "announcements": {
+    "active": "Active",
+    "hidden": "Hidden",
+    "expired": "Expired"
+  },
+  "students": {
+    "unpaid": "Unpaid",
+    "partial": "Partial payment",
+    "paid": "Paid in full",
+    "noClass": "No class"
+  },
+  "payments": {
+    "unpaid": "Unpaid",
+    "partial": "Partial",
+    "paid": "Paid in full",
+    "notConfigured": "Not configured"
+  },
+  "status": {
+    "paid": "Paid in full",
+    "partial": "Partial",
+    "unpaid": "Unpaid",
+    "all": "All payments",
+    "allStudents": "All students"
+  },
+  "section": {
+    "all": "All sections",
+    "label": "Section"
+  },
+  "class": {
+    "all": "All classes",
+    "none": "No class",
+    "label": "Class"
+  },
+  "payment": {
+    "label": "Payment"
+  },
+  "situation": {
+    "label": "Status"
+  },
+  "mode": {
+    "all": "All methods",
+    "label": "Method"
+  },
+  "month": {
+    "label": "Month"
+  },
+  "date": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "dayBefore": "Day before yesterday",
+    "label": "Date"
+  },
+  "display": {
+    "label": "Show",
+    "all": "All",
+    "present": "Present",
+    "absent": "Absent",
+    "late": "Late",
+    "excused": "Excused"
+  },
+  "period": {
+    "label": "Period",
+    "all": "All"
+  },
+  "subject": {
+    "label": "Subject"
+  },
+  "contract": {
+    "all": "All contracts"
+  },
+  "search": {
+    "students": "Search by name, first name, ID, parent...",
+    "class": "Search a class, level...",
+    "payments": "Search a student, ID, receipt...",
+    "staff": "Search name, phone, email...",
+    "studentsGrades": "Filter a student...",
+    "studentsBulletin": "Search a student...",
+    "studentsTransfer": "Search a student...",
+    "licences": "Search by school name, key, slug..."
+  },
+  "resultLabel": {
+    "students": "student(s)",
+    "payments": "payment(s)",
+    "classes": "class(es)",
+    "announcements": "announcement(s)",
+    "visibleStudents": "visible student(s)"
+  }
+}

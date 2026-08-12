@@ -1,0 +1,119 @@
+{
+  "list": {
+    "title": "Payments",
+    "subtitle": "Track school fees by instalment",
+    "breadcrumb": "Payments",
+    "newPayment": "Record a payment",
+    "allClasses": "All classes",
+    "stats": {
+      "today": "Today",
+      "thisMonth": "This month",
+      "unpaid": "Outstanding balances",
+      "overdue": "Late (+3d)",
+      "studentsCount": "{count} student(s)"
+    },
+    "overdueTitle": "Late payments ({count})",
+    "tabs": {
+      "situation": "Status by student",
+      "history": "History"
+    },
+    "filterLabels": {
+      "class": "Class",
+      "situation": "Status",
+      "month": "Month",
+      "method": "Method"
+    },
+    "searchPlaceholder": "Search a student, ID, receipt...",
+    "year": "Year {year}",
+    "resultSituation": "student(s)",
+    "resultHistory": "payment(s)",
+    "emptyTitle": "No payments",
+    "emptyDescription": "No payments match these criteria. Record a payment or adjust the filters.",
+    "columns": {
+      "student": "Student",
+      "class": "Class",
+      "receipt": "Receipt",
+      "installment": "Instalment",
+      "amount": "Amount",
+      "method": "Method",
+      "date": "Date",
+      "actions": "Actions",
+      "dueDate": "Deadline",
+      "delay": "Delay",
+      "remainingDue": "Amount due",
+      "status": "Status"
+    },
+    "installment": "Instalment {num}",
+    "installmentN": "Instalment {n}",
+    "daysLate": "+{n} days",
+    "collectLink": "Collect payment →",
+    "editTitle": "Edit payment",
+    "editReceipt": "Receipt",
+    "amountLabel": "Amount (FCFA)",
+    "installmentLabel": "Instalment",
+    "modeLabel": "Method",
+    "dateLabel": "Date",
+    "invalidAmount": "Invalid amount",
+    "toasts": {
+      "editError": "Error updating payment",
+      "edited": "Payment updated"
+    }
+  },
+  "new": {
+    "title": "Record a payment",
+    "titleExam": "Collect exam fees",
+    "breadcrumb": "New payment",
+    "breadcrumbExam": "Exam fees",
+    "subtitle": "Entry and receipt printing",
+    "subtitleExam": "Official exam fee payment",
+    "studentLabel": "Student *",
+    "searchPlaceholder": "Search a student by name or ID...",
+    "noClass": "No class",
+    "totalExpected": "Total expected",
+    "alreadyPaid": "Already paid",
+    "remainingDue": "Amount due",
+    "installmentDetail": "Breakdown by instalment",
+    "installment": "Instalment {num}",
+    "paid": "Paid in full",
+    "remaining": "Balance {amount}",
+    "installmentLabel": "Instalment *",
+    "amountLabel": "Amount (FCFA) *",
+    "remainingOnInstallment": "Balance on this instalment: {amount} FCFA",
+    "remainingToPay": "Amount due: {amount} FCFA",
+    "paymentMethod": "Payment method *",
+    "dateLabel": "Date",
+    "dueDate": "Due date: {date}",
+    "dueDateOverdue": "(overdue)",
+    "submit": "Record payment",
+    "submitExam": "Record exam fee",
+    "errors": {
+      "selectStudent": "Select a student and enter an amount",
+      "noExamFees": "No exam fee configured for this student",
+      "saveFailed": "Error recording payment"
+    }
+  },
+  "receipt": {
+    "title": "Payment receipt",
+    "receiptNumber": "Receipt no.",
+    "date": "Date",
+    "student": "Student",
+    "matricule": "Student ID",
+    "class": "Class",
+    "installment": "Instalment",
+    "amount": "Amount",
+    "method": "Payment method",
+    "remaining": "Amount due",
+    "cashier": "Cashier",
+    "signature": "Signature",
+    "print": "Print receipt",
+    "thankYou": "Thank you for your trust."
+  },
+  "situation": {
+    "title": "Status by student",
+    "expected": "Expected",
+    "paid": "Paid",
+    "remaining": "Balance",
+    "status": "Status",
+    "lastPayment": "Last payment"
+  }
+}

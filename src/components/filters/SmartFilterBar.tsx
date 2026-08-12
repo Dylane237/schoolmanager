@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Search, X, RotateCcw, ChevronDown, Check } from 'lucide-react'
 import type { SmartFilterField, SmartFilterPreset } from '@/hooks/useSmartFilters'
 
@@ -115,6 +116,8 @@ export default function SmartFilterBar({
   extra,
   className = '',
 }: SmartFilterBarProps) {
+  const t = useTranslations('components.smartFilterBar')
+
   return (
     <div className={`space-y-3 ${className}`}>
       {presets && presets.length > 0 && (
@@ -144,7 +147,7 @@ export default function SmartFilterBar({
                   <Search className="w-4 h-4 text-slate-400 shrink-0" />
                   <input
                     type="search"
-                    placeholder={field.placeholder ?? 'Rechercher...'}
+                    placeholder={field.placeholder ?? t('search')}
                     value={values[field.key] ?? ''}
                     onChange={e => onChange(field.key, e.target.value)}
                     className="flex-1 text-sm focus:outline-none text-slate-700 placeholder-slate-400 bg-transparent min-w-0"
@@ -211,7 +214,7 @@ export default function SmartFilterBar({
                   className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-red-600 px-2 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  Réinitialiser
+                  {t('reset')}
                 </button>
               )}
             </div>

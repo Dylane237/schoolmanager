@@ -2,9 +2,12 @@
 
 import { Fragment, useState } from 'react'
 import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
 import { ChevronDown, ChevronRight, CreditCard, User, Users } from 'lucide-react'
 import { studentLinks } from '@/lib/student-context-links'
 import EmptyState from '@/components/ui/EmptyState'
+import { useTranslatedEnums } from '@/hooks/useTranslatedEnums'
+import { getIntlLocale, type Locale } from '@/i18n/config'
 import type { EleveSituation, TrancheSituation, FraisExamenLine } from '@/lib/paiements-utils'
 
 const TH = 'text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide'
@@ -18,41 +21,34 @@ const STATUT_STYLES = {
   non_configure: 'bg-slate-100 text-slate-600',
 }
 
-const STATUT_LABELS = {
-  paye: 'Soldé',
-  partiel: 'Partiel',
-  impaye: 'Impayé',
-  non_configure: 'Non configuré',
-}
-
-const MODE_LABELS: Record<string, string> = {
-  especes: 'Espèces',
-  orange_money: 'Orange Money',
-  mtn_momo: 'MTN MoMo',
-  virement: 'Virement',
-}
-
 function StatutBadge({ statut }: { statut: keyof typeof STATUT_STYLES }) {
+  const te = useTranslatedEnums()
   return (
     <span className={`inline-flex text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${STATUT_STYLES[statut]}`}>
-      {STATUT_LABELS[statut]}
+      {te.paymentStatus(statut)}
     </span>
   )
 }
 
 function PaiementHistoriqueTable({ historique }: { historique: TrancheSituation['historique'] }) {
+  const t = useTranslations('components.situationParEleve')
+  const tc = useTranslations('common')
+  const locale = useLocale() as Locale
+  const intlLocale = getIntlLocale(locale)
+  const te = useTranslatedEnums()
+
   if (historique.length === 0) {
-    return <p className="text-sm text-slate-400 italic py-2">Aucun paiement enregistré</p>
+    return <p className="text-sm text-slate-400 italic py-2">{t('noPayments')}</p>
   }
 
   return (
     <table className="w-full text-sm mt-2">
       <thead>
         <tr className="text-xs text-slate-400 uppercase border-b border-slate-200">
-          <th className="text-left py-2 pr-4">Date</th>
-          <th className="text-left py-2 pr-4">Reçu</th>
-          <th className="text-left py-2 pr-4">Mode</th>
-          <th className="text-right py-2">Montant</th>
+          <th className="text-left py-2 pr-4">{t('historyDate')}</th>
+          <th className="text-left py-2 pr-4">{t('historyReceipt')}</th>
+          <th className="text-left py-2 pr-4">{t('historyMode')}</th>
+          <th className="text-right py-2">{t('historyAmount')}</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-100">
@@ -60,9 +56,9 @@ function PaiementHistoriqueTable({ historique }: { historique: TrancheSituation[
           <tr key={h.id}>
             <td className="py-2 pr-4 text-slate-600">{h.date_paiement}</td>
             <td className="py-2 pr-4 font-mono text-xs text-slate-500">{h.recu_numero}</td>
-            <td className="py-2 pr-4 text-slate-600">{MODE_LABELS[h.mode_paiement] ?? h.mode_paiement}</td>
+            <td className="py-2 pr-4 text-slate-600">{te.paymentMethod(h.mode_paiement)}</td>
             <td className="py-2 text-right font-semibold text-slate-800 tabular-nums whitespace-nowrap">
-              {Number(h.montant).toLocaleString('fr-FR')} FCFA
+              {Number(h.montant).toLocaleString(intlLocale)} {tc('currency')}
             </td>
           </tr>
         ))}
@@ -72,6 +68,9 @@ function PaiementHistoriqueTable({ historique }: { historique: TrancheSituation[
 }
 
 function FraisExamenRow({ frais }: { frais: FraisExamenLine }) {
+  const t = useTranslations('components.situationParEleve')
+  const locale = useLocale() as Locale
+  const intlLocale = getIntlLocale(locale)
   const [open, setOpen] = useState(false)
 
   return (
@@ -89,7 +88,7 @@ function FraisExamenRow({ frais }: { frais: FraisExamenLine }) {
         </td>
         <td className={TD_NUM}>
           <span className="text-sm text-slate-600">
-            {Number(frais.montant_paye).toLocaleString('fr-FR')} / {Number(frais.montant_attendu).toLocaleString('fr-FR')}
+            {Number(frais.montant_paye).toLocaleString(intlLocale)} / {Number(frais.montant_attendu).toLocaleString(intlLocale)}
           </span>
         </td>
         <td className={`${TD} text-center`}>
@@ -97,7 +96,7 @@ function FraisExamenRow({ frais }: { frais: FraisExamenLine }) {
         </td>
         <td className={TD_NUM}>
           <span className={`text-sm font-semibold ${frais.reste > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-            {Number(frais.reste).toLocaleString('fr-FR')}
+            {Number(frais.reste).toLocaleString(intlLocale)}
           </span>
         </td>
         <td />
@@ -106,7 +105,7 @@ function FraisExamenRow({ frais }: { frais: FraisExamenLine }) {
         <tr className="bg-violet-50/30">
           <td colSpan={5} className="px-10 pb-4 pt-1">
             {frais.date_limite && (
-              <p className="text-xs text-slate-500 mb-2">Date limite : {frais.date_limite}</p>
+              <p className="text-xs text-slate-500 mb-2">{t('deadline', { date: frais.date_limite })}</p>
             )}
             <PaiementHistoriqueTable historique={frais.historique} />
           </td>
@@ -117,6 +116,10 @@ function FraisExamenRow({ frais }: { frais: FraisExamenLine }) {
 }
 
 function TrancheRow({ tranche }: { tranche: TrancheSituation }) {
+  const t = useTranslations('components.situationParEleve')
+  const tc = useTranslations('common')
+  const locale = useLocale() as Locale
+  const intlLocale = getIntlLocale(locale)
   const [open, setOpen] = useState(false)
 
   return (
@@ -129,12 +132,12 @@ function TrancheRow({ tranche }: { tranche: TrancheSituation }) {
             className="flex items-center gap-2 text-left w-full min-w-0"
           >
             {open ? <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />}
-            <span className="text-sm font-semibold text-slate-700">Tranche {tranche.tranche_numero}</span>
+            <span className="text-sm font-semibold text-slate-700">{t('instalment', { n: tranche.tranche_numero })}</span>
           </button>
         </td>
         <td className={TD_NUM}>
           <span className="text-sm text-slate-600">
-            {Number(tranche.montant_paye).toLocaleString('fr-FR')} / {Number(tranche.montant_attendu).toLocaleString('fr-FR')}
+            {Number(tranche.montant_paye).toLocaleString(intlLocale)} / {Number(tranche.montant_attendu).toLocaleString(intlLocale)}
           </span>
         </td>
         <td className={`${TD} text-center`}>
@@ -142,7 +145,7 @@ function TrancheRow({ tranche }: { tranche: TrancheSituation }) {
         </td>
         <td className={TD_NUM}>
           <span className={`text-sm font-semibold ${tranche.reste > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-            {Number(tranche.reste).toLocaleString('fr-FR')}
+            {Number(tranche.reste).toLocaleString(intlLocale)}
           </span>
         </td>
         <td />
@@ -152,22 +155,22 @@ function TrancheRow({ tranche }: { tranche: TrancheSituation }) {
           <td colSpan={5} className="px-10 pb-4 pt-1">
             <div className="grid grid-cols-3 gap-4 py-2 text-sm max-w-md">
               <div>
-                <p className="text-slate-400 text-xs mb-0.5">Attendu</p>
-                <p className="font-semibold text-slate-700 tabular-nums">{Number(tranche.montant_attendu).toLocaleString('fr-FR')} FCFA</p>
+                <p className="text-slate-400 text-xs mb-0.5">{t('expectedLabel')}</p>
+                <p className="font-semibold text-slate-700 tabular-nums">{Number(tranche.montant_attendu).toLocaleString(intlLocale)} {tc('currency')}</p>
               </div>
               <div>
-                <p className="text-slate-400 text-xs mb-0.5">Payé</p>
-                <p className="font-semibold text-emerald-600 tabular-nums">{Number(tranche.montant_paye).toLocaleString('fr-FR')} FCFA</p>
+                <p className="text-slate-400 text-xs mb-0.5">{t('paidLabel')}</p>
+                <p className="font-semibold text-emerald-600 tabular-nums">{Number(tranche.montant_paye).toLocaleString(intlLocale)} {tc('currency')}</p>
               </div>
               <div>
-                <p className="text-slate-400 text-xs mb-0.5">Reste</p>
+                <p className="text-slate-400 text-xs mb-0.5">{t('remainingLabel')}</p>
                 <p className={`font-semibold tabular-nums ${tranche.reste > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                  {Number(tranche.reste).toLocaleString('fr-FR')} FCFA
+                  {Number(tranche.reste).toLocaleString(intlLocale)} {tc('currency')}
                 </p>
               </div>
             </div>
             {tranche.date_limite && (
-              <p className="text-xs text-slate-500 mb-2">Date limite : {tranche.date_limite}</p>
+              <p className="text-xs text-slate-500 mb-2">{t('deadline', { date: tranche.date_limite })}</p>
             )}
             <PaiementHistoriqueTable historique={tranche.historique} />
           </td>
@@ -178,6 +181,9 @@ function TrancheRow({ tranche }: { tranche: TrancheSituation }) {
 }
 
 function EleveSituationRow({ slug, situation }: { slug: string; situation: EleveSituation }) {
+  const t = useTranslations('components.situationParEleve')
+  const locale = useLocale() as Locale
+  const intlLocale = getIntlLocale(locale)
   const [open, setOpen] = useState(false)
   const links = studentLinks(slug, {
     id: situation.eleve_id,
@@ -204,19 +210,19 @@ function EleveSituationRow({ slug, situation }: { slug: string; situation: Eleve
                 {situation.nom} {situation.prenom}
               </p>
               <p className="text-sm text-slate-400 truncate">
-                {situation.numero_matricule} — {situation.classe_nom ?? 'Sans classe'}
+                {situation.numero_matricule} — {situation.classe_nom ?? t('noClass')}
               </p>
             </div>
           </button>
         </td>
         <td className={`${TD_NUM} w-28`}>
           <span className="text-sm font-semibold text-emerald-600">
-            {Number(situation.total_paye).toLocaleString('fr-FR')}
+            {Number(situation.total_paye).toLocaleString(intlLocale)}
           </span>
         </td>
         <td className={`${TD_NUM} w-28`}>
           <span className={`text-sm font-semibold ${situation.total_reste > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-            {Number(situation.total_reste).toLocaleString('fr-FR')}
+            {Number(situation.total_reste).toLocaleString(intlLocale)}
           </span>
         </td>
         <td className={`${TD} text-center w-32`}>
@@ -224,11 +230,11 @@ function EleveSituationRow({ slug, situation }: { slug: string; situation: Eleve
         </td>
         <td className={`${TD} w-24`}>
           <div className="flex items-center justify-end gap-1">
-            <Link href={links.fiche} title="Voir la fiche"
+            <Link href={links.fiche} title={t('viewProfile')}
               className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors">
               <User className="w-4 h-4" />
             </Link>
-            <Link href={links.encaisser} title="Encaisser"
+            <Link href={links.encaisser} title={t('collect')}
               className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors">
               <CreditCard className="w-4 h-4" />
             </Link>
@@ -240,23 +246,21 @@ function EleveSituationRow({ slug, situation }: { slug: string; situation: Eleve
         <tr className="bg-slate-50/60 border-b border-slate-100">
           <td colSpan={5} className="p-0">
             {situation.tranches.length === 0 && !situation.frais_examen ? (
-              <p className="text-sm text-slate-500 px-10 py-4">
-                Aucune tranche configurée pour la classe de cet élève. Configurez les tranches dans Paramètres.
-              </p>
+              <p className="text-sm text-slate-500 px-10 py-4">{t('noInstalments')}</p>
             ) : (
               <table className="w-full">
                 <thead>
                   <tr className="text-xs text-slate-400 uppercase border-b border-slate-200/80">
-                    <th className={`${TH} pl-10`}>Détail</th>
-                    <th className={`${TH} text-right`}>Payé / Attendu</th>
-                    <th className={`${TH} text-center`}>Statut</th>
-                    <th className={`${TH} text-right`}>Reste</th>
+                    <th className={`${TH} pl-10`}>{t('detail')}</th>
+                    <th className={`${TH} text-right`}>{t('paidExpected')}</th>
+                    <th className={`${TH} text-center`}>{t('status')}</th>
+                    <th className={`${TH} text-right`}>{t('remaining')}</th>
                     <th className="w-24" />
                   </tr>
                 </thead>
                 <tbody>
-                  {situation.tranches.map(t => (
-                    <TrancheRow key={t.tranche_numero} tranche={t} />
+                  {situation.tranches.map(tr => (
+                    <TrancheRow key={tr.tranche_numero} tranche={tr} />
                   ))}
                   {situation.frais_examen && (
                     <FraisExamenRow frais={situation.frais_examen} />
@@ -278,15 +282,17 @@ interface SituationParEleveProps {
 }
 
 export default function SituationParEleve({ slug, situations, loading }: SituationParEleveProps) {
+  const t = useTranslations('components.situationParEleve')
+
   return (
     <div className="card overflow-hidden">
       {loading ? (
-        <div className="p-12 text-center text-slate-400">Chargement...</div>
+        <div className="p-12 text-center text-slate-400">{t('loading')}</div>
       ) : situations.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="Aucun élève"
-          description="Aucun élève ne correspond à ces filtres. Modifiez la classe ou le statut de paiement."
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
         />
       ) : (
         <div className="overflow-x-auto">
@@ -300,10 +306,10 @@ export default function SituationParEleve({ slug, situations, loading }: Situati
             </colgroup>
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className={TH}>Élève</th>
-                <th className={`${TH} text-right`}>Payé</th>
-                <th className={`${TH} text-right`}>Reste</th>
-                <th className={`${TH} text-center`}>Statut</th>
+                <th className={TH}>{t('student')}</th>
+                <th className={`${TH} text-right`}>{t('paid')}</th>
+                <th className={`${TH} text-right`}>{t('remaining')}</th>
+                <th className={`${TH} text-center`}>{t('status')}</th>
                 <th className={`${TH} text-right`} />
               </tr>
             </thead>

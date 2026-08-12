@@ -3,15 +3,11 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Menu, X, Shield, LogOut } from 'lucide-react'
 
-const NAV = [
-  { label: 'Tableau de bord', href: '/admin-licences' },
-  { label: 'Licences', href: '/admin-licences/licences' },
-  { label: 'Parrainages', href: '/admin-licences/parrainages' },
-]
-
 function LoginScreen({ onAuth }: { onAuth: () => void }) {
+  const t = useTranslations('adminLicences.auth')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -25,7 +21,7 @@ function LoginScreen({ onAuth }: { onAuth: () => void }) {
       body: JSON.stringify({ password }),
     })
     if (res.ok) onAuth()
-    else setError('Mot de passe incorrect')
+    else setError(t('wrongPassword'))
     setLoading(false)
   }
 
@@ -38,13 +34,11 @@ function LoginScreen({ onAuth }: { onAuth: () => void }) {
           </div>
           <div>
             <p className="font-bold text-white">SchoolManager</p>
-            <p className="text-xs text-slate-500">Administration éditeur</p>
+            <p className="text-xs text-slate-500">{t('title')}</p>
           </div>
         </div>
-        <p className="text-sm text-slate-400 mb-6">
-          Connexion cloud — licences et parrainages centralisés.
-        </p>
-        <label className="block text-xs font-medium text-slate-400 mb-1.5">Mot de passe</label>
+        <p className="text-sm text-slate-400 mb-6">{t('subtitle')}</p>
+        <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('password')}</label>
         <input
           type="password"
           value={password}
@@ -60,7 +54,7 @@ function LoginScreen({ onAuth }: { onAuth: () => void }) {
           disabled={loading || !password}
           className="w-full mt-3 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm disabled:opacity-50 transition-colors"
         >
-          {loading ? 'Connexion...' : 'Se connecter'}
+          {loading ? t('submitting') : t('submit')}
         </button>
       </div>
     </div>
@@ -69,7 +63,14 @@ function LoginScreen({ onAuth }: { onAuth: () => void }) {
 
 function Header({ onLogout }: { onLogout: () => void }) {
   const pathname = usePathname()
+  const t = useTranslations('adminLicences')
   const [open, setOpen] = useState(false)
+
+  const NAV = [
+    { labelKey: 'dashboard' as const, href: '/admin-licences' },
+    { labelKey: 'licences' as const, href: '/admin-licences/licences' },
+    { labelKey: 'referrals' as const, href: '/admin-licences/parrainages' },
+  ]
 
   const isActive = (href: string) =>
     href === '/admin-licences' ? pathname === href : pathname.startsWith(href)
@@ -83,7 +84,7 @@ function Header({ onLogout }: { onLogout: () => void }) {
           </div>
           <div className="min-w-0">
             <p className="font-bold text-sm text-white truncate">SchoolManager</p>
-            <p className="text-[10px] text-slate-500 hidden sm:block">Administration éditeur</p>
+            <p className="text-[10px] text-slate-500 hidden sm:block">{t('auth.title')}</p>
           </div>
         </div>
 
@@ -98,7 +99,7 @@ function Header({ onLogout }: { onLogout: () => void }) {
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              {item.label}
+              {t(`nav.${item.labelKey}`)}
             </Link>
           ))}
           <button
@@ -107,7 +108,7 @@ function Header({ onLogout }: { onLogout: () => void }) {
             className="ml-2 flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-500 hover:text-slate-300"
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden lg:inline">Déconnexion</span>
+            <span className="hidden lg:inline">{t('auth.logout')}</span>
           </button>
         </nav>
 
@@ -115,7 +116,7 @@ function Header({ onLogout }: { onLogout: () => void }) {
           type="button"
           onClick={() => setOpen(v => !v)}
           className="md:hidden p-2 rounded-lg text-slate-400 hover:bg-slate-800"
-          aria-label="Menu"
+          aria-label={t('auth.menu')}
         >
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -132,7 +133,7 @@ function Header({ onLogout }: { onLogout: () => void }) {
                 isActive(item.href) ? 'bg-slate-800 text-white' : 'text-slate-400'
               }`}
             >
-              {item.label}
+              {t(`nav.${item.labelKey}`)}
             </Link>
           ))}
           <button
@@ -140,7 +141,7 @@ function Header({ onLogout }: { onLogout: () => void }) {
             onClick={() => { setOpen(false); onLogout() }}
             className="w-full text-left px-3 py-2.5 rounded-xl text-sm text-slate-500"
           >
-            Déconnexion
+            {t('auth.logout')}
           </button>
         </nav>
       )}
@@ -167,12 +168,13 @@ export function useAdminLicencesAuth() {
 }
 
 export function AdminLicencesShell({ children }: { children: ReactNode }) {
+  const t = useTranslations('adminLicences.auth')
   const { authed, checkAuth, logout, setAuthed } = useAdminLicencesAuth()
 
   if (authed === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-500 text-sm">
-        Chargement...
+        {t('loading')}
       </div>
     )
   }
@@ -219,9 +221,7 @@ export const STATUT_COLORS: Record<string, keyof typeof TONE_CLASS> = {
   annule: 'danger',
 }
 
-export const STATUT_LABELS: Record<string, string> = {
-  en_cours: 'En cours',
-  abonnement_actif: 'Abonnement actif',
-  commission_versee: 'Commission versée',
-  annule: 'Annulé',
+export function useReferralStatusLabel() {
+  const t = useTranslations('adminLicences.referrals.status')
+  return (statut: string) => t(statut as 'en_cours', { defaultValue: statut })
 }

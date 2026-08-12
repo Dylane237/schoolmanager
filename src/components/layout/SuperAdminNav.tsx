@@ -2,15 +2,17 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 const NAV_ITEMS = [
-  { label: 'Tableau de bord', href: '/super-admin/dashboard' },
-  { label: 'Écoles', href: '/super-admin/ecoles' },
-  { label: 'Licences cloud', href: 'https://schoolmanager-eosin.vercel.app/admin-licences', external: true },
+  { labelKey: 'dashboard' as const, href: '/super-admin/dashboard' },
+  { labelKey: 'schools' as const, href: '/super-admin/ecoles' },
+  { labelKey: 'licences' as const, href: 'https://schoolmanager-eosin.vercel.app/admin-licences', external: true },
 ]
 
 export default function SuperAdminNav() {
   const pathname = usePathname()
+  const t = useTranslations('superAdmin.nav')
 
   return (
     <nav className="flex items-center gap-1">
@@ -21,6 +23,7 @@ export default function SuperAdminNav() {
             ? 'bg-slate-800 text-white font-medium'
             : 'text-slate-300 hover:bg-slate-800 hover:text-white'
         }`
+        const label = `${t(item.labelKey)}${item.external ? ' ↗' : ''}`
         if (item.external) {
           return (
             <a
@@ -30,13 +33,13 @@ export default function SuperAdminNav() {
               rel="noopener noreferrer"
               className={className}
             >
-              {item.label} ↗
+              {label}
             </a>
           )
         }
         return (
           <Link key={item.href} href={item.href} className={className}>
-            {item.label}
+            {label}
           </Link>
         )
       })}

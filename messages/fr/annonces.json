@@ -1,0 +1,39 @@
+{
+  "title": "Annonces",
+  "subtitle": "Communications officielles de l'établissement",
+  "breadcrumb": "Annonces",
+  "new": "Nouvelle annonce",
+  "publishTitle": "Publier une annonce",
+  "fields": {
+    "title": "Titre *",
+    "titlePlaceholder": "Réunion des parents, fermeture exceptionnelle...",
+    "content": "Contenu *",
+    "contentPlaceholder": "Détails de l'annonce...",
+    "recipients": "Destinataires",
+    "priority": "Priorité",
+    "expiration": "Date d'expiration (optionnel)"
+  },
+  "publish": "Publier l'annonce",
+  "publishing": "Publication...",
+  "searchPlaceholder": "Rechercher une annonce...",
+  "resultLabel": "annonce(s)",
+  "emptyTitle": "Aucune annonce",
+  "emptyDescription": "Publiez votre première communication officielle à destination du personnel et des parents.",
+  "emptyAction": "Créer une annonce",
+  "noMatchTitle": "Aucune annonce correspondante",
+  "noMatchDescription": "Modifiez vos filtres pour afficher d'autres annonces.",
+  "hidden": "Masquée",
+  "expiresOn": "Expire le {date}",
+  "authorDefault": "Administration",
+  "hide": "Masquer",
+  "show": "Réactiver",
+  "deleteConfirm": "Supprimer cette annonce ?",
+  "toasts": {
+    "required": "Titre et contenu requis",
+    "publishError": "Erreur lors de la publication",
+    "published": "Annonce publiée",
+    "hidden": "Annonce masquée",
+    "reactivated": "Annonce réactivée",
+    "deleted": "Annonce supprimée"
+  }
+}

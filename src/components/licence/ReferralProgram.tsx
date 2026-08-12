@@ -1,9 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { Copy, Check, Gift, UserPlus, Phone, Building2, MessageCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getSupportWhatsAppUrl } from '@/lib/support'
+import { getIntlLocale, type Locale } from '@/i18n/config'
 
 interface Parrainage {
   id: string
@@ -29,14 +31,11 @@ interface ReferralData {
   }
 }
 
-const STATUT_LABELS: Record<string, string> = {
-  en_cours: 'En cours',
-  abonnement_actif: 'Abonnement actif',
-  commission_versee: 'Commission versée',
-  annule: 'Annulé',
-}
-
 export default function ReferralProgram() {
+  const t = useTranslations('licence.referral')
+  const tc = useTranslations('common')
+  const locale = useLocale() as Locale
+  const intlLocale = getIntlLocale(locale)
   const [data, setData] = useState<ReferralData | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
@@ -63,27 +62,26 @@ export default function ReferralProgram() {
     if (!data?.code) return
     await navigator.clipboard.writeText(data.code)
     setCopied(true)
-    toast.success('Code copié')
+    toast.success(t('codeCopied'))
     setTimeout(() => setCopied(false), 2000)
   }
 
   const shareWhatsApp = () => {
     if (!data) return
-    const msg = [
-      'Bonjour, je parraine une école intéressée par SchoolManager.',
-      '',
-      `Code parrain : ${data.code}`,
-      `Établissement parrain : ${data.ecoleNom}`,
-      data.directeurNom ? `Directeur : ${data.directeurNom}` : '',
-      '',
-      'Merci de me recontacter pour finaliser l\'abonnement.',
-    ].filter(Boolean).join('\n')
+    const director = data.directeurNom
+      ? t('directorLine', { name: data.directeurNom })
+      : ''
+    const msg = t('whatsappMessage', {
+      code: data.code,
+      school: data.ecoleNom,
+      director,
+    })
     window.open(getSupportWhatsAppUrl(msg), '_blank', 'noopener,noreferrer')
   }
 
   const submitContact = async () => {
     if (!form.contact_nom.trim() || !form.contact_telephone.trim()) {
-      toast.error('Nom et téléphone requis')
+      toast.error(t('requiredFields'))
       return
     }
     setSubmitting(true)
@@ -95,17 +93,17 @@ export default function ReferralProgram() {
     const json = await res.json()
     setSubmitting(false)
     if (!res.ok) {
-      toast.error(json.error || 'Erreur')
+      toast.error(json.error || tc('errorLoad'))
       return
     }
-    toast.success(json.cloudSynced ? 'Contact enregistré et synchronisé' : 'Contact enregistré (sync cloud à la prochaine connexion)')
+    toast.success(json.cloudSynced ? t('savedSynced') : t('savedOffline'))
     setForm({ contact_nom: '', contact_ecole: '', contact_telephone: '', notes: '' })
     setData(prev => prev ? { ...prev, parrainages: json.parrainages, stats: json.stats } : prev)
   }
 
   if (loading) {
     return (
-      <div className="card p-8 text-center text-slate-400 text-sm">Chargement du parrainage...</div>
+      <div className="card p-8 text-center text-slate-400 text-sm">{t('loading')}</div>
     )
   }
 
@@ -119,12 +117,12 @@ export default function ReferralProgram() {
             <Gift className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-slate-800">Programme de parrainage</h3>
+            <h3 className="text-lg font-bold text-slate-800">{t('title')}</h3>
             <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-              Recommandez SchoolManager à un autre établissement. Lorsque son{' '}
-              <strong>abonnement est finalisé</strong>, vous touchez{' '}
-              <strong className="text-violet-700">{data.commissionPct}&nbsp;%</strong> du montant en commission.
-              Les leads se synchronisent avec le serveur lorsque vous êtes connecté à Internet.
+              {t.rich('description', {
+                pct: data.commissionPct,
+                strong: (chunks) => <strong className="text-violet-700">{chunks}</strong>,
+              })}
             </p>
           </div>
         </div>
@@ -136,7 +134,7 @@ export default function ReferralProgram() {
               type="button"
               onClick={copyCode}
               className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"
-              title="Copier le code"
+              title={t('copyCode')}
             >
               {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
             </button>
@@ -147,7 +145,7 @@ export default function ReferralProgram() {
             className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
           >
             <MessageCircle className="w-4 h-4" />
-            Nous contacter avec mon code
+            {t('contactWithCode')}
           </button>
         </div>
       </div>
@@ -156,31 +154,31 @@ export default function ReferralProgram() {
         <div>
           <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
             <UserPlus className="w-4 h-4 text-slate-400" />
-            Signaler un contact intéressé
+            {t('reportContact')}
           </h4>
           <div className="space-y-3">
             <input
               value={form.contact_nom}
               onChange={e => setForm(f => ({ ...f, contact_nom: e.target.value }))}
-              placeholder="Nom du directeur / responsable *"
+              placeholder={t('contactName')}
               className="input-field text-sm"
             />
             <input
               value={form.contact_ecole}
               onChange={e => setForm(f => ({ ...f, contact_ecole: e.target.value }))}
-              placeholder="Nom de l'établissement"
+              placeholder={t('contactSchool')}
               className="input-field text-sm"
             />
             <input
               value={form.contact_telephone}
               onChange={e => setForm(f => ({ ...f, contact_telephone: e.target.value }))}
-              placeholder="Téléphone WhatsApp *"
+              placeholder={t('contactPhone')}
               className="input-field text-sm"
             />
             <textarea
               value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              placeholder="Précisions (ville, nombre d'élèves...)"
+              placeholder={t('contactNotes')}
               rows={2}
               className="input-field text-sm resize-none"
             />
@@ -190,7 +188,7 @@ export default function ReferralProgram() {
               disabled={submitting}
               className="btn-primary w-full text-sm py-2.5"
             >
-              {submitting ? 'Envoi...' : 'Enregistrer le contact'}
+              {submitting ? t('submitting') : t('saveContact')}
             </button>
           </div>
         </div>
@@ -199,26 +197,24 @@ export default function ReferralProgram() {
           <div className="grid grid-cols-3 gap-2 mb-4">
             <div className="rounded-xl bg-slate-50 p-3 text-center">
               <p className="text-lg font-bold text-slate-800">{data.stats.enCours}</p>
-              <p className="text-[10px] uppercase tracking-wide text-slate-400">En cours</p>
+              <p className="text-[10px] uppercase tracking-wide text-slate-400">{t('statsInProgress')}</p>
             </div>
             <div className="rounded-xl bg-emerald-50 p-3 text-center">
               <p className="text-lg font-bold text-emerald-700">{data.stats.actifs}</p>
-              <p className="text-[10px] uppercase tracking-wide text-emerald-600/80">Actifs</p>
+              <p className="text-[10px] uppercase tracking-wide text-emerald-600/80">{t('statsActive')}</p>
             </div>
             <div className="rounded-xl bg-violet-50 p-3 text-center">
               <p className="text-lg font-bold text-violet-700">
                 {data.stats.totalCommission > 0
-                  ? `${data.stats.totalCommission.toLocaleString('fr-FR')}`
+                  ? `${data.stats.totalCommission.toLocaleString(intlLocale)}`
                   : '—'}
               </p>
-              <p className="text-[10px] uppercase tracking-wide text-violet-600/80">FCFA gagnés</p>
+              <p className="text-[10px] uppercase tracking-wide text-violet-600/80">{t('statsEarned')}</p>
             </div>
           </div>
 
           {data.parrainages.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6">
-              Aucun parrainage enregistré pour le moment.
-            </p>
+            <p className="text-sm text-slate-400 text-center py-6">{t('empty')}</p>
           ) : (
             <ul className="space-y-2 max-h-52 overflow-y-auto">
               {data.parrainages.map(p => (
@@ -235,7 +231,7 @@ export default function ReferralProgram() {
                     </p>
                   </div>
                   <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-600 shrink-0">
-                    {STATUT_LABELS[p.statut] ?? p.statut}
+                    {t(`status.${p.statut as 'en_cours'}`, { defaultValue: p.statut })}
                   </span>
                 </li>
               ))}

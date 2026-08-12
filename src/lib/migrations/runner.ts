@@ -1,8 +1,14 @@
 import fs from 'fs'
 import path from 'path'
 import type Database from 'better-sqlite3'
+import { applyLegacyColumnMigrations } from './legacy-columns'
 
 const MIGRATIONS_DIR = path.join(process.cwd(), 'migrations')
+
+/** Hooks JS exécutés après le SQL de la migration correspondante. */
+const MIGRATION_HOOKS: Record<number, (db: Database.Database) => void> = {
+  2: applyLegacyColumnMigrations,
+}
 
 /** Applique les migrations SQL versionnées (001_xxx.sql, 002_xxx.sql, …). */
 export function runVersionedMigrations(db: Database.Database): void {
@@ -30,7 +36,10 @@ export function runVersionedMigrations(db: Database.Database): void {
     if (applied.has(version)) continue
 
     const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8')
-    db.exec(sql)
+    if (sql.trim()) db.exec(sql)
+    MIGRATION_HOOKS[version]?.(db)
     db.prepare('INSERT INTO schema_migrations (version, name) VALUES (?, ?)').run(version, file)
   }
 }
+
+export { applyLegacyColumnMigrations }

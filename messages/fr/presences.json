@@ -1,0 +1,27 @@
+{
+  "title": "Présences",
+  "subtitle": "Registre d'appel quotidien par classe",
+  "breadcrumb": "Présences",
+  "selectClass": "Sélectionnez une classe pour faire l'appel",
+  "selectClassOption": "Sélectionner une classe",
+  "markAllPresent": "Tous présents",
+  "validate": "Valider l'appel",
+  "emptyTitle": "Aucun élève trouvé",
+  "emptyDescription": "Modifiez la date, la classe ou la recherche pour afficher des élèves.",
+  "filterStudent": "Filtrer un élève...",
+  "filterShow": "Afficher",
+  "resultLabel": "élève(s)",
+  "columns": {
+    "student": "Élève",
+    "status": "Statut"
+  },
+  "summary": {
+    "present": "Présents",
+    "absent": "Absents",
+    "retard": "Retards",
+    "excuse": "Excusés"
+  },
+  "toasts": {
+    "saved": "Appel enregistré"
+  }
+}

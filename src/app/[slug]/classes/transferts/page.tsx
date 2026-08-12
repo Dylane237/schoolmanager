@@ -1,14 +1,13 @@
 'use client'
 
 import { Suspense, useState, useEffect, useCallback, useMemo } from 'react'
-import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { GripVertical, ArrowRightLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
 import SmartFilterBar from '@/components/filters/SmartFilterBar'
 import { useSmartFilters } from '@/hooks/useSmartFilters'
-import { SECTION_OPTIONS } from '@/lib/filter-presets'
-import { sectionLabel } from '@/lib/cameroon-levels'
+import { useSectionOptions, useTranslatedEnums } from '@/hooks/useTranslatedEnums'
 
 interface Classe {
   id: string
@@ -27,16 +26,31 @@ interface Eleve {
   classe_id: string | null
 }
 
+function TransfersFallback() {
+  const t = useTranslations('classes')
+  const tc = useTranslations('common')
+
+  return (
+    <PageShell title={t('transfers.title')} breadcrumb={t('transfers.breadcrumb')}>
+      <div className="card p-16 text-center text-slate-400">{tc('loading')}</div>
+    </PageShell>
+  )
+}
+
 export default function ClassTransferBoard() {
   return (
-    <Suspense fallback={<PageShell title="Répartition des élèves" breadcrumb="Transferts"><div className="card p-16 text-center text-slate-400">Chargement...</div></PageShell>}>
+    <Suspense fallback={<TransfersFallback />}>
       <ClassTransferBoardContent />
     </Suspense>
   )
 }
 
 function ClassTransferBoardContent() {
-  const { slug } = useParams<{ slug: string }>()
+  const t = useTranslations('classes')
+  const tc = useTranslations('common')
+  const tf = useTranslations('filters')
+  const te = useTranslatedEnums()
+  const sectionOptions = useSectionOptions()
   const [classes, setClasses] = useState<Classe[]>([])
   const [eleves, setEleves] = useState<Eleve[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,12 +61,15 @@ function ClassTransferBoardContent() {
     {
       key: 'section',
       type: 'pills' as const,
-      label: 'Section',
-      options: [{ value: 'tous', label: 'Toutes' }, ...SECTION_OPTIONS.filter(s => s.value).map(s => ({ value: s.value, label: s.label }))],
+      label: tf('section.label'),
+      options: [
+        { value: 'tous', label: tf('allFeminine') },
+        ...sectionOptions.filter(s => s.value).map(s => ({ value: s.value, label: s.label })),
+      ],
       defaultValue: 'tous',
     },
-    { key: 'q', type: 'search' as const, placeholder: 'Rechercher un élève...', debounce: true },
-  ], [])
+    { key: 'q', type: 'search' as const, placeholder: t('transfers.searchPlaceholder'), debounce: true },
+  ], [t, tf, sectionOptions])
 
   const { values, debouncedValues, setFilter, reset, activeFilters } = useSmartFilters(filterFields)
 
@@ -107,14 +124,14 @@ function ClassTransferBoardContent() {
     setTransferring(false)
 
     if (!res.ok) {
-      toast.error(data.error || 'Erreur de transfert')
+      toast.error(data.error || t('transfers.transferError'))
       return
     }
 
     setEleves(prev => prev.map(e =>
       e.id === eleveId ? { ...e, classe_id: targetClasseId } : e
     ))
-    toast.success(`${eleve.nom} ${eleve.prenom} transféré(e)`)
+    toast.success(t('transfers.transferSuccess', { name: `${eleve.nom} ${eleve.prenom}` }))
     fetchData()
   }
 
@@ -152,10 +169,10 @@ function ClassTransferBoardContent() {
       >
         <div className="p-4 border-b border-slate-200 dark:border-slate-600">
           <h3 className="font-bold text-slate-800 text-sm">
-            {classe ? classe.nom : 'Sans classe'}
+            {classe ? classe.nom : t('transfers.noClass')}
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            {classe ? sectionLabel(classe.section) : 'Non affectés'}
+            {classe ? te.section(classe.section) : t('transfers.notAssigned')}
             {' · '}
             <span className={isOverCapacity ? 'text-red-500 font-semibold' : ''}>
               {columnEleves.length}
@@ -166,7 +183,7 @@ function ClassTransferBoardContent() {
         <div className="flex-1 p-2 space-y-1.5 min-h-[120px] max-h-[420px] overflow-y-auto">
           {columnEleves.length === 0 ? (
             <p className="text-xs text-slate-400 text-center py-8">
-              Glissez un élève ici
+              {t('transfers.dropHint')}
             </p>
           ) : columnEleves.map(el => (
             <div
@@ -196,9 +213,9 @@ function ClassTransferBoardContent() {
 
   return (
     <PageShell
-      title="Répartition des élèves"
-      subtitle="Glissez-déposez les élèves entre les classes"
-      breadcrumb="Transferts"
+      title={t('transfers.title')}
+      subtitle={t('transfers.subtitle')}
+      breadcrumb={t('transfers.breadcrumb')}
     >
       <SmartFilterBar
         fields={filterFields}
@@ -207,7 +224,7 @@ function ClassTransferBoardContent() {
         onReset={reset}
         activeFilters={activeFilters}
         resultCount={visibleEleveCount}
-        resultLabel="élève(s) visible(s)"
+        resultLabel={t('transfers.resultLabel')}
         loading={loading}
         className="mb-6"
       />
@@ -215,16 +232,15 @@ function ClassTransferBoardContent() {
       <div className="card p-4 mb-6 flex items-start gap-3 bg-emerald-50 border-emerald-200">
         <ArrowRightLeft className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
         <div className="text-sm text-emerald-800">
-          <p className="font-semibold">Comment utiliser</p>
+          <p className="font-semibold">{t('transfers.howToTitle')}</p>
           <p className="text-emerald-700 mt-1">
-            Cliquez et maintenez sur un élève, puis déposez-le dans la colonne de la classe cible.
-            Les classes pleines refuseront le transfert automatiquement.
+            {t('transfers.howToBody')}
           </p>
         </div>
       </div>
 
       {loading ? (
-        <div className="card p-16 text-center text-slate-400">Chargement...</div>
+        <div className="card p-16 text-center text-slate-400">{tc('loading')}</div>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4">
           {renderColumn(null)}
@@ -234,7 +250,7 @@ function ClassTransferBoardContent() {
 
       {transferring && (
         <div className="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-2 rounded-xl text-sm shadow-lg">
-          Transfert en cours...
+          {t('transfers.transferring')}
         </div>
       )}
     </PageShell>

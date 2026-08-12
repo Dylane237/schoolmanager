@@ -5,18 +5,21 @@
   "author": "TCHASSEM Dylane",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/ensure-node-native.js && next dev",
+    "build": "node scripts/build-next.js",
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "electron:dev": "concurrently \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "electron:dev": "node scripts/ensure-node-native.js && node scripts/electron-dev.js",
     "electron:prepare": "node scripts/prepare-electron.js",
-    "electron:build": "cross-env TURBOPACK=0 next build && node scripts/prepare-electron.js && node scripts/rebuild-electron-native.js && electron-builder",
+    "electron:build": "node scripts/free-standalone.js && node scripts/build-next.js && node scripts/prepare-electron.js && node scripts/rebuild-electron-native.js && electron-builder",
     "rebuild:native": "npm rebuild better-sqlite3",
     "rebuild:electron": "node scripts/rebuild-electron-native.js",
-    "postinstall": "npm rebuild better-sqlite3"
+    "postinstall": "npm rebuild better-sqlite3",
+    "db:migrate": "vitest run tests/helpers/migrate-once.test.ts"
   },
   "build": {
     "appId": "cm.schoolmanager.app",
@@ -27,7 +30,8 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "electron/icon.ico"
+      "icon": "electron/icon.ico",
+      "artifactName": "SchoolManager-Setup.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -52,12 +56,11 @@
     "extraMetadata": {
       "main": "electron/main.js"
     },
-    "publish": [
-      {
-        "provider": "generic",
-        "url": "https://updates.schoolmanager.cm/releases/"
-      }
-    ]
+    "publish": {
+      "provider": "github",
+      "owner": "Dylane237",
+      "repo": "schoolmanager"
+    }
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
@@ -72,6 +75,7 @@
     "jose": "^6.2.3",
     "lucide-react": "^1.21.0",
     "next": "^16.2.9",
+    "next-intl": "^4.13.6",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hot-toast": "^2.6.0",
@@ -81,6 +85,7 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
+    "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4.3.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",

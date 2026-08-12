@@ -1,0 +1,152 @@
+{
+  "list": {
+    "title": "Élèves",
+    "subtitle": "{count} élève(s) inscrit(s)",
+    "breadcrumb": "Élèves",
+    "newStudent": "Nouvel élève",
+    "searchPlaceholder": "Rechercher par nom, prénom, matricule, parent...",
+    "resultLabel": "élève(s)",
+    "loadingFilters": "Chargement des filtres...",
+    "emptyTitle": "Aucun élève trouvé",
+    "emptyDescription": "Modifiez vos filtres ou inscrivez votre premier élève.",
+    "emptyAction": "Inscrire un élève",
+    "columns": {
+      "student": "Élève",
+      "matricule": "Matricule",
+      "class": "Classe",
+      "section": "Section",
+      "parentContact": "Contact parent",
+      "payment": "Paiement"
+    },
+    "noClass": "Sans classe",
+    "allClasses": "Toutes les classes",
+    "paymentNa": "N/A"
+  },
+  "detail": {
+    "back": "Retour aux élèves",
+    "yearsOld": "{age} ans",
+    "noClass": "Aucune classe",
+    "printCard": "Imprimer fiche",
+    "collectPayment": "Encaisser",
+    "examFees": "Frais examen",
+    "financialSituation": "Situation financière",
+    "remaining": "Reste : {amount} F",
+    "totalPaid": "Total payé",
+    "average": "Moyenne {period}",
+    "attendanceRate": "Taux présence",
+    "gradesCount": "Notes saisies",
+    "quickActions": {
+      "bulletin": "Bulletin",
+      "attendance": "Présences",
+      "class": "Classe",
+      "transfer": "Transfert"
+    },
+    "tabs": {
+      "info": "Informations",
+      "payments": "Paiements",
+      "grades": "Notes",
+      "attendance": "Présences"
+    },
+    "personalInfo": "Informations personnelles",
+    "parents": "Parents / Tuteurs",
+    "noParent": "Aucun parent enregistré",
+    "principal": "Principal",
+    "installmentsDetail": "Détail des tranches",
+    "installment": "Tranche {n}",
+    "amount": "Montant",
+    "paid": "Payé",
+    "remainingLabel": "Reste",
+    "dueDateOverdue": "Échéance dépassée ({days} j)",
+    "dueDateRemaining": "Échéance : {date} ({days} j restants)",
+    "dueDate": "Échéance : {date}",
+    "collect": "Encaisser →",
+    "examLabel": "Examen : {status}",
+    "deleteConfirmTitle": "Confirmer la suppression",
+    "deleteConfirmBody": "Cet élève a des paiements enregistrés. La suppression est définitive.",
+    "deleteAnyway": "Supprimer quand même",
+    "noPayments": "Aucun paiement enregistré",
+    "recordPayment": "Enregistrer un paiement",
+    "columns": {
+      "date": "Date",
+      "installment": "Tranche",
+      "amount": "Montant",
+      "method": "Mode",
+      "receipt": "Reçu",
+      "subject": "Matière",
+      "period": "Période",
+      "grade": "Note /{max}",
+      "coef": "Coef.",
+      "appreciation": "Appréciation",
+      "status": "Statut",
+      "observation": "Observation"
+    },
+    "miscFees": "Frais annexe",
+    "total": "Total",
+    "period": "Période :",
+    "allPeriods": "Toutes",
+    "noGrades": "Aucune note enregistrée",
+    "noAttendance": "Aucune présence enregistrée",
+    "fields": {
+      "lastName": "Nom",
+      "firstName": "Prénom",
+      "birthDate": "Date de naissance",
+      "birthPlace": "Lieu de naissance",
+      "class": "Classe",
+      "annualStatus": "Statut annuel",
+      "entryYear": "Année entrée",
+      "sex": "Sexe",
+      "birthDateShort": "Date naissance",
+      "birthPlaceShort": "Lieu naissance"
+    },
+    "noneOption": "— Aucune —",
+    "toasts": {
+      "saveError": "Erreur lors de l'enregistrement",
+      "saved": "Fiche mise à jour",
+      "deleteError": "Erreur lors de la suppression",
+      "popupBlocked": "Autorisez les pop-ups"
+    }
+  },
+  "new": {
+    "title": "Inscrire un élève",
+    "breadcrumb": "Nouvel élève",
+    "subtitle": "Formulaire d'inscription en 3 étapes",
+    "steps": {
+      "identity": "Identité",
+      "assignment": "Affectation",
+      "guardian": "Parent / Tuteur"
+    },
+    "personalInfo": "Informations personnelles",
+    "schoolAssignment": "Affectation scolaire",
+    "guardianTitle": "Parent / Tuteur légal",
+    "select": "Sélectionner",
+    "selectSection": "Sélectionner la section",
+    "selectClass": "Sélectionner la classe",
+    "sectionFrancophone": "Francophone (SIL - CM2)",
+    "sectionAnglophone": "Anglophone (Class 1 - Class 6)",
+    "sectionMaternelle": "Maternelle",
+    "placeholders": {
+      "lastName": "MBALLA",
+      "firstName": "Jean-Pierre",
+      "birthPlace": "Douala, Cameroun",
+      "guardianFirstName": "Paul",
+      "phone": "699 000 000"
+    },
+    "fields": {
+      "lastName": "Nom *",
+      "firstName": "Prénom *",
+      "birthDate": "Date de naissance",
+      "sex": "Sexe *",
+      "birthPlace": "Lieu de naissance",
+      "section": "Section *",
+      "class": "Classe *",
+      "parentLastName": "Nom *",
+      "parentFirstName": "Prénom",
+      "phone": "Téléphone *",
+      "link": "Lien"
+    },
+    "submit": "Inscrire l'élève",
+    "errors": {
+      "enrollFailed": "Erreur lors de l'inscription"
+    }
+  }
+}

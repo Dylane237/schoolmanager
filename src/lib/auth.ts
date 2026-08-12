@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { getDb } from './db-server'
 import { getJwtSecret, getJwtSecretKey } from './secrets'
 import { getMachineFingerprint } from './paths'
+import { runtimeEnv } from './runtime-env'
 
 export const JWT_EXPIRY = '8h'
 export const COOKIE_NAME = 'sm_token'
@@ -58,7 +59,7 @@ export async function requireSuperAdmin(request: NextRequest): Promise<JwtPayloa
 }
 
 export function setAuthCookie(response: import('next/server').NextResponse, token: string) {
-  const secure = process.env.NODE_ENV === 'production' && process.env.SM_COOKIE_SECURE !== 'false'
+  const secure = process.env.NODE_ENV === 'production' && runtimeEnv('SM_COOKIE_SECURE') !== 'false'
   response.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure,

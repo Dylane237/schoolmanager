@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Mail, Lock, KeyRound, Building2, User, Phone, Check } from 'lucide-react'
 import { AuthSplitLayout } from '@/components/auth/auth-split-layout'
 import { AuthInput } from '@/components/auth/auth-input'
@@ -13,14 +14,13 @@ import { AuthError } from '@/components/auth/auth-error'
 import { RecoveryCodeReveal } from '@/components/auth/recovery-code-reveal'
 import type { Section } from '@/types'
 
-const SECTIONS: { id: Section; label: string; desc: string }[] = [
-  { id: 'francophone', label: 'Francophone', desc: 'SIL au CM2' },
-  { id: 'anglophone', label: 'Anglophone', desc: 'Class 1 au Class 6' },
-  { id: 'maternelle', label: 'Maternelle', desc: 'Petite, moyenne et grande section' },
-]
+const SECTION_IDS: Section[] = ['francophone', 'anglophone', 'maternelle']
 
 export default function RegisterPage() {
   const router = useRouter()
+  const t = useTranslations('auth.register')
+  const tAuth = useTranslations('auth')
+  const tc = useTranslations('common')
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -28,6 +28,12 @@ export default function RegisterPage() {
   const [verifyingLicence, setVerifyingLicence] = useState(false)
   const [recoveryCode, setRecoveryCode] = useState<string | null>(null)
   const [createdSlug, setCreatedSlug] = useState<string | null>(null)
+
+  const sections = SECTION_IDS.map(id => ({
+    id,
+    label: t(`sections.${id}.label`),
+    desc: t(`sections.${id}.desc`),
+  }))
 
   const [form, setForm] = useState({
     email: '',
@@ -68,7 +74,7 @@ export default function RegisterPage() {
     const data = await res.json()
     setLicenceInfo(data.valid
       ? { valid: true, message: data.message, plan: data.plan }
-      : { valid: false, message: data.error || 'Clé invalide' })
+      : { valid: false, message: data.error || t('errors.invalidKey') })
     setVerifyingLicence(false)
   }
 
@@ -79,10 +85,10 @@ export default function RegisterPage() {
     const data = await res.json()
     setLicenceInfo(data.valid
       ? { valid: true, message: data.message, plan: data.plan }
-      : { valid: false, message: data.error || 'Clé invalide' })
+      : { valid: false, message: data.error || t('errors.invalidKey') })
     setVerifyingLicence(false)
     if (!data.valid) {
-      setError(data.error || 'Clé de licence invalide')
+      setError(data.error || t('errors.invalidLicenceKey'))
       return
     }
     goToStep(2)
@@ -103,7 +109,7 @@ export default function RegisterPage() {
     const data = await res.json()
 
     if (!res.ok) {
-      setError(data.error || 'Impossible de créer le compte.')
+      setError(data.error || t('errors.createFailed'))
       setLoading(false)
       return
     }
@@ -117,20 +123,22 @@ export default function RegisterPage() {
   const step1Valid = form.email && form.password.length >= 8 && form.cle_licence
   const step2Valid = form.nom_ecole && form.directeur_nom
 
+  const registerFooter = (
+    <>
+      {t('alreadyRegistered')}{' '}
+      <Link href="/login" className="font-medium text-emerald-600 hover:text-emerald-700">
+        {tAuth('signInLink')}
+      </Link>
+    </>
+  )
+
   if (step === 4 && recoveryCode && createdSlug) {
     return (
       <AuthSplitLayout
         mode="register"
-        title="Presque terminé"
-        subtitle="Une dernière étape avant d'accéder à votre école."
-        footer={
-          <>
-            Déjà inscrit ?{' '}
-            <Link href="/login" className="font-medium text-emerald-600 hover:text-emerald-700">
-              Se connecter
-            </Link>
-          </>
-        }
+        title={t('step4.title')}
+        subtitle={t('step4.subtitle')}
+        footer={registerFooter}
       >
         <RecoveryCodeReveal
           code={recoveryCode}
@@ -143,16 +151,9 @@ export default function RegisterPage() {
   return (
     <AuthSplitLayout
       mode="register"
-      title="Configurer mon école"
-      subtitle="3 étapes pour démarrer — licence, établissement, sections."
-      footer={
-        <>
-          Déjà inscrit ?{' '}
-          <Link href="/login" className="font-medium text-emerald-600 hover:text-emerald-700">
-            Se connecter
-          </Link>
-        </>
-      }
+      title={t('title')}
+      subtitle={t('subtitle')}
+      footer={registerFooter}
     >
       <AuthStepper step={step} />
 
@@ -163,28 +164,28 @@ export default function RegisterPage() {
           <div className="space-y-5">
             <AuthInput
               id="email"
-              label="Votre email (directeur)"
+              label={t('step1.emailLabel')}
               icon={Mail}
               type="email"
               value={form.email}
               onChange={v => updateField('email', v)}
-              placeholder="directeur@ecole.cm"
+              placeholder={tAuth('emailPlaceholder')}
               autoComplete="email"
             />
             <AuthInput
               id="password"
-              label="Mot de passe"
+              label={tAuth('password')}
               icon={Lock}
               type="password"
               value={form.password}
               onChange={v => updateField('password', v)}
-              hint="8 caractères minimum — notez-le bien."
+              hint={t('step1.passwordHint')}
               minLength={8}
               autoComplete="new-password"
             />
             <AuthInput
               id="cle"
-              label="Clé de licence"
+              label={t('step1.licenceKeyLabel')}
               icon={KeyRound}
               value={form.cle_licence}
               onChange={v => {
@@ -192,8 +193,8 @@ export default function RegisterPage() {
                 setLicenceInfo(null)
               }}
               onBlur={verifyLicence}
-              placeholder="STANDARD-POOL-2026-XXXXXXXX"
-              hint="Fournie par SchoolManager à l'achat."
+              placeholder={t('step1.licenceKeyPlaceholder')}
+              hint={t('step1.licenceKeyHint')}
               mono
             />
             {licenceInfo && (
@@ -203,19 +204,19 @@ export default function RegisterPage() {
             )}
             <AuthInput
               id="code_parrain"
-              label="Code parrain (optionnel)"
+              label={t('step1.referralLabel')}
               icon={KeyRound}
               value={form.code_parrain}
               onChange={v => updateField('code_parrain', v.toUpperCase())}
-              placeholder="SM-MONECOLE"
-              hint="Si un établissement vous a recommandé SchoolManager."
+              placeholder={t('step1.referralPlaceholder')}
+              hint={t('step1.referralHint')}
               mono
             />
             {verifyingLicence && (
-              <p className="text-xs text-gray-500 -mt-3">Vérification de la clé...</p>
+              <p className="text-xs text-gray-500 -mt-3">{t('step1.verifying')}</p>
             )}
             <AuthButton disabled={!step1Valid || verifyingLicence} onClick={handleContinueStep1}>
-              Continuer
+              {t('step1.continue')}
             </AuthButton>
           </div>
         </AuthStepContent>
@@ -226,35 +227,35 @@ export default function RegisterPage() {
           <div className="space-y-5">
             <AuthInput
               id="nom_ecole"
-              label="Nom de l'établissement"
+              label={t('step2.schoolNameLabel')}
               icon={Building2}
               value={form.nom_ecole}
               onChange={v => updateField('nom_ecole', v)}
-              placeholder="École Primaire Les Espoirs"
+              placeholder={t('step2.schoolNamePlaceholder')}
             />
             <AuthInput
               id="directeur"
-              label="Nom du directeur"
+              label={t('step2.directorLabel')}
               icon={User}
               value={form.directeur_nom}
               onChange={v => updateField('directeur_nom', v)}
-              placeholder="M. Jean-Pierre MBALLA"
+              placeholder={t('step2.directorPlaceholder')}
             />
             <AuthInput
               id="telephone"
-              label="Téléphone (optionnel)"
+              label={t('step2.phoneLabel')}
               icon={Phone}
               type="tel"
               value={form.telephone}
               onChange={v => updateField('telephone', v)}
-              placeholder="699 000 000"
+              placeholder={t('step2.phonePlaceholder')}
             />
             <div className="flex gap-3">
               <AuthButton variant="ghost" className="flex-1" onClick={() => goToStep(1)}>
-                Retour
+                {tc('back')}
               </AuthButton>
               <AuthButton className="flex-1" disabled={!step2Valid} onClick={() => goToStep(3)}>
-                Continuer
+                {t('step1.continue')}
               </AuthButton>
             </div>
           </div>
@@ -264,9 +265,9 @@ export default function RegisterPage() {
       {step === 3 && (
         <AuthStepContent stepKey={3}>
           <form onSubmit={handleRegister} className="space-y-5">
-            <p className="text-[13px] text-gray-600">Sections enseignées dans votre établissement :</p>
+            <p className="text-[13px] text-gray-600">{t('step3.sectionsPrompt')}</p>
             <div className="space-y-2.5">
-              {SECTIONS.map(opt => {
+              {sections.map(opt => {
                 const selected = form.sections.includes(opt.id)
                 return (
                   <button
@@ -298,10 +299,10 @@ export default function RegisterPage() {
             </div>
             <div className="flex gap-3 pt-1">
               <AuthButton type="button" variant="ghost" className="flex-1" onClick={() => goToStep(2)}>
-                Retour
+                {tc('back')}
               </AuthButton>
               <AuthButton type="submit" className="flex-1" disabled={form.sections.length === 0} loading={loading}>
-                {loading ? 'Création…' : 'Créer mon école'}
+                {loading ? t('step3.creating') : t('step3.submit')}
               </AuthButton>
             </div>
           </form>

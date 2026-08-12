@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { ShieldX, ArrowLeft } from 'lucide-react'
 import { useSchool } from './SchoolProvider'
 import { getModuleForPagePath, hasModuleAccess } from '@/lib/rbac'
@@ -13,6 +14,7 @@ type ModuleGuardProps = {
 export default function ModuleGuard({ children }: ModuleGuardProps) {
   const pathname = usePathname()
   const { slug, userRole } = useSchool()
+  const t = useTranslations('components.moduleGuard')
 
   const module = getModuleForPagePath(pathname, slug)
   if (module && !hasModuleAccess(userRole, module)) {
@@ -22,15 +24,15 @@ export default function ModuleGuard({ children }: ModuleGuardProps) {
           <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <ShieldX className="w-7 h-7 text-red-500" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Accès refusé</h2>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">{t('title')}</h2>
           <p className="text-slate-500 text-sm mb-6">
-            Votre rôle ({userRole.replace('_', ' ')}) ne permet pas d&apos;accéder à cette section.
+            {t('description', { role: userRole.replace('_', ' ') })}
           </p>
           <Link
             href={`/${slug}/dashboard`}
             className="inline-flex items-center gap-2 btn-primary py-2.5 px-4 text-sm"
           >
-            <ArrowLeft className="w-4 h-4" /> Retour au tableau de bord
+            <ArrowLeft className="w-4 h-4" /> {t('backToDashboard')}
           </Link>
         </div>
       </div>

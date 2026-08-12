@@ -1,0 +1,134 @@
+{
+  "pageShell": {
+    "loading": "Chargement…"
+  },
+  "emptyState": {
+    "defaultTitle": "Aucun élément",
+    "defaultDescription": "Il n'y a rien à afficher pour le moment."
+  },
+  "smartFilterBar": {
+    "reset": "Réinitialiser",
+    "search": "Rechercher...",
+    "resultCount": "{count} résultat(s)"
+  },
+  "badge": {
+    "new": "Nouveau"
+  },
+  "photoUpload": {
+    "upload": "Ajouter une photo",
+    "change": "Changer la photo",
+    "remove": "Supprimer",
+    "hint": "Photo de l'élève (JPEG, PNG, max 5 Mo)",
+    "uploadError": "Erreur upload"
+  },
+  "studentContextBanner": {
+    "viewing": "Consultation de la fiche élève",
+    "backToList": "Retour à la liste",
+    "context": "Contexte élève :",
+    "viewProfile": "Voir la fiche"
+  },
+  "classListActions": {
+    "export": "Exporter liste",
+    "importCsv": "Importer CSV",
+    "printPdf": "Imprimer / PDF",
+    "exportError": "Erreur export",
+    "importError": "Erreur import",
+    "popupBlocked": "Autorisez les pop-ups pour imprimer",
+    "exportSuccess": "Liste exportée ({count} élève(s)) → Documents/SchoolManager/exports/{filename}",
+    "importSuccess": "{total} élève(s) traité(s) ({assigned} affecté(s), {created} créé(s))",
+    "csvHint": "CSV : matricule,nom,prenom,sexe"
+  },
+  "recuPrint": {
+    "schoolReceipt": "Reçu de paiement scolaire",
+    "officialReceipt": "Reçu officiel",
+    "studentInfo": "Informations élève",
+    "paymentDetails": "Détails du paiement",
+    "title": "Reçu de paiement",
+    "receiptNumber": "N° {numero}",
+    "description": "Le reçu s'ouvre dans un nouvel onglet, avec l'original et le duplicata prêts à imprimer sur une même page.",
+    "openReceipt": "Ouvrir le reçu",
+    "close": "Fermer",
+    "generateError": "Erreur {status} lors de la génération du reçu.",
+    "popupBlocked": "Le navigateur a bloqué l'ouverture du reçu (popup). Autorisez les popups pour ce site puis réessayez.",
+    "networkError": "Erreur réseau lors de la génération du reçu."
+  },
+  "situationParEleve": {
+    "student": "Élève",
+    "class": "Classe",
+    "expected": "Attendu",
+    "paid": "Payé",
+    "remaining": "Reste",
+    "status": "Statut",
+    "actions": "Actions",
+    "collect": "Encaisser",
+    "loading": "Chargement...",
+    "emptyTitle": "Aucun élève",
+    "emptyDescription": "Aucun élève ne correspond à ces filtres. Modifiez la classe ou le statut de paiement.",
+    "noClass": "Sans classe",
+    "viewProfile": "Voir la fiche",
+    "noInstalments": "Aucune tranche configurée pour la classe de cet élève. Configurez les tranches dans Paramètres.",
+    "detail": "Détail",
+    "paidExpected": "Payé / Attendu",
+    "instalment": "Tranche {n}",
+    "expectedLabel": "Attendu",
+    "paidLabel": "Payé",
+    "remainingLabel": "Reste",
+    "deadline": "Date limite : {date}",
+    "noPayments": "Aucun paiement enregistré",
+    "historyDate": "Date",
+    "historyReceipt": "Reçu",
+    "historyMode": "Mode",
+    "historyAmount": "Montant"
+  },
+  "logoutButton": {
+    "logout": "Déconnexion"
+  },
+  "licenceSidebarButton": {
+    "licence": "Licence"
+  },
+  "moduleGuard": {
+    "title": "Accès refusé",
+    "description": "Votre rôle ({role}) ne permet pas d'accéder à cette section.",
+    "backToDashboard": "Retour au tableau de bord"
+  },
+  "encaissementsChart": {
+    "title": "Encaissements",
+    "noData": "Aucune donnée",
+    "noPeriodData": "Aucun encaissement sur cette période",
+    "loadError": "Impossible de charger les données pour cette période.",
+    "amount": "Montant",
+    "to": "à",
+    "periods": {
+      "jour": "Jour",
+      "semaine": "Semaine",
+      "mois": "Mois",
+      "custom": "Personnalisé"
+    }
+  },
+  "classesPaiementChart": {
+    "title": "Élèves à jour par classe",
+    "noData": "Aucune tranche configurée",
+    "distribution": "Répartition",
+    "viewAll": "Voir tout",
+    "noInstalments": "Aucune tranche configurée sur vos classes",
+    "tooltipUpToDate": "À jour",
+    "studentsCount": "{paid}/{total} élèves ({pct}%)",
+    "otherClasses": "{count, plural, one {# autre classe} other {# autres classes}} — voir la liste complète"
+  },
+  "createKeyModal": {
+    "title": "Nouvelle clé pool",
+    "planLabel": "Plan",
+    "generate": "Générer",
+    "generating": "Génération...",
+    "copyKey": "Copier la clé",
+    "copied": "Clé copiée !"
+  },
+  "whatsappSupport": {
+    "label": "WhatsApp — {phone}",
+    "hint": "Besoin d'aide ?"
+  },
+  "toaster": {
+    "success": "Opération réussie",
+    "error": "Une erreur est survenue"
+  }
+}

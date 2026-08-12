@@ -1,0 +1,69 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "schools": "Schools",
+    "licences": "Cloud licences"
+  },
+  "dashboard": {
+    "title": "Overview",
+    "subtitle": "Commercial and operational management",
+    "stats": {
+      "clientSchools": "Client schools",
+      "totalStudents": "Total students",
+      "activeLicences": "Active licences",
+      "expiringSoon": "Expiring within 30d"
+    },
+    "businessTitle": "Business indicators",
+    "revenue": "Licence revenue",
+    "newSchoolsMonth": "New schools this month",
+    "conversionRate": "Conversion rate",
+    "expiredLicences": "Expired licences",
+    "planDistribution": "Distribution by plan",
+    "planColumns": {
+      "plan": "Plan",
+      "activeLicences": "Active licences",
+      "estimatedRevenue": "Estimated revenue"
+    },
+    "renewalsTitle": "Upcoming renewals (30 days)",
+    "renewalColumns": {
+      "school": "School",
+      "plan": "Plan",
+      "expiration": "Expiration"
+    },
+    "schoolsTitle": "Client schools",
+    "schoolColumns": {
+      "school": "School",
+      "slug": "Slug",
+      "students": "Students",
+      "plan": "Plan",
+      "licence": "Licence",
+      "expiration": "Expiration"
+    },
+    "licenceStatus": {
+      "inactive": "Inactive",
+      "expired": "Expired",
+      "expiringIn": "Expires in {days}d",
+      "active": "Active"
+    }
+  },
+  "schools": {
+    "title": "Client schools",
+    "subtitle": "{count} school(s) registered",
+    "empty": "No schools registered. Generate an activation key in Licences.",
+    "students": "Students",
+    "plan": "Plan",
+    "expiration": "Expiration",
+    "accessDashboard": "Go to dashboard →"
+  },
+  "licences": {
+    "title": "Licences — cloud administration",
+    "subtitle": "Pool key and referral management is now handled on the online publisher console.",
+    "consoleTitle": "Publisher console (Supabase)",
+    "consoleDesc": "Generate pool keys, track activated schools, manage referrals and revoke licences — all synced with desktop registrations.",
+    "openCloudAdmin": "Open cloud admin",
+    "localInfo": "This local installation keeps licences <strong>activated on this machine</strong> in SQLite. Pool keys for distribution are created in the cloud only.",
+    "localView": "Local view of schools registered on this machine:",
+    "schoolsLink": "Schools",
+    "dashboardLink": "Dashboard"
+  }
+}

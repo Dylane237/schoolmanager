@@ -169,6 +169,7 @@ function startNextServer() {
         PORT: String(PORT),
         HOSTNAME: '127.0.0.1',
         SM_USER_DATA: userDataPath,
+        SM_COOKIE_SECURE: 'false',
         ELECTRON_RUN_AS_NODE: '1',
         LICENCE_SERVER_URL: process.env.LICENCE_SERVER_URL || 'https://schoolmanager-eosin.vercel.app',
         ...(jwtSecret ? { SM_JWT_SECRET: jwtSecret } : {}),

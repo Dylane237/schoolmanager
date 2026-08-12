@@ -1,0 +1,119 @@
+{
+  "list": {
+    "title": "Paiements",
+    "subtitle": "Suivi des frais de scolarité par tranche",
+    "breadcrumb": "Paiements",
+    "newPayment": "Enregistrer un paiement",
+    "allClasses": "Toutes les classes",
+    "stats": {
+      "today": "Aujourd'hui",
+      "thisMonth": "Ce mois",
+      "unpaid": "Soldes impayés",
+      "overdue": "Retards (+3j)",
+      "studentsCount": "{count} élève(s)"
+    },
+    "overdueTitle": "Paiements en retard ({count})",
+    "tabs": {
+      "situation": "Situation par élève",
+      "history": "Historique"
+    },
+    "filterLabels": {
+      "class": "Classe",
+      "situation": "Situation",
+      "month": "Mois",
+      "method": "Mode"
+    },
+    "searchPlaceholder": "Rechercher un élève, matricule, reçu...",
+    "year": "Année {year}",
+    "resultSituation": "élève(s)",
+    "resultHistory": "paiement(s)",
+    "emptyTitle": "Aucun paiement",
+    "emptyDescription": "Aucun paiement ne correspond à ces critères. Enregistrez un encaissement ou modifiez les filtres.",
+    "columns": {
+      "student": "Élève",
+      "class": "Classe",
+      "receipt": "Reçu",
+      "installment": "Tranche",
+      "amount": "Montant",
+      "method": "Mode",
+      "date": "Date",
+      "actions": "Actions",
+      "dueDate": "Date limite",
+      "delay": "Retard",
+      "remainingDue": "Reste dû",
+      "status": "Statut"
+    },
+    "installment": "Tranche {num}",
+    "installmentN": "Tranche {n}",
+    "daysLate": "+{n} jours",
+    "collectLink": "Encaisser →",
+    "editTitle": "Modifier le paiement",
+    "editReceipt": "Reçu",
+    "amountLabel": "Montant (FCFA)",
+    "installmentLabel": "Tranche",
+    "modeLabel": "Mode",
+    "dateLabel": "Date",
+    "invalidAmount": "Montant invalide",
+    "toasts": {
+      "editError": "Erreur lors de la modification",
+      "edited": "Paiement modifié"
+    }
+  },
+  "new": {
+    "title": "Enregistrer un paiement",
+    "titleExam": "Encaisser frais d'examen",
+    "breadcrumb": "Nouveau paiement",
+    "breadcrumbExam": "Frais d'examen",
+    "subtitle": "Saisie et impression du reçu",
+    "subtitleExam": "Paiement des frais d'examen officiels",
+    "studentLabel": "Élève *",
+    "searchPlaceholder": "Rechercher un élève par nom ou matricule...",
+    "noClass": "Aucune classe",
+    "totalExpected": "Total attendu",
+    "alreadyPaid": "Déjà payé",
+    "remainingDue": "Reste dû",
+    "installmentDetail": "Détail par tranche",
+    "installment": "Tranche {num}",
+    "paid": "Soldé",
+    "remaining": "Reste {amount}",
+    "installmentLabel": "Tranche *",
+    "amountLabel": "Montant (FCFA) *",
+    "remainingOnInstallment": "Reste sur cette tranche : {amount} FCFA",
+    "remainingToPay": "Reste à payer : {amount} FCFA",
+    "paymentMethod": "Mode de paiement *",
+    "dateLabel": "Date",
+    "dueDate": "Échéance : {date}",
+    "dueDateOverdue": "(dépassée)",
+    "submit": "Enregistrer le paiement",
+    "submitExam": "Enregistrer le frais d'examen",
+    "errors": {
+      "selectStudent": "Sélectionnez un élève et saisissez un montant",
+      "noExamFees": "Aucun frais d'examen configuré pour cet élève",
+      "saveFailed": "Erreur lors de l'enregistrement"
+    }
+  },
+  "receipt": {
+    "title": "Reçu de paiement",
+    "receiptNumber": "Reçu n°",
+    "date": "Date",
+    "student": "Élève",
+    "matricule": "Matricule",
+    "class": "Classe",
+    "installment": "Tranche",
+    "amount": "Montant",
+    "method": "Mode de paiement",
+    "remaining": "Reste à payer",
+    "cashier": "Caissier",
+    "signature": "Signature",
+    "print": "Imprimer le reçu",
+    "thankYou": "Merci pour votre confiance."
+  },
+  "situation": {
+    "title": "Situation par élève",
+    "expected": "Attendu",
+    "paid": "Payé",
+    "remaining": "Reste",
+    "status": "Statut",
+    "lastPayment": "Dernier paiement"
+  }
+}

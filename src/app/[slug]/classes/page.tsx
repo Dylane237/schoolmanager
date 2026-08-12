@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Plus, School, UserCheck, ChevronRight, Layers, ArrowRightLeft, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
@@ -12,12 +13,11 @@ import EmptyState from '@/components/ui/EmptyState'
 import SmartFilterBar from '@/components/filters/SmartFilterBar'
 import { useSchool } from '@/components/layout/SchoolProvider'
 import { useSmartFilters } from '@/hooks/useSmartFilters'
-import { SECTION_OPTIONS } from '@/lib/filter-presets'
+import { useSectionOptions, useTranslatedEnums } from '@/hooks/useTranslatedEnums'
 import { canWriteModule } from '@/lib/rbac'
 import {
   CAMEROON_SECTIONS,
   SECTION_ORDER,
-  sectionLabel,
   type SectionRef,
 } from '@/lib/cameroon-levels'
 
@@ -43,6 +43,11 @@ interface Enseignant {
 export default function ClassesPage() {
   const { slug } = useParams()
   const { anneeScolaire, userRole } = useSchool()
+  const t = useTranslations('classes')
+  const tc = useTranslations('common')
+  const tf = useTranslations('filters')
+  const te = useTranslatedEnums()
+  const sectionOptions = useSectionOptions()
   const canCreateClass = canWriteModule(userRole, 'classes')
   const [classes, setClasses] = useState<Classe[]>([])
   const [enseignants, setEnseignants] = useState<Enseignant[]>([])
@@ -63,17 +68,17 @@ export default function ClassesPage() {
     {
       key: 'q',
       type: 'search' as const,
-      placeholder: 'Rechercher une classe, un niveau...',
+      placeholder: t('list.searchPlaceholder'),
       debounce: true,
     },
     {
       key: 'section',
       type: 'select' as const,
-      label: 'Section',
-      options: SECTION_OPTIONS,
+      label: tf('section.label'),
+      options: sectionOptions,
       defaultValue: '',
     },
-  ], [])
+  ], [t, tf, sectionOptions])
 
   const { values, debouncedValues, setFilter, reset, activeFilters } = useSmartFilters(filterFields)
 
@@ -114,11 +119,11 @@ export default function ClassesPage() {
       body: JSON.stringify(form),
     })
     if (!res.ok) {
-      toast.error('Erreur lors de la création')
+      toast.error(t('list.toasts.createError'))
       setSaving(false)
       return
     }
-    toast.success('Classe créée avec succès')
+    toast.success(t('list.toasts.created'))
     setShowForm(false)
     setForm({ nom: '', section: 'francophone', niveau: '', annee_scolaire: anneeScolaire, capacite_max: '60' })
     await fetchClasses()
@@ -149,11 +154,11 @@ export default function ClassesPage() {
     })
     const data = await res.json()
     if (!res.ok) {
-      toast.error('Erreur lors de la création')
+      toast.error(t('list.toasts.createError'))
       setSaving(false)
       return
     }
-    toast.success(`${data.created} classe(s) créée(s)`)
+    toast.success(t('list.toasts.createdBulk', { count: data.created }))
     setShowReferentiel(false)
     setSelectedNiveaux(new Set())
     await fetchClasses()
@@ -180,17 +185,11 @@ export default function ClassesPage() {
       body: JSON.stringify({ id: classeId, personnel_id: personnelId || null }),
     })
     if (!res.ok) {
-      toast.error('Erreur lors de l\'affectation')
+      toast.error(t('list.toasts.assignError'))
       return
     }
-    toast.success('Enseignant affecté')
+    toast.success(t('list.toasts.assigned'))
     await fetchClasses()
-  }
-
-  const sectionVariant = (section: string): 'info' | 'neutral' | 'default' => {
-    if (section === 'francophone') return 'info'
-    if (section === 'anglophone') return 'neutral'
-    return 'default'
   }
 
   const grouped = SECTION_ORDER.reduce((acc: Record<string, Classe[]>, section) => {
@@ -201,21 +200,21 @@ export default function ClassesPage() {
 
   return (
     <PageShell
-      title="Classes"
-      subtitle={`${filteredClasses.length} classe(s) · Année ${anneeScolaire}`}
-      breadcrumb="Classes"
+      title={t('list.title')}
+      subtitle={t('list.subtitle', { count: filteredClasses.length, year: anneeScolaire })}
+      breadcrumb={t('list.breadcrumb')}
       actions={
         <div className="flex items-center gap-2">
           <Link href={`/${slug}/classes/transferts`} className="btn-secondary flex items-center gap-2 py-2.5">
-            <ArrowRightLeft className="w-5 h-5" /> Répartition
+            <ArrowRightLeft className="w-5 h-5" /> {t('list.transfers')}
           </Link>
           {canCreateClass && (
             <>
               <button onClick={() => setShowReferentiel(true)} className="btn-secondary flex items-center gap-2 py-2.5">
-                <Layers className="w-5 h-5" /> Référentiel CM
+                <Layers className="w-5 h-5" /> {t('list.referential')}
               </button>
               <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2 py-2.5">
-                <Plus className="w-5 h-5" /> Nouvelle classe
+                <Plus className="w-5 h-5" /> {t('list.newClass')}
               </button>
             </>
           )}
@@ -229,14 +228,14 @@ export default function ClassesPage() {
         onReset={reset}
         activeFilters={activeFilters}
         resultCount={filteredClasses.length}
-        resultLabel="classe(s)"
+        resultLabel={t('list.resultLabel')}
         loading={loading}
         className="mb-6"
       />
 
-      <Modal open={showReferentiel} onClose={() => setShowReferentiel(false)} title="Référentiel des niveaux — Cameroun">
+      <Modal open={showReferentiel} onClose={() => setShowReferentiel(false)} title={t('list.referentialTitle')}>
         <p className="text-sm text-slate-500 mb-4">
-          Sélectionnez les niveaux à créer pour l&apos;année {anneeScolaire}. Les classes existantes sont ignorées.
+          {t('list.referentialDesc', { year: anneeScolaire })}
         </p>
         <div className="max-h-80 overflow-y-auto space-y-4 mb-4">
           {CAMEROON_SECTIONS.map((sec: SectionRef) => (
@@ -260,7 +259,7 @@ export default function ClassesPage() {
                           />
                           <span className="text-sm text-slate-700">{nv.nomDefaut}</span>
                           <span className="text-xs text-slate-400">{nv.label}</span>
-                          {created && <Badge variant="success" size="sm">Existe</Badge>}
+                          {created && <Badge variant="success" size="sm">{t('list.exists')}</Badge>}
                         </label>
                       )
                     })}
@@ -275,29 +274,29 @@ export default function ClassesPage() {
           disabled={saving || selectedNiveaux.size === 0}
           className="w-full btn-primary"
         >
-          {saving ? 'Création...' : `Créer ${selectedNiveaux.size} classe(s)`}
+          {saving ? t('list.creating') : t('list.createCount', { count: selectedNiveaux.size })}
         </button>
       </Modal>
 
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="Nouvelle classe">
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={t('list.modalNewTitle')}>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Section *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('list.fields.section')}</label>
             <select value={form.section} onChange={e => { up('section', e.target.value); up('niveau', '') }} className="input-field">
-              <option value="francophone">Francophone</option>
-              <option value="anglophone">Anglophone</option>
-              <option value="maternelle">Maternelle</option>
+              <option value="francophone">{te.section('francophone')}</option>
+              <option value="anglophone">{te.section('anglophone')}</option>
+              <option value="maternelle">{te.section('maternelle')}</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Niveau (référentiel)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('list.fields.level')}</label>
             <select value={form.niveau} onChange={e => {
               const sec = CAMEROON_SECTIONS.find(s => s.id === form.section)
               const nv = sec?.cycles.flatMap(c => c.niveaux).find(n => n.code === e.target.value)
               up('niveau', e.target.value)
               if (nv) up('nom', nv.nomDefaut)
             }} className="input-field">
-              <option value="">— Choisir un niveau —</option>
+              <option value="">{t('list.fields.chooseLevel')}</option>
               {CAMEROON_SECTIONS.find(s => s.id === form.section)?.cycles.flatMap(c =>
                 c.niveaux.map(nv => (
                   <option key={nv.code} value={nv.code}>{nv.nomDefaut} — {nv.label}</option>
@@ -306,38 +305,38 @@ export default function ClassesPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Nom de la classe *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('list.fields.className')}</label>
             <input value={form.nom} onChange={e => up('nom', e.target.value)}
-              placeholder="CM2 A, Class 3 B..."
+              placeholder={t('list.fields.classNamePlaceholder')}
               className="input-field" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Année scolaire</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('list.fields.schoolYear')}</label>
               <input value={form.annee_scolaire} onChange={e => up('annee_scolaire', e.target.value)} className="input-field" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Capacité max</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('list.fields.maxCapacity')}</label>
               <input type="number" value={form.capacite_max} onChange={e => up('capacite_max', e.target.value)} className="input-field" />
             </div>
           </div>
           <button onClick={handleCreate} disabled={saving || !form.nom} className="w-full btn-primary">
-            {saving ? 'Création...' : 'Créer la classe'}
+            {saving ? t('list.creating') : t('list.createClass')}
           </button>
         </div>
       </Modal>
 
       {loading ? (
-        <div className="card p-16 text-center text-slate-400">Chargement...</div>
+        <div className="card p-16 text-center text-slate-400">{tc('loading')}</div>
       ) : classes.length === 0 ? (
         <EmptyState
           icon={School}
-          title="Aucune classe configurée"
-          description="Utilisez le référentiel camerounais pour créer vos classes en un clic."
+          title={t('list.emptyTitle')}
+          description={t('list.emptyDescription')}
           action={
             canCreateClass ? (
               <button onClick={() => setShowReferentiel(true)} className="btn-primary">
-                Ouvrir le référentiel
+                {t('list.emptyAction')}
               </button>
             ) : undefined
           }
@@ -345,11 +344,11 @@ export default function ClassesPage() {
       ) : filteredClasses.length === 0 ? (
         <EmptyState
           icon={Search}
-          title="Aucune classe correspondante"
-          description="Modifiez vos critères de recherche ou réinitialisez les filtres."
+          title={t('list.noMatchTitle')}
+          description={t('list.noMatchDescription')}
           action={
             <button onClick={reset} className="btn-secondary">
-              Réinitialiser les filtres
+              {t('list.resetFilters')}
             </button>
           }
         />
@@ -359,7 +358,7 @@ export default function ClassesPage() {
             <div key={section}>
               <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                {sectionLabel(section)}
+                {te.section(section)}
                 <span className="text-slate-400 font-normal normal-case">({items.length})</span>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -384,8 +383,8 @@ export default function ClassesPage() {
                       <p className="text-sm text-slate-400 mb-4">{c.annee_scolaire}</p>
                       <div className="mb-3">
                         <div className="flex justify-between text-sm text-slate-600 mb-1.5">
-                          <span className="font-medium">{c.nb_eleves} élève(s)</span>
-                          <span>{c.capacite_max} places</span>
+                          <span className="font-medium">{t('list.studentsCount', { count: c.nb_eleves })}</span>
+                          <span>{t('list.places', { count: c.capacite_max })}</span>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-2">
                           <div
@@ -396,7 +395,7 @@ export default function ClassesPage() {
                       </div>
                       <div className="pt-3 border-t border-slate-100" onClick={e => e.preventDefault()}>
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                          <UserCheck className="w-3.5 h-3.5" /> Titulaire
+                          <UserCheck className="w-3.5 h-3.5" /> {t('list.titulaire')}
                         </label>
                         <select
                           value={c.personnel_id || ''}
@@ -405,7 +404,7 @@ export default function ClassesPage() {
                           className="input-field text-sm py-2"
                         >
                           <option value="">
-                            {c.enseignant_nom ? `${c.enseignant_nom}${c.enseignant_prenom ? ` ${c.enseignant_prenom}` : ''}` : 'Non assigné'}
+                            {c.enseignant_nom ? `${c.enseignant_nom}${c.enseignant_prenom ? ` ${c.enseignant_prenom}` : ''}` : t('list.notAssigned')}
                           </option>
                           {enseignants.filter(en => en.id !== c.personnel_id).map(en => (
                             <option key={en.id} value={en.id}>
@@ -416,14 +415,14 @@ export default function ClassesPage() {
                       </div>
                       <div className="mt-3 flex items-center justify-between">
                         {plein ? (
-                          <Badge variant="danger">Classe pleine</Badge>
+                          <Badge variant="danger">{t('list.full')}</Badge>
                         ) : taux > 80 ? (
-                          <Badge variant="warning">Presque pleine</Badge>
+                          <Badge variant="warning">{t('list.almostFull')}</Badge>
                         ) : (
-                          <span className="text-sm text-slate-400">{100 - taux}% disponible</span>
+                          <span className="text-sm text-slate-400">{t('list.available', { pct: 100 - taux })}</span>
                         )}
                         <span className="text-xs text-emerald-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                          Voir détails →
+                          {tc('viewDetails')}
                         </span>
                       </div>
                     </Link>

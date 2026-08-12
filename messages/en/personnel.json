@@ -1,0 +1,42 @@
+{
+  "title": "Staff",
+  "subtitle": "{count} staff member(s)",
+  "breadcrumb": "Staff",
+  "add": "Add",
+  "newMember": "New member",
+  "searchPlaceholder": "Search name, phone, email...",
+  "resultLabel": "member(s)",
+  "allContracts": "All contracts",
+  "fields": {
+    "lastName": "Last name",
+    "firstName": "First name",
+    "type": "Type",
+    "contract": "Contract",
+    "phone": "Phone",
+    "email": "Email",
+    "hireDate": "Hire date",
+    "salary": "Salary (FCFA)"
+  },
+  "placeholders": {
+    "lastName": "SMITH",
+    "firstName": "John",
+    "phone": "699 000 000",
+    "email": "john@school.cm",
+    "salary": "150000"
+  },
+  "submit": "Add to staff",
+  "empty": "No staff members",
+  "emptyAction": "Add first member",
+  "columns": {
+    "fullName": "Full name",
+    "type": "Type",
+    "contract": "Contract",
+    "contact": "Contact",
+    "salary": "Salary"
+  },
+  "deleteConfirm": "Remove this staff member?",
+  "toasts": {
+    "added": "Member added",
+    "deleted": "Member removed"
+  }
+}

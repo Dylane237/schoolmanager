@@ -2,6 +2,7 @@ import 'server-only'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import { runtimeEnv } from './runtime-env'
 
 const APP_DIR = '.schoolmanager-data'
 export const SCHOOL_MANAGER_FOLDER = 'SchoolManager'
@@ -12,24 +13,19 @@ export function getDocumentsSchoolManagerPath(): string {
 }
 
 export function getUserDataDir(): string {
-  if (process.env.SM_USER_DATA) {
-    return process.env.SM_USER_DATA
+  const userData = runtimeEnv('SM_USER_DATA')
+  if (userData) {
+    return userData
   }
 
-  // Lazy evaluation — pas d'appel fs au niveau module
-  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+  if (process.versions.electron) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { app } = require('electron')
       return app.getPath('userData')
     } catch {
-      // pas dans Electron, fallback Documents
+      // fallback ci-dessous
     }
-  }
-
-  const documentsPath = getDocumentsSchoolManagerPath()
-  if (fs.existsSync(documentsPath)) {
-    return documentsPath
   }
 
   return path.join(process.cwd(), APP_DIR)

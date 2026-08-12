@@ -1,10 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { ArrowLeft, GraduationCap } from 'lucide-react'
 import { AuthLeftPanel } from './auth-left-panel'
 import { AuthBadges } from './auth-badges'
 import { AuthDashboardPreview } from './auth-dashboard-preview'
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 
 type AuthSplitLayoutProps = {
   mode: 'login' | 'register' | 'recover'
@@ -15,12 +17,14 @@ type AuthSplitLayoutProps = {
 }
 
 export function AuthSplitLayout({ mode, title, subtitle, children, footer }: AuthSplitLayoutProps) {
+  const t = useTranslations('auth')
+
   const alternate =
     mode === 'login'
-      ? { href: '/register', label: 'Créer un compte' }
+      ? { href: '/register', label: t('createAccount') }
       : mode === 'register'
-        ? { href: '/login', label: 'Se connecter' }
-        : { href: '/login', label: 'Retour connexion' }
+        ? { href: '/login', label: t('signInLink') }
+        : { href: '/login', label: t('backToLogin') }
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -32,7 +36,7 @@ export function AuthSplitLayout({ mode, title, subtitle, children, footer }: Aut
           aria-hidden
         />
 
-        <header className="relative z-10 flex items-center justify-between px-6 py-5 lg:px-10">
+        <header className="relative z-10 flex items-center justify-between gap-3 px-6 py-5 lg:px-10">
           <div className="flex items-center gap-2.5 lg:hidden">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 ring-1 ring-emerald-200">
               <GraduationCap className="h-4 w-4 text-emerald-700" strokeWidth={1.75} />
@@ -42,23 +46,25 @@ export function AuthSplitLayout({ mode, title, subtitle, children, footer }: Aut
             </span>
           </div>
 
-          <Link
-            href={alternate.href}
-            className="ml-auto flex items-center gap-1.5 text-[13px] text-gray-500 transition-colors hover:text-gray-800"
-          >
-            {mode !== 'login' && <ArrowLeft className="h-3.5 w-3.5" />}
-            {alternate.label}
-          </Link>
+          <div className="ml-auto flex items-center gap-3">
+            <LanguageSwitcher variant="auth" />
+            <Link
+              href={alternate.href}
+              className="flex items-center gap-1.5 text-[13px] text-gray-500 transition-colors hover:text-gray-800"
+            >
+              {mode !== 'login' && <ArrowLeft className="h-3.5 w-3.5" />}
+              {alternate.label}
+            </Link>
+          </div>
         </header>
 
-        {/* Hero mobile */}
         <div className="relative z-10 space-y-4 px-4 pb-2 lg:hidden">
           <div className="text-center">
             <h2 className="text-lg font-bold text-gray-900">
-              Fini les cahiers de tranches
+              {t('mobileHeroTitle')}
             </h2>
             <p className="mt-1 text-[13px] text-gray-500">
-              Paiements, élèves, bulletins — offline au Cameroun
+              {t('mobileHeroSubtitle')}
             </p>
           </div>
           <AuthBadges variant="light" layout="stack" />
@@ -83,7 +89,7 @@ export function AuthSplitLayout({ mode, title, subtitle, children, footer }: Aut
         </div>
 
         <footer className="relative z-10 px-6 py-4 text-center text-[12px] text-gray-400 lg:px-10">
-          © {new Date().getFullYear()} SchoolManager · Cameroun
+          {t('footer', { year: new Date().getFullYear() })}
         </footer>
       </main>
     </div>

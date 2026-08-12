@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useState, useEffect, useMemo } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { Plus, Megaphone, Trash2, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
@@ -9,6 +10,7 @@ import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import SmartFilterBar from '@/components/filters/SmartFilterBar'
 import { useSmartFilters } from '@/hooks/useSmartFilters'
+import { useTranslatedEnums } from '@/hooks/useTranslatedEnums'
 
 interface Annonce {
   id: string
@@ -22,12 +24,8 @@ interface Annonce {
   is_active: number
 }
 
-const CIBLE_LABELS: Record<string, string> = {
-  tous: 'Tous',
-  personnel: 'Personnel',
-  parents: 'Parents',
-  enseignants: 'Enseignants',
-}
+const CIBLE_VALUES = ['tous', 'personnel', 'parents', 'enseignants'] as const
+const PRIORITE_VALUES = ['normale', 'importante', 'urgente'] as const
 
 const PRIORITE_VARIANT: Record<string, 'default' | 'warning' | 'danger'> = {
   normale: 'default',
@@ -36,57 +34,64 @@ const PRIORITE_VARIANT: Record<string, 'default' | 'warning' | 'danger'> = {
 }
 
 export default function AnnoncesPage() {
+  const t = useTranslations('annonces')
+  const tc = useTranslations('common')
+
   return (
-    <Suspense fallback={<PageShell title="Annonces" breadcrumb="Annonces"><div className="card p-12 text-center text-slate-400">Chargement...</div></PageShell>}>
+    <Suspense fallback={
+      <PageShell title={t('title')} breadcrumb={t('breadcrumb')}>
+        <div className="card p-12 text-center text-slate-400">{tc('loading')}</div>
+      </PageShell>
+    }>
       <AnnoncesPageContent />
     </Suspense>
   )
 }
 
 function AnnoncesPageContent() {
+  const locale = useLocale()
+  const t = useTranslations('annonces')
+  const tc = useTranslations('common')
+  const tf = useTranslations('filters')
+  const te = useTranslatedEnums()
+
   const [annonces, setAnnonces] = useState<Annonce[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+
   const filterFields = useMemo(() => [
-    { key: 'q', type: 'search' as const, placeholder: 'Rechercher une annonce...', debounce: true },
+    { key: 'q', type: 'search' as const, placeholder: t('searchPlaceholder'), debounce: true },
     {
       key: 'cible',
       type: 'pills' as const,
-      label: 'Destinataires',
-      options: [
-        { value: 'tous', label: 'Tous' },
-        { value: 'personnel', label: 'Personnel' },
-        { value: 'parents', label: 'Parents' },
-        { value: 'enseignants', label: 'Enseignants' },
-      ],
+      label: tf('labels.recipients'),
+      options: CIBLE_VALUES.map(value => ({ value, label: te.announcementTarget(value) })),
       defaultValue: 'tous',
     },
     {
       key: 'priorite',
       type: 'pills' as const,
-      label: 'Priorité',
+      label: tf('labels.priority'),
       options: [
-        { value: 'tous', label: 'Toutes' },
-        { value: 'urgente', label: 'Urgente' },
-        { value: 'importante', label: 'Importante' },
-        { value: 'normale', label: 'Normale' },
+        { value: 'tous', label: tf('allFeminine') },
+        ...PRIORITE_VALUES.map(value => ({ value, label: te.announcementPriority(value) })),
       ],
       defaultValue: 'tous',
     },
     {
       key: 'etat',
       type: 'select' as const,
-      label: 'État',
+      label: tf('labels.state'),
       options: [
-        { value: 'tous', label: 'Toutes' },
-        { value: 'actives', label: 'Actives' },
-        { value: 'masquees', label: 'Masquées' },
-        { value: 'expirees', label: 'Expirées' },
+        { value: 'tous', label: tf('allFeminine') },
+        { value: 'actives', label: tf('announcements.active') },
+        { value: 'masquees', label: tf('announcements.hidden') },
+        { value: 'expirees', label: tf('announcements.expired') },
       ],
       defaultValue: 'actives',
     },
-  ], [])
+  ], [t, tf, te])
 
   const { values, debouncedValues, setFilter, reset, activeFilters } = useSmartFilters(filterFields)
 
@@ -132,7 +137,7 @@ function AnnoncesPageContent() {
 
   const handleCreate = async () => {
     if (!form.titre.trim() || !form.contenu.trim()) {
-      toast.error('Titre et contenu requis')
+      toast.error(t('toasts.required'))
       return
     }
     setSaving(true)
@@ -142,11 +147,11 @@ function AnnoncesPageContent() {
       body: JSON.stringify(form),
     })
     if (!res.ok) {
-      toast.error('Erreur lors de la publication')
+      toast.error(t('toasts.publishError'))
       setSaving(false)
       return
     }
-    toast.success('Annonce publiée')
+    toast.success(t('toasts.published'))
     setShowForm(false)
     setForm({ titre: '', contenu: '', cible: 'tous', priorite: 'normale', date_expiration: '' })
     await fetchAnnonces()
@@ -160,71 +165,72 @@ function AnnoncesPageContent() {
       body: JSON.stringify({ id, is_active: !is_active }),
     })
     await fetchAnnonces()
-    toast.success(is_active ? 'Annonce masquée' : 'Annonce réactivée')
+    toast.success(is_active ? t('toasts.hidden') : t('toasts.reactivated'))
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cette annonce ?')) return
+    if (!confirm(t('deleteConfirm'))) return
     await fetch(`/api/annonces?id=${id}`, { method: 'DELETE' })
     await fetchAnnonces()
-    toast.success('Annonce supprimée')
+    toast.success(t('toasts.deleted'))
   }
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    new Date(d).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    })
 
   return (
     <PageShell
-      title="Annonces"
-      subtitle="Communications officielles de l'établissement"
-      breadcrumb="Annonces"
+      title={t('title')}
+      subtitle={t('subtitle')}
+      breadcrumb={t('breadcrumb')}
       actions={
         <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2 py-2.5">
-          <Plus className="w-5 h-5" /> Nouvelle annonce
+          <Plus className="w-5 h-5" /> {t('new')}
         </button>
       }
     >
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="Publier une annonce" size="lg">
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={t('publishTitle')} size="lg">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Titre *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('fields.title')}</label>
             <input value={form.titre} onChange={e => setForm(p => ({ ...p, titre: e.target.value }))}
-              placeholder="Réunion des parents, fermeture exceptionnelle..."
+              placeholder={t('fields.titlePlaceholder')}
               className="input-field" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Contenu *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('fields.content')}</label>
             <textarea value={form.contenu} onChange={e => setForm(p => ({ ...p, contenu: e.target.value }))}
-              rows={5} placeholder="Détails de l'annonce..."
+              rows={5} placeholder={t('fields.contentPlaceholder')}
               className="input-field resize-none" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Destinataires</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('fields.recipients')}</label>
               <select value={form.cible} onChange={e => setForm(p => ({ ...p, cible: e.target.value }))} className="input-field">
-                <option value="tous">Tous</option>
-                <option value="personnel">Personnel</option>
-                <option value="parents">Parents</option>
-                <option value="enseignants">Enseignants</option>
+                {CIBLE_VALUES.map(value => (
+                  <option key={value} value={value}>{te.announcementTarget(value)}</option>
+                ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Priorité</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('fields.priority')}</label>
               <select value={form.priorite} onChange={e => setForm(p => ({ ...p, priorite: e.target.value }))} className="input-field">
-                <option value="normale">Normale</option>
-                <option value="importante">Importante</option>
-                <option value="urgente">Urgente</option>
+                {PRIORITE_VALUES.map(value => (
+                  <option key={value} value={value}>{te.announcementPriority(value)}</option>
+                ))}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Date d&apos;expiration (optionnel)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('fields.expiration')}</label>
             <input type="date" value={form.date_expiration}
               onChange={e => setForm(p => ({ ...p, date_expiration: e.target.value }))}
               className="input-field" />
           </div>
           <button onClick={handleCreate} disabled={saving} className="w-full btn-primary">
-            {saving ? 'Publication...' : 'Publier l\'annonce'}
+            {saving ? t('publishing') : t('publish')}
           </button>
         </div>
       </Modal>
@@ -236,29 +242,29 @@ function AnnoncesPageContent() {
         onReset={reset}
         activeFilters={activeFilters}
         resultCount={filteredAnnonces.length}
-        resultLabel="annonce(s)"
+        resultLabel={t('resultLabel')}
         loading={loading}
         className="mb-6"
       />
 
       {loading ? (
-        <div className="card p-16 text-center text-slate-400">Chargement...</div>
+        <div className="card p-16 text-center text-slate-400">{tc('loading')}</div>
       ) : annonces.length === 0 ? (
         <EmptyState
           icon={Megaphone}
-          title="Aucune annonce"
-          description="Publiez votre première communication officielle à destination du personnel et des parents."
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
           action={
             <button onClick={() => setShowForm(true)} className="btn-primary">
-              Créer une annonce
+              {t('emptyAction')}
             </button>
           }
         />
       ) : filteredAnnonces.length === 0 ? (
         <EmptyState
           icon={Megaphone}
-          title="Aucune annonce correspondante"
-          description="Modifiez vos filtres pour afficher d'autres annonces."
+          title={t('noMatchTitle')}
+          description={t('noMatchDescription')}
         />
       ) : (
         <div className="space-y-4">
@@ -271,20 +277,20 @@ function AnnoncesPageContent() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-2">
                     <Badge variant={PRIORITE_VARIANT[a.priorite] ?? 'default'}>
-                      {a.priorite.charAt(0).toUpperCase() + a.priorite.slice(1)}
+                      {te.announcementPriority(a.priorite)}
                     </Badge>
-                    <Badge variant="info">{CIBLE_LABELS[a.cible] || a.cible}</Badge>
-                    {!a.is_active && <Badge variant="neutral">Masquée</Badge>}
+                    <Badge variant="info">{te.announcementTarget(a.cible)}</Badge>
+                    {!a.is_active && <Badge variant="neutral">{t('hidden')}</Badge>}
                   </div>
                   <h3 className="text-lg font-bold text-slate-800">{a.titre}</h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    {formatDate(a.date_publication)} · {a.auteur_nom || 'Administration'}
+                    {formatDate(a.date_publication)} · {a.auteur_nom || t('authorDefault')}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button onClick={() => toggleActive(a.id, a.is_active)}
                     className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                    title={a.is_active ? 'Masquer' : 'Réactiver'}>
+                    title={a.is_active ? t('hide') : t('show')}>
                     {a.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                   <button onClick={() => handleDelete(a.id)}
@@ -295,7 +301,7 @@ function AnnoncesPageContent() {
               </div>
               <p className="text-base text-slate-700 leading-relaxed whitespace-pre-wrap">{a.contenu}</p>
               {a.date_expiration && (
-                <p className="text-sm text-slate-400 mt-3">Expire le {formatDate(a.date_expiration)}</p>
+                <p className="text-sm text-slate-400 mt-3">{t('expiresOn', { date: formatDate(a.date_expiration) })}</p>
               )}
             </article>
           ))}

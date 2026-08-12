@@ -1,0 +1,42 @@
+{
+  "title": "Personnel",
+  "subtitle": "{count} membre(s) du staff",
+  "breadcrumb": "Personnel",
+  "add": "Ajouter",
+  "newMember": "Nouveau membre",
+  "searchPlaceholder": "Rechercher nom, téléphone, email...",
+  "resultLabel": "membre(s)",
+  "allContracts": "Tous les contrats",
+  "fields": {
+    "lastName": "Nom",
+    "firstName": "Prénom",
+    "type": "Type",
+    "contract": "Contrat",
+    "phone": "Téléphone",
+    "email": "Email",
+    "hireDate": "Date d'embauche",
+    "salary": "Salaire (FCFA)"
+  },
+  "placeholders": {
+    "lastName": "MBALLA",
+    "firstName": "Jean",
+    "phone": "699 000 000",
+    "email": "jean@ecole.cm",
+    "salary": "150000"
+  },
+  "submit": "Ajouter au personnel",
+  "empty": "Aucun membre du personnel",
+  "emptyAction": "Ajouter le premier membre",
+  "columns": {
+    "fullName": "Nom complet",
+    "type": "Type",
+    "contract": "Contrat",
+    "contact": "Contact",
+    "salary": "Salaire"
+  },
+  "deleteConfirm": "Supprimer ce membre du personnel ?",
+  "toasts": {
+    "added": "Membre ajouté",
+    "deleted": "Membre supprimé"
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "auth": {
+    "title": "Administration éditeur",
+    "subtitle": "Connexion cloud — licences et parrainages centralisés.",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "submitting": "Connexion...",
+    "wrongPassword": "Mot de passe incorrect",
+    "logout": "Déconnexion",
+    "menu": "Menu",
+    "loading": "Chargement..."
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "licences": "Licences",
+    "referrals": "Parrainages"
+  },
+  "dashboard": {
+    "title": "Vue globale",
+    "subtitle": "Pilotage licences · établissements · parrainages",
+    "stats": {
+      "activeLicences": "Licences actives",
+      "establishments": "Établissements",
+      "establishmentsHint": "Clés activées",
+      "poolKeys": "Clés en pool",
+      "poolKeysHint": "Disponibles à l'inscription",
+      "expiringSoon": "Expirent sous 30j",
+      "estimatedRevenue": "Revenu estimé (actives)",
+      "totalKeys": "Total clés",
+      "noNameHint": "{count} sans nom sync."
+    },
+    "noNameWarning": "{count} établissement(s) sans nom en cloud — les noms remontent automatiquement quand l'école ouvre SchoolManager, ou renseignez-les dans <link>Licences</link>.",
+    "licencesLink": "Licences",
+    "recentEstablishments": "Établissements récents",
+    "allLicences": "Toutes les licences →",
+    "noActivatedSchool": "Aucune école activée."
+  },
+  "licences": {
+    "title": "Licences & établissements",
+    "subtitle": "{assigned} école(s) activée(s) · {available} clé(s) en pool",
+    "noNameSync": " · {count} sans nom synchronisé",
+    "newPoolKey": "Nouvelle clé pool",
+    "noNameBanner": "{count} licence(s) activée(s) sans nom d'établissement en cloud. Ouvrez SchoolManager sur chaque poste (sync auto) ou renseignez manuellement via « Établissement ».",
+    "filters": {
+      "all": "Toutes",
+      "assigned": "Attribuées",
+      "available": "Disponibles",
+      "noName": "Sans nom"
+    },
+    "searchPlaceholder": "Rechercher par nom d'école, clé, slug...",
+    "empty": "Aucune licence trouvée.",
+    "establishment": "Établissement",
+    "columns": {
+      "key": "Clé de licence",
+      "establishment": "Établissement",
+      "plan": "Plan",
+      "referral": "Parrain",
+      "status": "Statut",
+      "expiration": "Expiration",
+      "actions": "Actions"
+    },
+    "revoke": "Révoquer",
+    "revokeConfirm": "Révoquer cette licence ?",
+    "expiresOn": "Expire {date}",
+    "status": {
+      "revoked": "Révoquée",
+      "expired": "Expirée",
+      "daysLeft": "{days}j restants",
+      "active": "Active"
+    },
+    "createModal": {
+      "title": "Nouvelle clé pool",
+      "plan": "Plan",
+      "submit": "Générer la clé"
+    }
+  },
+  "referrals": {
+    "title": "Parrainages",
+    "subtitle": "Leads synchronisés · commissions 10 %",
+    "configError": "Supabase non configuré — vérifiez les variables sur Vercel.",
+    "stats": {
+      "inProgress": "En cours",
+      "active": "Actifs",
+      "paid": "Versées",
+      "totalPaid": "FCFA versés"
+    },
+    "all": "Tous",
+    "empty": "Aucun parrainage.",
+    "manage": "Gérer",
+    "subscription": "Abonnement",
+    "commission": "Commission",
+    "fields": {
+      "status": "Statut",
+      "subscriptionAmount": "Montant abonnement (FCFA)",
+      "commissionPaid": "Commission versée (FCFA)",
+      "referralSchool": "École filleul"
+    },
+    "referralOf": "Parrain {code} · {school}",
+    "status": {
+      "en_cours": "En cours",
+      "abonnement_actif": "Abonnement actif",
+      "commission_versee": "Commission versée",
+      "annule": "Annulé"
+    }
+  },
+  "schoolIdentity": {
+    "director": "Directeur",
+    "phone": "Téléphone",
+    "referralCode": "Code parrain",
+    "keyAvailable": "Clé disponible",
+    "awaitingRegistration": "En attente d'inscription sur /register",
+    "unsyncedSchool": "Établissement non synchronisé",
+    "missingName": "Nom manquant",
+    "fillSchool": "Renseigner l'établissement →",
+    "activeStudents": "{count, plural, one {# élève actif} other {# élèves actifs}}",
+    "maxStudents": " / {limit} max",
+    "unlimited": " · illimité",
+    "pricePerYear": "{price} FCFA / an"
+  },
+  "createKeyModal": {
+    "title": "Clé pool d'activation",
+    "subtitle": "Pour une nouvelle école — inscription /register",
+    "hint": "La clé générée reste <strong>disponible</strong> jusqu'à ce qu'une école s'inscrive. Son nom apparaîtra ici automatiquement après activation.",
+    "choosePlan": "Choisir le plan",
+    "expirationDate": "Date d'expiration",
+    "keyFormat": "Format de la clé",
+    "keyReady": "Clé prête à distribuer",
+    "keyReadyHint": "Communiquez cette clé au directeur — il la saisira lors de la création du compte école.",
+    "close": "Fermer",
+    "regenerate": "Regénérer",
+    "generate": "Générer la clé"
+  },
+  "editSchoolModal": {
+    "title": "Lier l'établissement",
+    "schoolName": "Nom de l'établissement *",
+    "schoolNamePlaceholder": "Ex. Collège Saint-Joseph",
+    "slug": "Slug (optionnel)",
+    "slugPlaceholder": "college-saint-joseph",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "nameRequired": "Le nom de l'établissement est requis",
+    "error": "Erreur"
+  }
+}

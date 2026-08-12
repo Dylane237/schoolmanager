@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getDbPath, ensureUserDataDir } from '@/lib/paths'
 
 const LICENCE_SERVER_URL = 'https://schoolmanager-eosin.vercel.app'
 
@@ -7,11 +8,8 @@ function getDb() {
 
   try {
     const Database = require('better-sqlite3')
-    const path = require('path')
-    const userDataPath = process.env.SM_USER_DATA ||
-      path.join(require('os').homedir(), 'Documents', 'SchoolManager')
-    const dbPath = path.join(userDataPath, 'schoolmanager.db')
-    const db = new Database(dbPath)
+    ensureUserDataDir()
+    const db = new Database(getDbPath())
     db.pragma('journal_mode = WAL')
     db.pragma('foreign_keys = ON')
     db.exec(`

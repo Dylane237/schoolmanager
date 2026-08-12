@@ -1,0 +1,12 @@
+{
+  "title": "Licence expired",
+  "subtitle": "Your school's subscription is no longer active. Renew your licence to regain access to all features.",
+  "howToRenew": "How to renew?",
+  "steps": {
+    "1": "Contact your SchoolManager representative",
+    "2": "Receive your new licence key",
+    "3": "Activate the key below or contact support"
+  },
+  "whatsappMessage": "Hello, my SchoolManager licence has expired. I would like to renew it.",
+  "emailSupport": "Email support"
+}

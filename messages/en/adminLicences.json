@@ -1,0 +1,145 @@
+{
+  "auth": {
+    "title": "Publisher administration",
+    "subtitle": "Cloud login — centralized licences and referrals.",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in...",
+    "wrongPassword": "Incorrect password",
+    "logout": "Sign out",
+    "menu": "Menu",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "licences": "Licences",
+    "referrals": "Referrals"
+  },
+  "dashboard": {
+    "title": "Overview",
+    "subtitle": "Licence · school · referral management",
+    "stats": {
+      "activeLicences": "Active licences",
+      "establishments": "Schools",
+      "establishmentsHint": "Activated keys",
+      "poolKeys": "Pool keys",
+      "poolKeysHint": "Available for registration",
+      "expiringSoon": "Expiring within 30d",
+      "estimatedRevenue": "Estimated revenue (active)",
+      "totalKeys": "Total keys",
+      "noNameHint": "{count} without synced name"
+    },
+    "noNameWarning": "{count} school(s) without a name in the cloud — names sync automatically when the school opens SchoolManager, or enter them in <link>Licences</link>.",
+    "licencesLink": "Licences",
+    "recentEstablishments": "Recent schools",
+    "allLicences": "All licences →",
+    "noActivatedSchool": "No schools activated."
+  },
+  "licences": {
+    "title": "Licences & schools",
+    "subtitle": "{assigned} school(s) activated · {available} pool key(s)",
+    "noNameSync": " · {count} without synced name",
+    "newPoolKey": "New pool key",
+    "noNameBanner": "{count} activated licence(s) without a school name in the cloud. Open SchoolManager on each machine (auto sync) or enter manually via « School ».",
+    "filters": {
+      "all": "All",
+      "assigned": "Assigned",
+      "available": "Available",
+      "noName": "No name"
+    },
+    "searchPlaceholder": "Search by school name, key, slug...",
+    "empty": "No licences found.",
+    "establishment": "School",
+    "columns": {
+      "key": "Licence key",
+      "establishment": "School",
+      "plan": "Plan",
+      "referral": "Referrer",
+      "status": "Status",
+      "expiration": "Expiration",
+      "actions": "Actions"
+    },
+    "revoke": "Revoke",
+    "revokeConfirm": "Revoke this licence?",
+    "expiresOn": "Expires {date}",
+    "status": {
+      "revoked": "Revoked",
+      "expired": "Expired",
+      "daysLeft": "{days}d left",
+      "active": "Active"
+    },
+    "createModal": {
+      "title": "New pool key",
+      "plan": "Plan",
+      "submit": "Generate key"
+    }
+  },
+  "referrals": {
+    "title": "Referrals",
+    "subtitle": "Synced leads · 10% commission",
+    "configError": "Supabase not configured — check variables on Vercel.",
+    "stats": {
+      "inProgress": "In progress",
+      "active": "Active",
+      "paid": "Paid out",
+      "totalPaid": "FCFA paid out"
+    },
+    "all": "All",
+    "empty": "No referrals.",
+    "manage": "Manage",
+    "subscription": "Subscription",
+    "commission": "Commission",
+    "fields": {
+      "status": "Status",
+      "subscriptionAmount": "Subscription amount (FCFA)",
+      "commissionPaid": "Commission paid (FCFA)",
+      "referralSchool": "Referred school"
+    },
+    "referralOf": "Referrer {code} · {school}",
+    "status": {
+      "en_cours": "In progress",
+      "abonnement_actif": "Active subscription",
+      "commission_versee": "Commission paid",
+      "annule": "Cancelled"
+    }
+  },
+  "schoolIdentity": {
+    "director": "Director",
+    "phone": "Phone",
+    "referralCode": "Referral code",
+    "keyAvailable": "Key available",
+    "awaitingRegistration": "Awaiting registration at /register",
+    "unsyncedSchool": "School not synced",
+    "missingName": "Missing name",
+    "fillSchool": "Enter school details →",
+    "activeStudents": "{count, plural, one {# active student} other {# active students}}",
+    "maxStudents": " / {limit} max",
+    "unlimited": " · unlimited",
+    "pricePerYear": "{price} FCFA / year"
+  },
+  "createKeyModal": {
+    "title": "Activation pool key",
+    "subtitle": "For a new school — registration at /register",
+    "hint": "The generated key stays <strong>available</strong> until a school registers. Its name will appear here automatically after activation.",
+    "choosePlan": "Choose plan",
+    "expirationDate": "Expiration date",
+    "keyFormat": "Key format",
+    "keyReady": "Key ready to distribute",
+    "keyReadyHint": "Share this key with the director — they will enter it when creating the school account.",
+    "close": "Close",
+    "regenerate": "Regenerate",
+    "generate": "Generate key"
+  },
+  "editSchoolModal": {
+    "title": "Link school",
+    "schoolName": "School name *",
+    "schoolNamePlaceholder": "e.g. Saint-Joseph College",
+    "slug": "Slug (optional)",
+    "slugPlaceholder": "saint-joseph-college",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "nameRequired": "School name is required",
+    "error": "Error"
+  }
+}

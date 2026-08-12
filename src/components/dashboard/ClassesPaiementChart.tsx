@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
   ResponsiveContainer, CartesianGrid,
@@ -9,32 +10,32 @@ import {
 type ClasseData = { classe: string; effectif: number; payes: number; pct: number }
 
 function barColor(pct: number) {
-  if (pct >= 80) return '#10b981' // emerald-500
-  if (pct >= 50) return '#f59e0b' // amber-500
-  return '#f87171' // red-400
+  if (pct >= 80) return '#10b981'
+  if (pct >= 50) return '#f59e0b'
+  return '#f87171'
 }
 
 export default function ClassesPaiementChart({ data, slug }: { data: ClasseData[]; slug: string }) {
-  // On affiche les 8 classes les moins à jour — c'est ce qui demande une
-  // action, le reste est consultable via "Voir tout".
+  const t = useTranslations('components.classesPaiementChart')
   const shown = data.slice(0, 8)
   const chartHeight = Math.max(shown.length * 32, 120)
+  const otherCount = data.length - 8
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Répartition</p>
-          <p className="text-lg font-semibold text-slate-800">Élèves à jour par classe</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">{t('distribution')}</p>
+          <p className="text-lg font-semibold text-slate-800">{t('title')}</p>
         </div>
         <Link href={`/${slug}/classes`} className="text-xs text-emerald-600 hover:underline font-medium flex-shrink-0">
-          Voir tout
+          {t('viewAll')}
         </Link>
       </div>
 
       {shown.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-sm text-slate-400">Aucune tranche configurée sur vos classes</p>
+          <p className="text-sm text-slate-400">{t('noInstalments')}</p>
         </div>
       ) : (
         <div style={{ height: chartHeight }} className="flex-1">
@@ -68,7 +69,10 @@ export default function ClassesPaiementChart({ data, slug }: { data: ClasseData[
                 formatter={(value, _name, item) => {
                   const p = item.payload as ClasseData
                   const v = Number(value ?? 0)
-                  return [`${p.payes}/${p.effectif} élèves (${v}%)`, 'À jour']
+                  return [
+                    t('studentsCount', { paid: p.payes, total: p.effectif, pct: v }),
+                    t('tooltipUpToDate'),
+                  ]
                 }}
               />
               <Bar dataKey="pct" radius={[0, 4, 4, 0]} maxBarSize={16}>
@@ -81,9 +85,9 @@ export default function ClassesPaiementChart({ data, slug }: { data: ClasseData[
         </div>
       )}
 
-      {data.length > 8 && (
+      {otherCount > 0 && (
         <p className="text-xs text-slate-400 mt-3">
-          {data.length - 8} autre{data.length - 8 > 1 ? 's' : ''} classe{data.length - 8 > 1 ? 's' : ''} — voir la liste complète
+          {t('otherClasses', { count: otherCount })}
         </p>
       )}
     </div>

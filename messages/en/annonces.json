@@ -1,0 +1,39 @@
+{
+  "title": "Announcements",
+  "subtitle": "Official school communications",
+  "breadcrumb": "Announcements",
+  "new": "New announcement",
+  "publishTitle": "Publish an announcement",
+  "fields": {
+    "title": "Title *",
+    "titlePlaceholder": "Parents' meeting, exceptional closure...",
+    "content": "Content *",
+    "contentPlaceholder": "Announcement details...",
+    "recipients": "Recipients",
+    "priority": "Priority",
+    "expiration": "Expiration date (optional)"
+  },
+  "publish": "Publish announcement",
+  "publishing": "Publishing...",
+  "searchPlaceholder": "Search an announcement...",
+  "resultLabel": "announcement(s)",
+  "emptyTitle": "No announcements",
+  "emptyDescription": "Publish your first official communication to staff and parents.",
+  "emptyAction": "Create announcement",
+  "noMatchTitle": "No matching announcements",
+  "noMatchDescription": "Adjust your filters to show other announcements.",
+  "hidden": "Hidden",
+  "expiresOn": "Expires on {date}",
+  "authorDefault": "Administration",
+  "hide": "Hide",
+  "show": "Reactivate",
+  "deleteConfirm": "Delete this announcement?",
+  "toasts": {
+    "required": "Title and content required",
+    "publishError": "Error publishing announcement",
+    "published": "Announcement published",
+    "hidden": "Announcement hidden",
+    "reactivated": "Announcement reactivated",
+    "deleted": "Announcement deleted"
+  }
+}

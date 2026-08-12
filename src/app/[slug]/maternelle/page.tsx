@@ -2,12 +2,14 @@
 
 import { Suspense, useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
-import { Plus, Trash2, Save, ChevronDown, Settings, X, Check, Printer, Sprout } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { Plus, Trash2, Save, ChevronDown, Settings, X, Printer, Sprout } from 'lucide-react'
 import SmartFilterBar from '@/components/filters/SmartFilterBar'
 import StudentContextBanner from '@/components/students/StudentContextBanner'
 import EmptyState from '@/components/ui/EmptyState'
 import { useSmartFilters } from '@/hooks/useSmartFilters'
 import { useStudentDeepLink } from '@/hooks/useStudentDeepLink'
+import { useTranslatedEnums } from '@/hooks/useTranslatedEnums'
 
 interface Eleve {
   id: string
@@ -36,24 +38,23 @@ interface Domaine {
   competences: string[]
 }
 
-const PERIODES = [
-  { value: 'sequence1', label: 'Séquence 1' },
-  { value: 'sequence2', label: 'Séquence 2' },
-  { value: 'sequence3', label: 'Séquence 3' },
-  { value: 'sequence4', label: 'Séquence 4' },
-  { value: 'sequence5', label: 'Séquence 5' },
-  { value: 'sequence6', label: 'Séquence 6' },
-]
+const PERIODE_VALUES = [
+  'sequence1', 'sequence2', 'sequence3', 'sequence4', 'sequence5', 'sequence6',
+] as const
 
-const STATUTS = [
-  { value: 'acquis',     label: 'Acquis',    color: 'bg-emerald-500', light: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  { value: 'en_cours',  label: 'En cours',  color: 'bg-amber-500',   light: 'bg-amber-50 text-amber-700 border-amber-200'       },
-  { value: 'non_acquis',label: 'Non acquis',color: 'bg-red-500',     light: 'bg-red-50 text-red-700 border-red-200'             },
-]
+const STATUT_VALUES = ['acquis', 'en_cours', 'non_acquis'] as const
+
+const STATUT_STYLES: Record<string, { color: string; light: string }> = {
+  acquis: { color: 'bg-emerald-500', light: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  en_cours: { color: 'bg-amber-500', light: 'bg-amber-50 text-amber-700 border-amber-200' },
+  non_acquis: { color: 'bg-red-500', light: 'bg-red-50 text-red-700 border-red-200' },
+}
 
 export default function MaternellePage() {
+  const tc = useTranslations('common')
+
   return (
-    <Suspense fallback={<div className="p-12 text-center text-slate-400">Chargement...</div>}>
+    <Suspense fallback={<div className="p-12 text-center text-slate-400">{tc('loading')}</div>}>
       <MaternellePageContent />
     </Suspense>
   )
@@ -61,6 +62,10 @@ export default function MaternellePage() {
 
 function MaternellePageContent() {
   const { slug } = useParams() as { slug: string }
+  const t = useTranslations('maternelle')
+  const tc = useTranslations('common')
+  const tf = useTranslations('filters')
+  const te = useTranslatedEnums()
 
   const [eleves, setEleves] = useState<Eleve[]>([])
   const [classes, setClasses] = useState<Classe[]>([])
@@ -69,13 +74,30 @@ function MaternellePageContent() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
 
+  const periodes = useMemo(
+    () => PERIODE_VALUES.map(value => ({
+      value,
+      label: t(`sequences.${value}` as 'sequences.sequence1'),
+    })),
+    [t],
+  )
+
+  const statuts = useMemo(
+    () => STATUT_VALUES.map(value => ({
+      value,
+      label: te.maternelleStatus(value),
+      ...STATUT_STYLES[value],
+    })),
+    [te],
+  )
+
   const filterFields = useMemo(() => [
     {
       key: 'classe',
       type: 'select' as const,
-      label: 'Classe',
+      label: tf('class.label'),
       options: [
-        { value: '', label: 'Toutes les classes maternelle' },
+        { value: '', label: t('allNurseryClasses') },
         ...classes.map(c => ({ value: c.id, label: c.nom })),
       ],
       defaultValue: '',
@@ -83,9 +105,9 @@ function MaternellePageContent() {
     {
       key: 'eleve',
       type: 'select' as const,
-      label: 'Élève',
+      label: t('student'),
       options: [
-        { value: '', label: 'Tous les élèves' },
+        { value: '', label: t('allStudents') },
         ...eleves.map(e => ({ value: e.id, label: `${e.nom} ${e.prenom}` })),
       ],
       defaultValue: '',
@@ -93,11 +115,11 @@ function MaternellePageContent() {
     {
       key: 'periode',
       type: 'pills' as const,
-      label: 'Séquence',
-      options: PERIODES.map(p => ({ value: p.value, label: p.label })),
+      label: t('sequence'),
+      options: periodes.map(p => ({ value: p.value, label: p.label })),
       defaultValue: 'sequence1',
     },
-  ], [classes, eleves])
+  ], [classes, eleves, periodes, t, tf])
 
   const { values, setFilter, setFilters, reset, activeFilters } = useSmartFilters(filterFields)
   const { student } = useStudentDeepLink(setFilters, {
@@ -165,18 +187,23 @@ function MaternellePageContent() {
 
   const cycleStatut = (eleve_id: string, domaine: string, competence: string) => {
     const current = getStatut(eleve_id, domaine, competence)
-    const order = [null, 'non_acquis', 'en_cours', 'acquis']
+    const order: (string | null)[] = [null, 'non_acquis', 'en_cours', 'acquis']
     const idx = order.indexOf(current)
     const next = order[(idx + 1) % order.length]
     if (next) handleStatut(eleve_id, domaine, competence, next)
     else handleStatut(eleve_id, domaine, competence, 'non_acquis')
   }
 
+  const statutLabel = (statut: string | null) => {
+    if (!statut) return t('notEvaluated')
+    return statuts.find(s => s.value === statut)?.label ?? t('notEvaluated')
+  }
+
   const StatutBadge = ({ eleve_id, domaine, competence }: { eleve_id: string; domaine: string; competence: string }) => {
     const statut = getStatut(eleve_id, domaine, competence)
     const key = `${eleve_id}-${domaine}-${competence}`
     const isSaving = saving === key
-    const s = STATUTS.find(s => s.value === statut)
+    const s = statuts.find(s => s.value === statut)
 
     return (
       <button
@@ -186,12 +213,11 @@ function MaternellePageContent() {
           s ? s.light : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300'
         } ${isSaving ? 'opacity-50' : 'hover:opacity-80'}`}
       >
-        {isSaving ? '...' : (s ? s.label : 'Non évalué')}
+        {isSaving ? '...' : statutLabel(statut)}
       </button>
     )
   }
 
-  // Stats rapides par élève
   const getStats = (eleve_id: string) => {
     const cs = competences.filter(c => c.eleve_id === eleve_id)
     return {
@@ -201,7 +227,6 @@ function MaternellePageContent() {
     }
   }
 
-  // Settings domaines
   const openSettings = () => {
     setDomainesEdit(JSON.parse(JSON.stringify(domaines)))
     setShowSettings(true)
@@ -255,7 +280,13 @@ function MaternellePageContent() {
     ? eleves.filter(e => e.id === eleveId)
     : eleves
 
-  const periodeLabel = PERIODES.find(p => p.value === periode)?.label || periode
+  const periodeLabel = periodes.find(p => p.value === periode)?.label || periode
+
+  const statsLabels = [
+    { key: 'acquis', color: 'text-emerald-600' },
+    { key: 'en_cours', color: 'text-amber-600' },
+    { key: 'non_acquis', color: 'text-red-600' },
+  ] as const
 
   const handlePrint = () => {
     window.print()
@@ -263,22 +294,21 @@ function MaternellePageContent() {
 
   return (
     <div className="p-8">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Livret Maternelle</h1>
-          <p className="text-slate-500 text-sm mt-1">Évaluation des compétences par domaine</p>
+          <h1 className="text-2xl font-bold text-slate-800">{t('title')}</h1>
+          <p className="text-slate-500 text-sm mt-1">{t('subtitle')}</p>
         </div>
         <div className="flex gap-2">
           {eleveId && (
             <button onClick={handlePrint}
               className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm transition-colors print:hidden">
-              <Printer className="w-4 h-4" /> Imprimer le livret
+              <Printer className="w-4 h-4" /> {t('printBooklet')}
             </button>
           )}
           <button onClick={openSettings}
             className="flex items-center gap-2 border border-slate-200 hover:border-slate-300 text-slate-600 px-3 py-2 rounded-lg text-sm transition-colors print:hidden">
-            <Settings className="w-4 h-4" /> Domaines
+            <Settings className="w-4 h-4" /> {t('domains')}
           </button>
         </div>
       </div>
@@ -290,7 +320,7 @@ function MaternellePageContent() {
         onReset={reset}
         activeFilters={activeFilters}
         resultCount={elevesFiltres.length}
-        resultLabel="élève(s)"
+        resultLabel={tf('resultLabel.students')}
         loading={loading}
         className="mb-6"
       />
@@ -300,15 +330,14 @@ function MaternellePageContent() {
       )}
 
       {loading ? (
-        <div className="p-12 text-center text-slate-400 text-sm">Chargement...</div>
+        <div className="p-12 text-center text-slate-400 text-sm">{tc('loading')}</div>
       ) : elevesFiltres.length === 0 ? (
         <EmptyState
           icon={Sprout}
-          title="Aucun élève maternelle"
-          description="Inscrivez des élèves en section maternelle ou modifiez vos filtres."
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
         />
       ) : eleveId ? (
-        /* Vue détaillée un élève */
         <div className="space-y-4 print-area" id="livret-print">
           {(() => {
             const eleve = elevesFiltres[0]
@@ -316,31 +345,27 @@ function MaternellePageContent() {
             return (
               <>
                 <div className="hidden print:block mb-6 border-b border-slate-300 pb-4">
-                  <h1 className="text-xl font-bold">Livret de compétences — Maternelle</h1>
+                  <h1 className="text-xl font-bold">{t('printHeader')}</h1>
                   <p className="text-sm mt-1">{eleve.nom} {eleve.prenom} · {eleve.classe_nom} · {periodeLabel}</p>
-                  <p className="text-xs text-slate-500 mt-1">Matricule : {eleve.numero_matricule || '—'}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {t('matricule', { value: eleve.numero_matricule || '—' })}
+                  </p>
                 </div>
-                {/* Stats élève */}
                 <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-6 print:border-0 print:p-0">
                   <div>
                     <p className="font-bold text-slate-800">{eleve.nom} {eleve.prenom}</p>
                     <p className="text-xs text-slate-400">{eleve.classe_nom}</p>
                   </div>
                   <div className="ml-auto flex gap-4">
-                    {[
-                      { label: 'Acquis', val: stats.acquis, color: 'text-emerald-600' },
-                      { label: 'En cours', val: stats.en_cours, color: 'text-amber-600' },
-                      { label: 'Non acquis', val: stats.non_acquis, color: 'text-red-600' },
-                    ].map(s => (
-                      <div key={s.label} className="text-center">
-                        <p className={`text-xl font-bold ${s.color}`}>{s.val}</p>
-                        <p className="text-xs text-slate-500">{s.label}</p>
+                    {statsLabels.map(s => (
+                      <div key={s.key} className="text-center">
+                        <p className={`text-xl font-bold ${s.color}`}>{stats[s.key]}</p>
+                        <p className="text-xs text-slate-500">{te.maternelleStatus(s.key)}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Domaines */}
                 {domaines.map((domaine, di) => (
                   <div key={di} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                     <div className="bg-slate-50 border-b border-slate-200 px-4 py-3">
@@ -354,7 +379,7 @@ function MaternellePageContent() {
                             <StatutBadge eleve_id={eleve.id} domaine={domaine.nom} competence={comp} />
                           </span>
                           <span className="hidden print:inline text-xs font-semibold">
-                            {STATUTS.find(s => s.value === getStatut(eleve.id, domaine.nom, comp))?.label || 'Non évalué'}
+                            {statutLabel(getStatut(eleve.id, domaine.nom, comp))}
                           </span>
                         </div>
                       ))}
@@ -366,7 +391,6 @@ function MaternellePageContent() {
           })()}
         </div>
       ) : (
-        /* Vue grille tous les élèves */
         <div className="space-y-8">
           {domaines.map((domaine, di) => (
             <div key={di} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -377,7 +401,7 @@ function MaternellePageContent() {
                 <table className="w-full">
                   <thead className="border-b border-slate-100">
                     <tr>
-                      <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500 w-48">Compétence</th>
+                      <th className="text-left px-4 py-2 text-xs font-semibold text-slate-500 w-48">{t('competence')}</th>
                       {elevesFiltres.map(e => (
                         <th key={e.id} className="text-center px-2 py-2 text-xs font-medium text-slate-600 min-w-28">
                           <button onClick={() => setFilter('eleve', e.id)} className="hover:text-emerald-600 transition-colors">
@@ -406,12 +430,11 @@ function MaternellePageContent() {
         </div>
       )}
 
-      {/* Modal Settings Domaines */}
       {showSettings && (
         <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-8">
             <div className="flex items-center justify-between p-6 border-b border-slate-200">
-              <h2 className="font-bold text-slate-800">Gérer les domaines de compétences</h2>
+              <h2 className="font-bold text-slate-800">{t('settingsTitle')}</h2>
               <button onClick={() => setShowSettings(false)}>
                 <X className="w-5 h-5 text-slate-400" />
               </button>
@@ -449,7 +472,7 @@ function MaternellePageContent() {
                           value={newCompetences[di] || ''}
                           onChange={e => setNewCompetences(p => ({ ...p, [di]: e.target.value }))}
                           onKeyDown={e => e.key === 'Enter' && addCompetence(di)}
-                          placeholder="Nouvelle compétence..."
+                          placeholder={t('newCompetencePlaceholder')}
                           className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                         />
                         <button onClick={() => addCompetence(di)}
@@ -462,18 +485,17 @@ function MaternellePageContent() {
                 </div>
               ))}
 
-              {/* Ajouter domaine */}
               <div className="flex gap-2 pt-2">
                 <input
                   value={newDomaine}
                   onChange={e => setNewDomaine(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addDomaine()}
-                  placeholder="Nom du nouveau domaine..."
+                  placeholder={t('newDomainPlaceholder')}
                   className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 />
                 <button onClick={addDomaine}
                   className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                  <Plus className="w-4 h-4" /> Ajouter
+                  <Plus className="w-4 h-4" /> {tc('add')}
                 </button>
               </div>
             </div>
@@ -481,12 +503,12 @@ function MaternellePageContent() {
             <div className="flex gap-3 p-6 border-t border-slate-200">
               <button onClick={() => setShowSettings(false)}
                 className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
-                Annuler
+                {tc('cancel')}
               </button>
               <button onClick={saveDomaines} disabled={savingDomaines}
                 className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60">
                 <Save className="w-4 h-4" />
-                {savingDomaines ? 'Enregistrement...' : 'Enregistrer'}
+                {savingDomaines ? tc('saving') : tc('save')}
               </button>
             </div>
           </div>

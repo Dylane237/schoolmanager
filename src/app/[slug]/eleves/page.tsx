@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Plus, UserX } from 'lucide-react'
 import PageShell from '@/components/layout/PageShell'
 import Badge from '@/components/ui/Badge'
@@ -10,10 +11,11 @@ import SmartFilterBar from '@/components/filters/SmartFilterBar'
 import { useSmartFilters } from '@/hooks/useSmartFilters'
 import { useClasses } from '@/hooks/useClasses'
 import {
-  ELEVE_PRESETS,
-  SECTION_OPTIONS,
-  STATUT_PAIEMENT_OPTIONS,
-} from '@/lib/filter-presets'
+  useSectionOptions,
+  useStudentStatutOptions,
+  useStudentFilters,
+  useTranslatedEnums,
+} from '@/hooks/useTranslatedEnums'
 
 interface Eleve {
   id: string
@@ -30,53 +32,60 @@ interface Eleve {
   total_attendu: number
 }
 
-const FILTER_FIELDS = [
-  {
-    key: 'q',
-    type: 'search' as const,
-    placeholder: 'Rechercher par nom, prénom, matricule, parent...',
-    debounce: true,
-  },
-  {
-    key: 'section',
-    type: 'select' as const,
-    label: 'Section',
-    options: SECTION_OPTIONS,
-    defaultValue: '',
-  },
-  {
-    key: 'classe',
-    type: 'select' as const,
-    label: 'Classe',
-    options: [{ value: '', label: 'Toutes les classes' }],
-    defaultValue: '',
-  },
-  {
-    key: 'statut',
-    type: 'select' as const,
-    label: 'Paiement',
-    options: STATUT_PAIEMENT_OPTIONS,
-    defaultValue: 'tous',
-  },
-]
-
 function ElevesPageContent() {
   const { slug } = useParams()
   const router = useRouter()
+  const t = useTranslations('eleves')
+  const tc = useTranslations('common')
+  const tf = useTranslations('filters')
+  const te = useTranslatedEnums()
   const { classes } = useClasses()
+  const sectionOptions = useSectionOptions()
+  const statutOptions = useStudentStatutOptions()
+  const presets = useStudentFilters()
   const [eleves, setEleves] = useState<Eleve[]>([])
   const [loading, setLoading] = useState(true)
 
+  const filterFields = useMemo(() => [
+    {
+      key: 'q',
+      type: 'search' as const,
+      placeholder: t('list.searchPlaceholder'),
+      debounce: true,
+    },
+    {
+      key: 'section',
+      type: 'select' as const,
+      label: tf('section.label'),
+      options: sectionOptions,
+      defaultValue: '',
+    },
+    {
+      key: 'classe',
+      type: 'select' as const,
+      label: tf('class.label'),
+      options: [{ value: '', label: t('list.allClasses') }],
+      defaultValue: '',
+    },
+    {
+      key: 'statut',
+      type: 'select' as const,
+      label: tf('payment.label'),
+      options: statutOptions,
+      defaultValue: 'tous',
+    },
+  ], [t, tf, sectionOptions, statutOptions])
+
   const fields = useMemo(() => {
     const classeOptions = [
-      { value: '', label: 'Toutes les classes' },
-      { value: '__none__', label: 'Sans classe' },
+      { value: '', label: t('list.allClasses') },
+      { value: '__none__', label: tf('students.noClass') },
       ...classes.map(c => ({ value: c.id, label: c.nom })),
     ]
-    return FILTER_FIELDS.map(f =>
+    return filterFields.map(f =>
       f.key === 'classe' ? { ...f, options: classeOptions } : f
     )
-  }, [classes])
+  }, [filterFields, classes, t, tf])
 
   const {
     values,
@@ -106,22 +115,32 @@ function ElevesPageContent() {
   useEffect(() => { fetchEleves() }, [fetchEleves])
 
   const getStatutPaiement = (paye: number, attendu: number) => {
-    if (attendu === 0) return { label: 'N/A', variant: 'neutral' as const }
+    if (attendu === 0) return { label: t('list.paymentNa'), variant: 'neutral' as const }
     const reste = attendu - paye
-    if (reste <= 0) return { label: 'Soldé', variant: 'success' as const }
-    if (paye > 0) return { label: 'Partiel', variant: 'warning' as const }
-    return { label: 'Impayé', variant: 'danger' as const }
+    if (reste <= 0) return { label: te.paymentStatus('paye'), variant: 'success' as const }
+    if (paye > 0) return { label: te.paymentStatus('partiel'), variant: 'warning' as const }
+    return { label: te.paymentStatus('impaye'), variant: 'danger' as const }
   }
+
+  const columnHeaders = [
+    t('list.columns.student'),
+    t('list.columns.matricule'),
+    t('list.columns.class'),
+    t('list.columns.section'),
+    t('list.columns.parentContact'),
+    t('list.columns.payment'),
+    '',
+  ]
 
   return (
     <PageShell
-      title="Élèves"
-      subtitle={`${eleves.length} élève(s) inscrit(s)`}
-      breadcrumb="Élèves"
+      title={t('list.title')}
+      subtitle={t('list.subtitle', { count: eleves.length })}
+      breadcrumb={t('list.breadcrumb')}
       actions={
         <button onClick={() => router.push(`/${slug}/eleves/nouveau`)}
           className="btn-primary flex items-center gap-2 py-2.5">
-          <Plus className="w-5 h-5" /> Nouvel élève
+          <Plus className="w-5 h-5" /> {t('list.newStudent')}
         </button>
       }
     >
@@ -131,25 +150,25 @@ function ElevesPageContent() {
         onChange={setFilter}
         onReset={reset}
         activeFilters={activeFilters}
-        presets={ELEVE_PRESETS}
+        presets={presets}
         onPreset={applyPreset}
         resultCount={eleves.length}
-        resultLabel="élève(s)"
+        resultLabel={t('list.resultLabel')}
         loading={loading}
         className="mb-6"
       />
 
       <div className="card overflow-hidden">
         {loading ? (
-          <div className="p-16 text-center text-slate-400 text-base">Chargement...</div>
+          <div className="p-16 text-center text-slate-400 text-base">{tc('loading')}</div>
         ) : eleves.length === 0 ? (
           <EmptyState
             icon={UserX}
-            title="Aucun élève trouvé"
-            description="Modifiez vos filtres ou inscrivez votre premier élève."
+            title={t('list.emptyTitle')}
+            description={t('list.emptyDescription')}
             action={
               <button onClick={() => router.push(`/${slug}/eleves/nouveau`)} className="btn-primary">
-                Inscrire un élève
+                {t('list.emptyAction')}
               </button>
             }
           />
@@ -158,7 +177,7 @@ function ElevesPageContent() {
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  {['Élève', 'Matricule', 'Classe', 'Section', 'Contact parent', 'Paiement', ''].map(h => (
+                  {columnHeaders.map(h => (
                     <th key={h} className="text-left px-5 py-3.5 text-sm font-semibold text-slate-500 uppercase tracking-wide">
                       {h}
                     </th>
@@ -187,14 +206,14 @@ function ElevesPageContent() {
                             <p className="font-semibold text-slate-800 text-base group-hover:text-emerald-700 transition-colors">
                               {eleve.nom} {eleve.prenom}
                             </p>
-                            <p className="text-sm text-slate-400">{eleve.sexe === 'M' ? 'Masculin' : 'Féminin'}</p>
+                            <p className="text-sm text-slate-400">{te.sex(eleve.sexe)}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-4 font-mono text-sm text-slate-500">{eleve.numero_matricule}</td>
                       <td className="px-5 py-4 text-base text-slate-600">{eleve.classe_nom || '—'}</td>
                       <td className="px-5 py-4">
-                        <Badge variant="neutral">{eleve.section || '—'}</Badge>
+                        <Badge variant="neutral">{eleve.section ? te.section(eleve.section) : '—'}</Badge>
                       </td>
                       <td className="px-5 py-4">
                         <p className="text-base text-slate-700">{eleve.parent_nom || '—'}</p>
@@ -204,7 +223,7 @@ function ElevesPageContent() {
                         <Badge variant={statut.variant}>{statut.label}</Badge>
                       </td>
                       <td className="px-5 py-4 text-emerald-600 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                        Voir fiche →
+                        {tc('viewProfile')}
                       </td>
                     </tr>
                   )
@@ -218,13 +237,19 @@ function ElevesPageContent() {
   )
 }
 
+function ElevesPageFallback() {
+  const t = useTranslations('eleves')
+
+  return (
+    <PageShell title={t('list.title')} breadcrumb={t('list.breadcrumb')}>
+      <div className="card p-16 text-center text-slate-400">{t('list.loadingFilters')}</div>
+    </PageShell>
+  )
+}
+
 export default function ElevesPage() {
   return (
-    <Suspense fallback={
-      <PageShell title="Élèves" breadcrumb="Élèves">
-        <div className="card p-16 text-center text-slate-400">Chargement des filtres...</div>
-      </PageShell>
-    }>
+    <Suspense fallback={<ElevesPageFallback />}>
       <ElevesPageContent />
     </Suspense>
   )

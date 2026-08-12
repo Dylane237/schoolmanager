@@ -1,0 +1,164 @@
+{
+  "list": {
+    "title": "Classes",
+    "subtitle": "{count} classe(s) · Année {year}",
+    "breadcrumb": "Classes",
+    "transfers": "Répartition",
+    "referential": "Référentiel CM",
+    "newClass": "Nouvelle classe",
+    "searchPlaceholder": "Rechercher une classe, un niveau...",
+    "resultLabel": "classe(s)",
+    "referentialTitle": "Référentiel des niveaux — Cameroun",
+    "referentialDesc": "Sélectionnez les niveaux à créer pour l'année {year}. Les classes existantes sont ignorées.",
+    "exists": "Existe",
+    "creating": "Création...",
+    "createCount": "Créer {count} classe(s)",
+    "modalNewTitle": "Nouvelle classe",
+    "fields": {
+      "section": "Section *",
+      "level": "Niveau (référentiel)",
+      "chooseLevel": "— Choisir un niveau —",
+      "className": "Nom de la classe *",
+      "classNamePlaceholder": "CM2 A, Class 3 B...",
+      "schoolYear": "Année scolaire",
+      "maxCapacity": "Capacité max"
+    },
+    "createClass": "Créer la classe",
+    "emptyTitle": "Aucune classe configurée",
+    "emptyDescription": "Utilisez le référentiel camerounais pour créer vos classes en un clic.",
+    "emptyAction": "Ouvrir le référentiel",
+    "noMatchTitle": "Aucune classe correspondante",
+    "noMatchDescription": "Modifiez vos critères de recherche ou réinitialisez les filtres.",
+    "resetFilters": "Réinitialiser les filtres",
+    "studentsCount": "{count} élève(s)",
+    "places": "{count} places",
+    "titulaire": "Titulaire",
+    "notAssigned": "Non assigné",
+    "full": "Classe pleine",
+    "almostFull": "Presque pleine",
+    "available": "{pct}% disponible",
+    "toasts": {
+      "createError": "Erreur lors de la création",
+      "created": "Classe créée avec succès",
+      "createdBulk": "{count} classe(s) créée(s)",
+      "assignError": "Erreur lors de l'affectation",
+      "assigned": "Enseignant affecté"
+    }
+  },
+  "detail": {
+    "breadcrumb": "Classe",
+    "loadingBreadcrumb": "Chargement...",
+    "stats": {
+      "studentsEnrolled": "Élèves inscrits",
+      "placesSub": "/ {max} places",
+      "fillRate": "Remplissage",
+      "subjects": "Matières",
+      "unpaid": "Impayés",
+      "studentsSub": "élève(s)"
+    },
+    "titularTeacher": "Enseignant titulaire",
+    "noTeacher": "Aucun enseignant affecté",
+    "chooseTeacher": "Choisir un enseignant...",
+    "manageStaff": "Gérer le personnel →",
+    "quickActions": {
+      "title": "Actions rapides",
+      "enroll": {
+        "label": "Inscrire",
+        "desc": "Nouvel élève"
+      },
+      "attendance": {
+        "label": "Appel",
+        "desc": "Présences"
+      },
+      "grades": {
+        "label": "Notes",
+        "desc": "Saisie"
+      },
+      "payments": {
+        "label": "Paiements",
+        "desc": "Situation"
+      }
+    },
+    "installments": {
+      "title": "Tranches de paiement",
+      "empty": "Aucune tranche configurée pour cette classe",
+      "configure": "Configurer les tranches →",
+      "installment": "Tranche {n}",
+      "beforeDate": "· avant le {date}",
+      "amount": "Montant (FCFA)",
+      "amountPlaceholder": "Ex: 50000",
+      "dueDate": "Date limite (optionnel)",
+      "add": "Ajouter une tranche",
+      "total": "Total :"
+    },
+    "examFees": {
+      "title": "Frais d'examen",
+      "defaultLabel": "Concours d'entrée en 6ème",
+      "empty": "Aucun frais d'examen pour cette classe",
+      "emptyHint": "Ex. concours CM2, examens officiels…",
+      "configureLink": "Configurer →",
+      "unpaidCount": "{count, plural, one {# impayé} other {# impayés}}",
+      "dueDateLabel": "Date limite : {date}",
+      "label": "Libellé",
+      "labelPlaceholder": "Ex: Concours d'entrée en 6ème",
+      "amount": "Montant (FCFA)",
+      "amountPlaceholder": "Ex: 15000",
+      "dueDate": "Date limite (tous les élèves)",
+      "confirmDelete": "Supprimer les frais d'examen pour cette classe ?"
+    },
+    "capacity": {
+      "title": "Capacité de la classe",
+      "maxStudents": "Nombre maximum d'élèves",
+      "minimum": "Minimum {n} (élèves déjà inscrits)",
+      "studentsRatio": "{current} / {max} élèves"
+    },
+    "students": {
+      "title": "Élèves ({count})",
+      "viewAll": "Voir tous →",
+      "empty": "Aucun élève inscrit dans cette classe",
+      "enrollStudent": "Inscrire un élève",
+      "boy": "Garçon",
+      "girl": "Fille",
+      "columns": {
+        "student": "Élève",
+        "matricule": "Matricule",
+        "payment": "Paiement",
+        "exam": "Examen",
+        "remainingDue": "Reste dû"
+      },
+      "profile": "Fiche"
+    },
+    "subjects": {
+      "title": "Matières ({count})"
+    },
+    "available": "Disponible",
+    "configured": "configurées",
+    "toasts": {
+      "notFound": "Classe introuvable",
+      "assignError": "Erreur lors de l'affectation",
+      "teacherUpdated": "Enseignant titulaire mis à jour",
+      "saveError": "Erreur lors de la sauvegarde",
+      "tranchesUpdated": "Tranches mises à jour",
+      "examFeesSaved": "Frais d'examen enregistrés",
+      "examFeesDeleted": "Frais d'examen supprimés",
+      "error": "Erreur",
+      "capacityTooLow": "La capacité ne peut pas être inférieure au nombre d'élèves inscrits ({count})",
+      "capacityUpdated": "Capacité mise à jour"
+    }
+  },
+  "transfers": {
+    "title": "Répartition des élèves",
+    "subtitle": "Glissez-déposez les élèves entre les classes",
+    "breadcrumb": "Transferts",
+    "searchPlaceholder": "Rechercher un élève...",
+    "resultLabel": "élève(s) visible(s)",
+    "howToTitle": "Comment utiliser",
+    "howToBody": "Cliquez et maintenez sur un élève, puis déposez-le dans la colonne de la classe cible. Les classes pleines refuseront le transfert automatiquement.",
+    "noClass": "Sans classe",
+    "notAssigned": "Non affectés",
+    "dropHint": "Glissez un élève ici",
+    "transferring": "Transfert en cours...",
+    "transferSuccess": "{name} transféré(e)",
+    "transferError": "Erreur de transfert"
+  }
+}

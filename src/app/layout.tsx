@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import ToasterProvider from "@/components/providers/ToasterProvider";
 import ThemeProvider from "@/components/providers/ThemeProvider";
@@ -19,21 +21,26 @@ export const metadata: Metadata = {
   description: "Gestion scolaire pour les établissements au Cameroun",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <html
-      lang="fr"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>
-          {children}
-          <ToasterProvider />
-        </ThemeProvider>
+        <NextIntlClientProvider messages={messages}>
+          <ThemeProvider>
+            {children}
+            <ToasterProvider />
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

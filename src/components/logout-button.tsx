@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { setLastLoginEmail } from '@/lib/last-login-email'
 
 interface LogoutButtonProps {
   className?: string
@@ -11,7 +12,11 @@ export default function LogoutButton({ className, children }: LogoutButtonProps)
   const router = useRouter()
 
   async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' })
+    const res = await fetch('/api/auth/logout', { method: 'POST' })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.email) setLastLoginEmail(data.email)
+    }
     router.push('/login')
     router.refresh()
   }

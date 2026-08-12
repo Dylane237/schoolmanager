@@ -1,0 +1,185 @@
+{
+  "title": "Paramètres",
+  "subtitle": "Configuration de votre établissement",
+  "breadcrumb": "Paramètres",
+  "school": {
+    "title": "Informations de l'école",
+    "subtitle": "Bulletins, sidebar et filigrane de l'application",
+    "logo": "Logo de l'établissement",
+    "logoDesc": "S'affiche dans la barre latérale et en filigrane discret sur toutes les pages. PNG ou JPG, fond transparent recommandé.",
+    "upload": "Uploader",
+    "change": "Changer",
+    "remove": "Supprimer",
+    "fields": {
+      "name": "Nom de l'établissement",
+      "director": "Nom du directeur",
+      "phone": "Téléphone",
+      "email": "Email",
+      "address": "Adresse",
+      "slug": "Identifiant URL"
+    },
+    "placeholders": {
+      "name": "Ex: École Primaire Sainte-Marie",
+      "director": "Ex: M. Jean KAMGA",
+      "phone": "Ex: +237 6XX XXX XXX",
+      "email": "Ex: contact@ecole.cm",
+      "address": "Ex: Quartier Bastos, Yaoundé"
+    },
+    "slugPrefix": "schoolmanager/",
+    "slugHint": "L'identifiant URL ne peut pas être modifié",
+    "save": "Sauvegarder",
+    "saving": "Sauvegarde..."
+  },
+  "years": {
+    "title": "Années scolaires",
+    "active": "Active : {label}",
+    "noActive": "Aucune année active",
+    "empty": "Aucune année scolaire configurée",
+    "add": "Ajouter",
+    "badgeActive": "Active",
+    "activate": "Activer",
+    "placeholder": "Ex: {label}",
+    "confirmTitle": "Changer l'année active ?",
+    "confirmBody": "Vous êtes sur le point d'activer l'année {label}. Toutes les données (classes, élèves, paiements, notes) seront filtrées selon cette année.",
+    "confirmWarning": "Cette action ne supprime aucune donnée. Vous pouvez revenir à une année précédente à tout moment.",
+    "confirmYes": "Oui, activer {label}"
+  },
+  "header": {
+    "title": "En-tête officielle",
+    "subtitle": "Reçus, bulletins et fiches élèves · MINEDUB par défaut",
+    "alt": "En-tête",
+    "cashierName": "Nom du caissier",
+    "cashierPlaceholder": "Ex: Mme NGONO Sylvie",
+    "replace": "Remplacer",
+    "remove": "Supprimer",
+    "save": "Sauvegarder l'en-tête",
+    "saving": "Sauvegarde...",
+    "upload": "Uploader l'en-tête",
+    "formatHint": "PNG, JPG — max 2 Mo · bandeau large 1600×160px"
+  },
+  "storage": {
+    "title": "Stockage local",
+    "subtitle": "Emplacement des données sur cet ordinateur",
+    "openFolder": "Ouvrir le dossier",
+    "paths": {
+      "database": "Base de données",
+      "photos": "Photos des élèves",
+      "backups": "Sauvegardes auto",
+      "exports": "Listes exportées"
+    }
+  },
+  "backup": {
+    "title": "Sauvegarde des données",
+    "autoHint": "Sauvegarde automatique quotidienne · 7 derniers jours conservés",
+    "manual": "Sauvegarde manuelle",
+    "backingUp": "Sauvegarde...",
+    "exportDb": "Exporter .db",
+    "exporting": "Export...",
+    "restore": "Restaurer une sauvegarde",
+    "restoring": "Restauration...",
+    "restoreWarning": "La restauration remplace la base actuelle par un fichier .db choisi sur votre ordinateur. L'application redémarre automatiquement une fois terminée.",
+    "recent": "Sauvegardes récentes",
+    "sizeKb": "{size} Ko"
+  },
+  "usersManagement": {
+    "title": "Comptes utilisateurs",
+    "newAccount": "Nouveau compte",
+    "hint": "Créez des comptes pour votre équipe. Chaque rôle n'accède qu'aux modules autorisés.",
+    "modalTitle": "Nouveau compte utilisateur",
+    "fields": {
+      "lastName": "Nom *",
+      "firstName": "Prénom",
+      "email": "Email *",
+      "password": "Mot de passe * (8 car. min.)",
+      "role": "Rôle *",
+      "phone": "Téléphone"
+    },
+    "roles": {
+      "admin": "Administrateur",
+      "secretaire": "Secrétaire",
+      "comptable": "Comptable",
+      "enseignant": "Enseignant",
+      "secretaireDesc": "Secrétaire — élèves, présences, annonces",
+      "comptableDesc": "Comptable — élèves, paiements",
+      "enseignantDesc": "Enseignant — notes, présences, maternelle"
+    },
+    "create": "Créer le compte",
+    "creating": "Création...",
+    "loading": "Chargement...",
+    "empty": "Aucun compte utilisateur",
+    "columns": {
+      "user": "Utilisateur",
+      "email": "Email",
+      "role": "Rôle"
+    },
+    "delete": "Supprimer",
+    "deleteConfirm": "Supprimer le compte de {name} ?",
+    "toasts": {
+      "created": "Compte créé",
+      "deleted": "Compte supprimé",
+      "error": "Erreur"
+    }
+  },
+  "auditLog": {
+    "title": "Journal d'audit",
+    "subtitle": "Paiements, notes et comptes utilisateurs",
+    "modules": {
+      "all": "Tous",
+      "paiements": "Paiements",
+      "notes": "Notes",
+      "users": "Utilisateurs"
+    },
+    "loading": "Chargement...",
+    "empty": "Aucune action enregistrée pour le moment.",
+    "columns": {
+      "date": "Date",
+      "module": "Module",
+      "action": "Action",
+      "detail": "Détail"
+    },
+    "detailInstalment": "tranche {n}",
+    "detailGrade": "note {n}"
+  },
+  "supportTools": {
+    "title": "Support & diagnostic",
+    "description": "Exportez un rapport technique (licence, version, base) ou le journal d'audit (paiements, notes, utilisateurs) à envoyer au support.",
+    "exporting": "Export...",
+    "diagnostic": "Diagnostic licence",
+    "auditCsv": "Journal d'audit (CSV)",
+    "toasts": {
+      "exportFailed": "Export impossible",
+      "exported": "Export téléchargé",
+      "networkError": "Erreur réseau"
+    }
+  },
+  "appUpdates": {
+    "title": "Mises à jour de l'application",
+    "versionHint": "Version {version} · Corrections et nouvelles fonctionnalités",
+    "available": "Version {version} disponible",
+    "availableHint": "Téléchargez et installez pour bénéficier des dernières améliorations.",
+    "ready": "Mise à jour prête",
+    "readyHint": "Redémarrez l'application pour appliquer la version {version}.",
+    "downloading": "Téléchargement...",
+    "checking": "Vérification...",
+    "checkUpdates": "Vérifier les mises à jour",
+    "download": "Télécharger",
+    "install": "Redémarrer et installer",
+    "latest": "Vous utilisez la dernière version.",
+    "checkFailed": "Impossible de vérifier les mises à jour"
+  },
+  "toasts": {
+    "saved": "Paramètres sauvegardés",
+    "saveError": "Erreur lors de la sauvegarde",
+    "headerSaved": "En-tête officielle sauvegardée",
+    "headerDeleted": "En-tête supprimée",
+    "headerDeleteError": "Erreur lors de la suppression",
+    "imageTooLarge": "Image trop lourde (max 2 Mo)",
+    "yearAdded": "Année scolaire ajoutée",
+    "yearAddError": "Erreur lors de l'ajout",
+    "yearActivated": "Année {label} activée",
+    "backupCreated": "Sauvegarde créée avec succès",
+    "exportDone": "Export réalisé",
+    "backupError": "Erreur lors de la sauvegarde",
+    "restoreError": "Erreur lors de la restauration"
+  }
+}

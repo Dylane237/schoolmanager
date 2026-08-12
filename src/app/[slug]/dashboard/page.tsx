@@ -1,9 +1,11 @@
 import { cookies } from 'next/headers'
 import Link from 'next/link'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { verifyToken } from '@/lib/auth'
 import { getDb } from '@/lib/db-server'
 import { getElevesSituation } from '@/lib/paiements-utils'
 import { studentLinks } from '@/lib/student-context-links'
+import { getIntlLocale, type Locale } from '@/i18n/config'
 import PageShell from '@/components/layout/PageShell'
 import EncaissementsChart from '@/components/dashboard/EncaissementsChart'
 import ClassesPaiementChart from '@/components/dashboard/ClassesPaiementChart'
@@ -54,6 +56,11 @@ export default async function DashboardPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
+  const t = await getTranslations('dashboard')
+  const tCommon = await getTranslations('common')
+  const locale = (await getLocale()) as Locale
+  const intlLocale = getIntlLocale(locale)
+
   const cookieStore = await cookies()
   const token = cookieStore.get('sm_token')?.value
   if (!token) return null
@@ -100,14 +107,14 @@ export default async function DashboardPage({
     finMoisPrecedent.toISOString().split('T')[0],
   ) as { total: number })?.total ?? 0
 
-  let trendCollecte = 'Aucun encaissement ce mois'
+  let trendCollecte = t('stats.noCollection')
   let trendCollecteUp = false
   if (totalMoisPrecedent > 0) {
     const pct = Math.round(((totalMois - totalMoisPrecedent) / totalMoisPrecedent) * 100)
     trendCollecteUp = pct >= 0
-    trendCollecte = `${pct >= 0 ? '+' : ''}${pct} % vs mois dernier`
+    trendCollecte = t('stats.trendVsLastMonth', { pct: `${pct >= 0 ? '+' : ''}${pct}` })
   } else if (totalMois > 0) {
-    trendCollecte = 'Premiers encaissements ce mois'
+    trendCollecte = t('stats.firstCollection')
     trendCollecteUp = true
   }
 
@@ -131,13 +138,17 @@ export default async function DashboardPage({
 
   const alerts: Alert[] = []
   if (classesVides > 0)
-    alerts.push({ level: 'danger', text: `${classesVides} classe${classesVides > 1 ? 's' : ''} sans élèves inscrits`, sub: 'Classes — vérifier les inscriptions' })
+    alerts.push({ level: 'danger', text: t('alerts.emptyClasses', { count: classesVides }), sub: t('alerts.emptyClassesSub') })
   if (impayes > 0)
-    alerts.push({ level: 'warn', text: `${impayes} élève${impayes > 1 ? 's' : ''} avec solde impayé`, sub: 'Paiements — Suivi des frais' })
+    alerts.push({ level: 'warn', text: t('alerts.unpaid', { count: impayes }), sub: t('alerts.unpaidSub') })
   if (classesSansEnseignant > 0)
-    alerts.push({ level: 'warn',   text: `${classesSansEnseignant} classe${classesSansEnseignant > 1 ? 's' : ''} sans enseignant affecté`, sub: 'Personnel — Affectations' })
+    alerts.push({ level: 'warn', text: t('alerts.noTeacher', { count: classesSansEnseignant }), sub: t('alerts.noTeacherSub') })
   if (alerts.length === 0)
-    alerts.push({ level: 'info',   text: 'Tout est en ordre', sub: `Mis à jour le ${new Date().toLocaleDateString('fr-FR')}` })
+    alerts.push({
+      level: 'info',
+      text: t('alerts.allGood'),
+      sub: t('alerts.updatedOn', { date: new Date().toLocaleDateString(intlLocale) }),
+    })
 
   // ── taux d'élèves à jour dans leurs paiements, par classe ──
   // S'appuie sur la même logique métier que la page paiements
@@ -188,21 +199,21 @@ export default async function DashboardPage({
   }
 
   const stats = [
-    { label: 'Élèves actifs',    value: totalEleves.toLocaleString('fr-FR'),         suffix: undefined, Icon: Users,    trend: `sur ${totalClasses} classe${totalClasses !== 1 ? 's' : ''}`, trendUp: false },
-    { label: 'Classes',          value: totalClasses.toLocaleString('fr-FR'),         suffix: undefined, Icon: DoorOpen, trend: `capacité moyenne : ${capaciteMoyenne} élèves`,                     trendUp: false },
-    { label: 'Personnel',        value: totalPersonnel.toLocaleString('fr-FR'),       suffix: undefined, Icon: UserCheck,trend: totalPersonnel === 0 ? 'Aucun staff enregistré' : 'membres actifs', trendUp: false },
-    { label: 'Collecté ce mois', value: Number(totalMois).toLocaleString('fr-FR'), suffix: 'FCFA', Icon: Banknote, trend: trendCollecte, trendUp: trendCollecteUp },
+    { label: t('stats.activeStudents'), value: totalEleves.toLocaleString(intlLocale), suffix: undefined, Icon: Users, trend: t('stats.inClasses', { count: totalClasses }), trendUp: false },
+    { label: t('stats.classes'), value: totalClasses.toLocaleString(intlLocale), suffix: undefined, Icon: DoorOpen, trend: t('stats.avgCapacity', { count: capaciteMoyenne }), trendUp: false },
+    { label: t('stats.staff'), value: totalPersonnel.toLocaleString(intlLocale), suffix: undefined, Icon: UserCheck, trend: totalPersonnel === 0 ? t('stats.noStaff') : t('stats.activeMembers'), trendUp: false },
+    { label: t('stats.collectedThisMonth'), value: Number(totalMois).toLocaleString(intlLocale), suffix: tCommon('currency'), Icon: Banknote, trend: trendCollecte, trendUp: trendCollecteUp },
   ]
 
   const modules = [
-    { label: 'Élèves',    desc: 'Inscriptions & fiches',   href: `/${slug}/eleves`       },
-    { label: 'Paiements', desc: 'Frais & reçus PDF',       href: `/${slug}/paiements`    },
-    { label: 'Classes',   desc: 'Gestion des classes',     href: `/${slug}/classes`      },
-    { label: 'Notes',     desc: 'Saisie & bulletins',      href: `/${slug}/notes/saisie` },
-    { label: 'Bulletins', desc: 'Impression report cards',   href: `/${slug}/notes/bulletins` },
-    { label: 'Présences', desc: "Registre d'appel",        href: `/${slug}/presences`    },
-    { label: 'Personnel', desc: 'Staff & RH',              href: `/${slug}/personnel`    },
-    { label: 'Annonces',  desc: 'Communications',          href: `/${slug}/annonces`     },
+    { label: t('modules.students.label'), desc: t('modules.students.desc'), href: `/${slug}/eleves` },
+    { label: t('modules.payments.label'), desc: t('modules.payments.desc'), href: `/${slug}/paiements` },
+    { label: t('modules.classes.label'), desc: t('modules.classes.desc'), href: `/${slug}/classes` },
+    { label: t('modules.grades.label'), desc: t('modules.grades.desc'), href: `/${slug}/notes/saisie` },
+    { label: t('modules.reportCards.label'), desc: t('modules.reportCards.desc'), href: `/${slug}/notes/bulletins` },
+    { label: t('modules.attendance.label'), desc: t('modules.attendance.desc'), href: `/${slug}/presences` },
+    { label: t('modules.staff.label'), desc: t('modules.staff.desc'), href: `/${slug}/personnel` },
+    { label: t('modules.announcements.label'), desc: t('modules.announcements.desc'), href: `/${slug}/annonces` },
   ]
 
   const modeBadge: Record<string, string> = {
@@ -212,29 +223,32 @@ export default async function DashboardPage({
     virement:     'bg-blue-100    text-blue-700',
   }
   const modeLabel: Record<string, string> = {
-    especes: 'Espèces', orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', virement: 'Virement',
+    especes: t('payments.methods.especes'),
+    orange_money: t('payments.methods.orange_money'),
+    mtn_momo: t('payments.methods.mtn_momo'),
+    virement: t('payments.methods.virement'),
   }
 
-  const dateStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const dateStr = new Date().toLocaleDateString(intlLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
 
   return (
     <PageShell
-      title={`Bonjour, ${prenom ?? nom}`}
+      title={t('greeting', { name: prenom ?? nom })}
       subtitle={
         <span className="flex items-center gap-2">
           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
           {ecole?.nom} — {dateStr}
         </span>
       }
-      breadcrumb="Tableau de bord"
+      breadcrumb={t('breadcrumb')}
       actions={
         <Link
           href={`/${slug}/eleves/nouveau`}
           className="btn-primary flex items-center gap-2 py-2.5"
         >
           <UserPlus size={17} />
-          Inscrire un élève
+          {t('enrollStudent')}
         </Link>
       }
     >
@@ -277,7 +291,7 @@ export default async function DashboardPage({
         {/* modules + alertes */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 flex flex-col gap-3">
-            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Modules</h2>
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">{t('sections.modules')}</h2>
             <div className="grid grid-cols-3 gap-3">
               {modules.map((mod, i) => {
                 const Icon = MODULE_ICONS[i]; const s = MODULE_STYLES[i]
@@ -299,7 +313,7 @@ export default async function DashboardPage({
 
           {/* alertes */}
           <div className="flex flex-col gap-3">
-            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Alertes & rappels</h2>
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">{t('sections.alerts')}</h2>
             <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 flex-1">
               {alerts.map((a, i) => {
                 const Icon = ALERT_ICON[a.level]
@@ -325,20 +339,20 @@ export default async function DashboardPage({
           {/* tableau paiements */}
           <div className="lg:col-span-2 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Derniers paiements</h2>
-              <Link href={`/${slug}/paiements`} className="text-xs text-emerald-600 hover:underline font-medium">Voir tout</Link>
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">{t('sections.recentPayments')}</h2>
+              <Link href={`/${slug}/paiements`} className="text-xs text-emerald-600 hover:underline font-medium">{tCommon('seeAll')}</Link>
             </div>
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
               {derniersPaiements.length === 0 ? (
-                <div className="p-10 text-center text-slate-400 text-sm">Aucun paiement enregistré pour l'instant.</div>
+                <div className="p-10 text-center text-slate-400 text-sm">{t('payments.empty')}</div>
               ) : (
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50">
-                      <th className="text-left text-xs font-semibold text-slate-400 px-5 py-3">Élève</th>
-                      <th className="text-left text-xs font-semibold text-slate-400 px-5 py-3">Classe</th>
-                      <th className="text-left text-xs font-semibold text-slate-400 px-5 py-3">Mode</th>
-                      <th className="text-right text-xs font-semibold text-slate-400 px-5 py-3">Montant</th>
+                      <th className="text-left text-xs font-semibold text-slate-400 px-5 py-3">{t('payments.student')}</th>
+                      <th className="text-left text-xs font-semibold text-slate-400 px-5 py-3">{t('payments.class')}</th>
+                      <th className="text-left text-xs font-semibold text-slate-400 px-5 py-3">{t('payments.method')}</th>
+                      <th className="text-right text-xs font-semibold text-slate-400 px-5 py-3">{t('payments.amount')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
@@ -361,7 +375,7 @@ export default async function DashboardPage({
                           </span>
                         </td>
                         <td className="px-5 py-3.5 text-sm font-bold text-slate-800 text-right">
-                          {Number(p.montant).toLocaleString('fr-FR')} <span className="font-normal text-slate-400 text-xs">FCFA</span>
+                          {Number(p.montant).toLocaleString(intlLocale)} <span className="font-normal text-slate-400 text-xs">{tCommon('currency')}</span>
                         </td>
                       </tr>
                     ))}
@@ -373,13 +387,13 @@ export default async function DashboardPage({
 
           {/* accès rapides */}
           <div className="flex flex-col gap-3">
-            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Accès rapides</h2>
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">{t('sections.quickAccess')}</h2>
             <div className="flex flex-col gap-2">
               {[
-                { label: 'Nouveau paiement',  desc: 'Enregistrer un règlement',     href: `/${slug}/paiements/nouveau`, Icon: CreditCard,  color: 'text-amber-600  bg-amber-100'  },
-                { label: 'Saisir des notes',  desc: 'Notes de la période en cours', href: `/${slug}/notes/saisie`,      Icon: BookOpen,    color: 'text-violet-600 bg-violet-100' },
-                { label: "Faire l'appel",     desc: 'Registre de présences',        href: `/${slug}/presences`,         Icon: CheckSquare, color: 'text-teal-600   bg-teal-100'   },
-                { label: 'Paramètres école',  desc: 'Configuration & profil',       href: `/${slug}/parametres`,        Icon: Calendar,    color: 'text-blue-600   bg-blue-100'   },
+                { label: t('quickAccess.newPayment.label'), desc: t('quickAccess.newPayment.desc'), href: `/${slug}/paiements/nouveau`, Icon: CreditCard, color: 'text-amber-600  bg-amber-100' },
+                { label: t('quickAccess.enterGrades.label'), desc: t('quickAccess.enterGrades.desc'), href: `/${slug}/notes/saisie`, Icon: BookOpen, color: 'text-violet-600 bg-violet-100' },
+                { label: t('quickAccess.attendance.label'), desc: t('quickAccess.attendance.desc'), href: `/${slug}/presences`, Icon: CheckSquare, color: 'text-teal-600   bg-teal-100' },
+                { label: t('quickAccess.settings.label'), desc: t('quickAccess.settings.desc'), href: `/${slug}/parametres`, Icon: Calendar, color: 'text-blue-600   bg-blue-100' },
               ].map(({ label, desc, href, Icon, color }, i) => (
                 <Link key={i} href={href}
                   className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-emerald-400 hover:shadow-sm transition-all group flex items-center gap-4">

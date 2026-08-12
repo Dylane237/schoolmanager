@@ -1,0 +1,25 @@
+{
+  "licenceExpired": {
+    "title": "Licence expirée",
+    "redirect": "Redirection vers la page de renouvellement..."
+  },
+  "moduleGuard": {
+    "accessDenied": "Accès refusé",
+    "noPermission": "Vous n'avez pas la permission d'accéder à ce module.",
+    "contactAdmin": "Contactez l'administrateur de l'établissement."
+  },
+  "support": {
+    "whatsappHint": "Besoin d'aide ?",
+    "whatsappLabel": "WhatsApp — {phone}",
+    "contactSupport": "Contacter le support"
+  },
+  "errors": {
+    "generic": "Une erreur est survenue",
+    "network": "Erreur réseau — vérifiez votre connexion",
+    "notFound": "Page introuvable",
+    "unauthorized": "Non autorisé"
+  },
+  "empty": {
+    "noData": "Aucune donnée disponible"
+  }
+}

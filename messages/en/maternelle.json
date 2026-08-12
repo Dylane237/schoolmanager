@@ -1,0 +1,28 @@
+{
+  "title": "Nursery record book",
+  "subtitle": "Competency assessment by domain",
+  "breadcrumb": "Nursery",
+  "printBooklet": "Print record book",
+  "domains": "Domains",
+  "allNurseryClasses": "All nursery classes",
+  "allStudents": "All students",
+  "student": "Student",
+  "sequence": "Sequence",
+  "competence": "Competency",
+  "notEvaluated": "Not assessed",
+  "matricule": "ID: {value}",
+  "emptyTitle": "No nursery students",
+  "emptyDescription": "Enroll students in the nursery section or adjust your filters.",
+  "printHeader": "Competency record book — Nursery",
+  "settingsTitle": "Manage competency domains",
+  "newCompetencePlaceholder": "New competency...",
+  "newDomainPlaceholder": "New domain name...",
+  "sequences": {
+    "sequence1": "Sequence 1",
+    "sequence2": "Sequence 2",
+    "sequence3": "Sequence 3",
+    "sequence4": "Sequence 4",
+    "sequence5": "Sequence 5",
+    "sequence6": "Sequence 6"
+  }
+}

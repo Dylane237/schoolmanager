@@ -1,0 +1,27 @@
+{
+  "title": "Attendance",
+  "subtitle": "Daily attendance register by class",
+  "breadcrumb": "Attendance",
+  "selectClass": "Select a class to take attendance",
+  "selectClassOption": "Select a class",
+  "markAllPresent": "Mark all present",
+  "validate": "Submit attendance",
+  "emptyTitle": "No students found",
+  "emptyDescription": "Change the date, class or search to display students.",
+  "filterStudent": "Filter a student...",
+  "filterShow": "Show",
+  "resultLabel": "student(s)",
+  "columns": {
+    "student": "Student",
+    "status": "Status"
+  },
+  "summary": {
+    "present": "Present",
+    "absent": "Absent",
+    "retard": "Late",
+    "excuse": "Excused"
+  },
+  "toasts": {
+    "saved": "Attendance saved"
+  }
+}

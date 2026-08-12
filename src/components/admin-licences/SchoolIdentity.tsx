@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { Building2, KeyRound, AlertTriangle } from 'lucide-react'
 import { AdminBadge } from '@/components/admin-licences/AdminShell'
 import {
@@ -21,6 +22,7 @@ export function SchoolIdentity({
   compact?: boolean
   onEdit?: () => void
 }) {
+  const t = useTranslations('adminLicences.schoolIdentity')
   const assigned = isLicenceAssigned(licence)
   const name = resolveEcoleNom(licence)
   const slug = resolveEcoleSlug(licence)
@@ -34,8 +36,8 @@ export function SchoolIdentity({
           <KeyRound className="w-5 h-5 text-violet-400" />
         </div>
         <div className="min-w-0">
-          <p className="font-semibold text-violet-300">Clé disponible</p>
-          <p className="text-xs text-slate-500">En attente d&apos;inscription sur /register</p>
+          <p className="font-semibold text-violet-300">{t('keyAvailable')}</p>
+          <p className="text-xs text-slate-500">{t('awaitingRegistration')}</p>
         </div>
       </div>
     )
@@ -55,13 +57,13 @@ export function SchoolIdentity({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <p className={`font-semibold truncate ${named ? 'text-white' : 'text-amber-200'}`}>
-            {name ?? 'Établissement non synchronisé'}
+            {name ?? t('unsyncedSchool')}
           </p>
           {!named && (
             <AdminBadge tone="warning">
               <span className="inline-flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
-                Nom manquant
+                {t('missingName')}
               </span>
             </AdminBadge>
           )}
@@ -70,7 +72,7 @@ export function SchoolIdentity({
           <p className="text-xs text-slate-500 font-mono truncate mt-0.5">/{slug}</p>
         )}
         {!compact && licence.directeur_nom && (
-          <p className="text-xs text-slate-400 mt-1">Directeur · {licence.directeur_nom}</p>
+          <p className="text-xs text-slate-400 mt-1">{t('director')} · {licence.directeur_nom}</p>
         )}
         {!compact && licence.telephone && (
           <p className="text-[11px] text-slate-600 mt-0.5">{licence.telephone}</p>
@@ -84,7 +86,7 @@ export function SchoolIdentity({
             onClick={onEdit}
             className="block mt-2 text-xs text-emerald-400 hover:underline"
           >
-            Renseigner l&apos;établissement →
+            {t('fillSchool')}
           </button>
         )}
       </div>

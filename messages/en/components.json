@@ -1,0 +1,134 @@
+{
+  "pageShell": {
+    "loading": "Loading…"
+  },
+  "emptyState": {
+    "defaultTitle": "No items",
+    "defaultDescription": "There is nothing to display at the moment."
+  },
+  "smartFilterBar": {
+    "reset": "Reset",
+    "search": "Search...",
+    "resultCount": "{count} result(s)"
+  },
+  "badge": {
+    "new": "New"
+  },
+  "photoUpload": {
+    "upload": "Add photo",
+    "change": "Change photo",
+    "remove": "Remove",
+    "hint": "Student photo (JPEG, PNG, max 5 MB)",
+    "uploadError": "Upload error"
+  },
+  "studentContextBanner": {
+    "viewing": "Viewing student profile",
+    "backToList": "Back to list",
+    "context": "Student context:",
+    "viewProfile": "View profile"
+  },
+  "classListActions": {
+    "export": "Export list",
+    "importCsv": "Import CSV",
+    "printPdf": "Print / PDF",
+    "exportError": "Export error",
+    "importError": "Import error",
+    "popupBlocked": "Allow pop-ups to print",
+    "exportSuccess": "List exported ({count} student(s)) → Documents/SchoolManager/exports/{filename}",
+    "importSuccess": "{total} student(s) processed ({assigned} assigned, {created} created)",
+    "csvHint": "CSV: matricule,nom,prenom,sexe"
+  },
+  "recuPrint": {
+    "schoolReceipt": "School payment receipt",
+    "officialReceipt": "Official receipt",
+    "studentInfo": "Student information",
+    "paymentDetails": "Payment details",
+    "title": "Payment receipt",
+    "receiptNumber": "No. {numero}",
+    "description": "The receipt opens in a new tab, with original and duplicate ready to print on one page.",
+    "openReceipt": "Open receipt",
+    "close": "Close",
+    "generateError": "Error {status} while generating the receipt.",
+    "popupBlocked": "The browser blocked the receipt popup. Allow popups for this site and try again.",
+    "networkError": "Network error while generating the receipt."
+  },
+  "situationParEleve": {
+    "student": "Student",
+    "class": "Class",
+    "expected": "Expected",
+    "paid": "Paid",
+    "remaining": "Balance",
+    "status": "Status",
+    "actions": "Actions",
+    "collect": "Collect payment",
+    "loading": "Loading...",
+    "emptyTitle": "No students",
+    "emptyDescription": "No students match these filters. Change the class or payment status.",
+    "noClass": "No class",
+    "viewProfile": "View profile",
+    "noInstalments": "No instalments configured for this student's class. Configure instalments in Settings.",
+    "detail": "Detail",
+    "paidExpected": "Paid / Expected",
+    "instalment": "Instalment {n}",
+    "expectedLabel": "Expected",
+    "paidLabel": "Paid",
+    "remainingLabel": "Balance",
+    "deadline": "Deadline: {date}",
+    "noPayments": "No payments recorded",
+    "historyDate": "Date",
+    "historyReceipt": "Receipt",
+    "historyMode": "Method",
+    "historyAmount": "Amount"
+  },
+  "logoutButton": {
+    "logout": "Sign out"
+  },
+  "licenceSidebarButton": {
+    "licence": "Licence"
+  },
+  "moduleGuard": {
+    "title": "Access denied",
+    "description": "Your role ({role}) does not allow access to this section.",
+    "backToDashboard": "Back to dashboard"
+  },
+  "encaissementsChart": {
+    "title": "Collections",
+    "noData": "No data",
+    "noPeriodData": "No collections for this period",
+    "loadError": "Unable to load data for this period.",
+    "amount": "Amount",
+    "to": "to",
+    "periods": {
+      "jour": "Day",
+      "semaine": "Week",
+      "mois": "Month",
+      "custom": "Custom"
+    }
+  },
+  "classesPaiementChart": {
+    "title": "Up-to-date students by class",
+    "noData": "No instalments configured",
+    "distribution": "Breakdown",
+    "viewAll": "See all",
+    "noInstalments": "No instalments configured on your classes",
+    "tooltipUpToDate": "Up to date",
+    "studentsCount": "{paid}/{total} students ({pct}%)",
+    "otherClasses": "{count, plural, one {# other class} other {# other classes}} — see full list"
+  },
+  "createKeyModal": {
+    "title": "New pool key",
+    "planLabel": "Plan",
+    "generate": "Generate",
+    "generating": "Generating...",
+    "copyKey": "Copy key",
+    "copied": "Key copied!"
+  },
+  "whatsappSupport": {
+    "label": "WhatsApp — {phone}",
+    "hint": "Need help?"
+  },
+  "toaster": {
+    "success": "Operation successful",
+    "error": "An error occurred"
+  }
+}

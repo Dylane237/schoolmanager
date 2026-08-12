@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { usePathname, useRouter } from 'next/navigation'
 import { Shield, ChevronRight, Users, Calendar, Sparkles } from 'lucide-react'
 import { useSchool } from './SchoolProvider'
 import { useLicenceStatus } from '@/hooks/useLicenceStatus'
 import { PLAN_LABELS, type LicencePlan } from '@/lib/licence-constants'
+import { getIntlLocale, type Locale } from '@/i18n/config'
 
 const PLAN_SHORT: Record<string, string> = {
   starter: 'Starter',
@@ -19,17 +21,13 @@ const PLAN_RING: Record<string, string> = {
   premium: 'from-emerald-500 to-teal-600',
 }
 
-function formatDate(d: string | null) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('fr-FR', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
-
 export default function LicenceSidebarButton() {
   const { slug } = useSchool()
   const pathname = usePathname()
   const router = useRouter()
+  const t = useTranslations('licence.sidebar')
+  const locale = useLocale() as Locale
+  const intlLocale = getIntlLocale(locale)
   const { status, loading } = useLicenceStatus()
   const [hover, setHover] = useState(false)
 
@@ -40,18 +38,25 @@ export default function LicenceSidebarButton() {
 
   const expired = daysLeft !== null && daysLeft < 0
   const urgent = daysLeft !== null && daysLeft <= 30 && !expired
-  const planLabel = plan ? (PLAN_SHORT[plan] || plan) : 'Licence'
+  const planLabel = plan ? (PLAN_SHORT[plan] || plan) : t('label')
 
   const ringClass = plan ? (PLAN_RING[plan] ?? PLAN_RING.starter) : PLAN_RING.starter
+
+  const formatDate = (d: string | null) => {
+    if (!d) return '—'
+    return new Date(d).toLocaleDateString(intlLocale, {
+      day: 'numeric', month: 'short', year: 'numeric',
+    })
+  }
 
   const timeLabel = loading
     ? '…'
     : expired
-      ? 'Expirée'
+      ? t('expired')
       : daysLeft !== null
         ? daysLeft === 0
-          ? "Expire aujourd'hui"
-          : `${daysLeft}j restants`
+          ? t('expiresToday')
+          : t('daysRemaining', { n: daysLeft })
         : '—'
 
   return (
@@ -80,7 +85,7 @@ export default function LicenceSidebarButton() {
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-semibold truncate ${active ? 'text-white' : ''}`}>
-            Licence
+            {t('label')}
           </p>
           <p className={`text-xs truncate ${
             active ? 'text-white/75' : expired ? 'text-red-400' : urgent ? 'text-amber-400/90' : 'text-slate-500'
@@ -99,30 +104,30 @@ export default function LicenceSidebarButton() {
             <div className="flex items-center gap-2 mb-2.5">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
               <p className="text-xs font-semibold text-white">
-                {status?.planLabel || (plan ? PLAN_LABELS[plan as LicencePlan] : 'Licence SchoolManager')}
+                {status?.planLabel || (plan ? PLAN_LABELS[plan as LicencePlan] : t('label'))}
               </p>
             </div>
             <div className="space-y-1.5 text-xs text-slate-400">
               <p className="flex items-center gap-2">
                 <Calendar className="w-3 h-3 shrink-0 text-slate-500" />
-                Expire le {formatDate(status?.dateFin ?? null)}
+                {t('expiresOn', { date: formatDate(status?.dateFin ?? null) })}
               </p>
               {status && (
                 <p className="flex items-center gap-2">
                   <Users className="w-3 h-3 shrink-0 text-slate-500" />
-                  {status.studentCount} élève{status.studentCount !== 1 ? 's' : ''} actif{status.studentCount !== 1 ? 's' : ''}
-                  {status.studentLimit ? ` / ${status.studentLimit} max` : ' · illimité'}
+                  {t('activeStudents', { n: status.studentCount })}
+                  {status.studentLimit
+                    ? t('maxStudents', { limit: status.studentLimit })
+                    : t('unlimited')}
                 </p>
               )}
               {status?.planPrice && (
                 <p className="text-slate-500 pt-0.5 border-t border-slate-700/50 mt-1">
-                  {status.planPrice.toLocaleString('fr-FR')} FCFA / an
+                  {t('pricePerYear', { price: status.planPrice.toLocaleString(intlLocale) })}
                 </p>
               )}
             </div>
-            <p className="text-[10px] text-emerald-400/80 mt-2.5 font-medium">
-              Cliquer pour gérer · renouveler · upgrader
-            </p>
+            <p className="text-[10px] text-emerald-400/80 mt-2.5 font-medium">{t('hint')}</p>
           </div>
         </div>
       )}

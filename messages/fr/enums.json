@@ -1,0 +1,104 @@
+{
+  "paymentStatus": {
+    "paye": "Soldé",
+    "partiel": "Partiel",
+    "impaye": "Impayé",
+    "non_configure": "Non configuré"
+  },
+  "sex": {
+    "M": "Masculin",
+    "F": "Féminin"
+  },
+  "section": {
+    "francophone": "Francophone",
+    "anglophone": "Anglophone",
+    "maternelle": "Maternelle"
+  },
+  "presenceStatus": {
+    "present": "Présent",
+    "absent": "Absent",
+    "retard": "Retard",
+    "excuse": "Excusé"
+  },
+  "personnelType": {
+    "enseignant": "Enseignant",
+    "administratif": "Administratif",
+    "assistant_maternelle": "Assistant maternelle",
+    "securite": "Sécurité",
+    "entretien": "Entretien",
+    "chauffeur": "Chauffeur"
+  },
+  "contractType": {
+    "cdi": "CDI",
+    "cdd": "CDD",
+    "vacataire": "Vacataire",
+    "benevole": "Bénévole"
+  },
+  "announcementTarget": {
+    "tous": "Tous",
+    "personnel": "Personnel",
+    "parents": "Parents",
+    "enseignants": "Enseignants"
+  },
+  "announcementPriority": {
+    "normale": "Normale",
+    "importante": "Importante",
+    "urgente": "Urgente"
+  },
+  "maternelleStatus": {
+    "acquis": "Acquis",
+    "en_cours": "En cours",
+    "non_acquis": "Non acquis"
+  },
+  "paymentMethod": {
+    "especes": "Espèces",
+    "orange_money": "Orange Money",
+    "mtn_momo": "MTN MoMo",
+    "virement": "Virement"
+  },
+  "statutAnnuel": {
+    "admis": "Admis",
+    "redoublant": "Redoublant",
+    "en_attente": "En attente"
+  },
+  "annualStatus": {
+    "admis": "Admis",
+    "redoublant": "Redoublant",
+    "en_attente": "En attente"
+  },
+  "parentLink": {
+    "père": "Père",
+    "mère": "Mère",
+    "tuteur": "Tuteur",
+    "pere": "Père",
+    "mere": "Mère"
+  },
+  "studentStatus": {
+    "actif": "Actif",
+    "transfere": "Transféré",
+    "archive": "Archivé"
+  },
+  "licenceStatus": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "expired": "Expirée",
+    "revoked": "Révoquée",
+    "expiresIn": "Expire dans {days}j"
+  },
+  "referralStatus": {
+    "en_cours": "En cours",
+    "abonnement_actif": "Abonnement actif",
+    "commission_versee": "Commission versée",
+    "annule": "Annulé"
+  },
+  "mentions": {
+    "TB": "Très Bien",
+    "B": "Bien",
+    "AB": "Assez Bien",
+    "P": "Passable",
+    "I": "Insuffisant"
+  },
+  "na": "N/A",
+  "boy": "Garçon",
+  "girl": "Fille"
+}

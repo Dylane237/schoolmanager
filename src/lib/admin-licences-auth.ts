@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SignJWT, jwtVerify } from 'jose'
 import { getJwtSecretKey } from './secrets'
 import { getSuperAdminPassword } from './super-admin-credentials'
+import { runtimeEnv } from './runtime-env'
 
 export const ADMIN_LICENCES_COOKIE = 'admin_licences_token'
 const TOKEN_SCOPE = 'admin_licences'
@@ -32,7 +33,7 @@ export async function isAdminLicencesAuthed(request: NextRequest): Promise<boole
 }
 
 export function setAdminLicencesCookie(response: NextResponse, token: string): void {
-  const secure = process.env.NODE_ENV === 'production' && process.env.SM_COOKIE_SECURE !== 'false'
+  const secure = process.env.NODE_ENV === 'production' && runtimeEnv('SM_COOKIE_SECURE') !== 'false'
   response.cookies.set(ADMIN_LICENCES_COOKIE, token, {
     httpOnly: true,
     secure,

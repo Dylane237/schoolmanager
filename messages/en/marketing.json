@@ -1,0 +1,331 @@
+{
+  "brand": {
+    "name": "SchoolManager",
+    "tagline": "School management · Cameroon"
+  },
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "download": "Download",
+    "contact": "Contact",
+    "login": "Sign in",
+    "register": "Free trial"
+  },
+  "hero": {
+    "badge": "Offline · Web · Desktop",
+    "pills": {
+      "desktop": "Offline desktop",
+      "web": "Instant web",
+      "mobile": "Mobile anywhere"
+    },
+    "title1": "Run your school.",
+    "title2": "Everywhere. Even offline.",
+    "title3": "The way you deserve.",
+    "subtitle": "Enrollment, installment payments, report cards and receipts — in the browser, on your phone, or on the office PC with automatic sync.",
+    "ctaRegister": "Create my school",
+    "ctaDownload": "Download for Windows",
+    "ctaLogin": "I already have an account",
+    "trust": "Francophone, anglophone & nursery sections · Your data stays with you",
+    "liveDemo": "Live preview",
+    "screenshotAlt": "SchoolManager interface — payment and installment tracking"
+  },
+  "features": {
+    "title": "Everything a Cameroonian school expects",
+    "subtitle": "From the office to the headteacher — one tool, one database.",
+    "items": {
+      "students": {
+        "title": "Students & classes",
+        "desc": "IDs, photos, parents, Cameroon levels, class transfers."
+      },
+      "payments": {
+        "title": "Payments & installments",
+        "desc": "Collections, printable receipts, unpaid balances, per-student status."
+      },
+      "grades": {
+        "title": "Grades & report cards",
+        "desc": "Subject entry, averages, honors, official report card printing."
+      },
+      "attendance": {
+        "title": "Attendance",
+        "desc": "Daily roll call — present, absent, late, excused."
+      },
+      "staff": {
+        "title": "Staff",
+        "desc": "Teachers and admin staff, class assignments."
+      },
+      "offline": {
+        "title": "100% offline at the office",
+        "desc": "The Windows app keeps working without internet. Auto-sync when back online."
+      },
+      "analytics": {
+        "title": "Dashboards",
+        "desc": "Collections, unpaid by class, trends — leadership sees everything at a glance."
+      },
+      "secure": {
+        "title": "Security & roles",
+        "desc": "Role-based access (leadership, office, teachers) — everyone sees what they need."
+      },
+      "mobile": {
+        "title": "Web & mobile",
+        "desc": "Same account, same school — check data from anywhere after sync."
+      }
+    }
+  },
+  "dualChannel": {
+    "eyebrow": "Smart sync",
+    "title": "Same tool, new screen.",
+    "subtitle": "The secretary collects fees offline on PC. The headteacher checks unpaid balances on her phone after sync.",
+    "steps": {
+      "1": "Install the Windows app at the office — it works without internet.",
+      "2": "Work as usual: students, payments, report cards, attendance.",
+      "3": "When back online, your data syncs for web and mobile."
+    },
+    "cards": {
+      "desktop": {
+        "title": "Office PC",
+        "hint": "Windows app · offline"
+      },
+      "mobile": {
+        "title": "Phone & web",
+        "hint": "Same account · same school"
+      }
+    }
+  },
+  "showcase": {
+    "payments": {
+      "label": "Payments",
+      "title": "Collections and installments made simple",
+      "desc": "Record a payment in seconds, print the receipt, track unpaid balances by student or class.",
+      "imageAlt": "SchoolManager screenshot — Payments page with filters and per-student status",
+      "stats": [
+        { "value": "2 min", "label": "Per collection" },
+        { "value": "100%", "label": "Printable receipts" }
+      ]
+    },
+    "students": {
+      "label": "Enrollment",
+      "title": "Enroll and manage students with ease",
+      "desc": "Search by name or ID, filter by class and payment status — everything centralized for the office.",
+      "imageAlt": "SchoolManager screenshot — student list and enrollment",
+      "stats": [
+        { "value": "CSV", "label": "Bulk import" },
+        { "value": "1 click", "label": "New student" }
+      ]
+    },
+    "dashboard": {
+      "label": "Leadership",
+      "title": "Overview for school leadership",
+      "desc": "Monthly collections, classes with the most arrears, enrollment — all centralized on one clear dashboard.",
+      "stats": [
+        { "value": "24/7", "label": "Web & mobile access" },
+        { "value": "1 DB", "label": "Single source of truth" }
+      ]
+    }
+  },
+  "howItWorks": {
+    "title": "How it works",
+    "subtitle": "From account creation to daily management — in four simple steps.",
+    "steps": {
+      "1": {
+        "title": "Create your school",
+        "desc": "Sign up in 3 minutes — name, sections, basic users."
+      },
+      "2": {
+        "title": "Import your students",
+        "desc": "Manual entry or CSV import from your existing lists."
+      },
+      "3": {
+        "title": "Install the desktop app",
+        "desc": "Download the Windows app for the office — offline and fast."
+      },
+      "4": {
+        "title": "Manage day to day",
+        "desc": "Payments, grades, attendance — auto-sync when internet returns."
+      }
+    }
+  },
+  "testimonials": {
+    "title": "What schools are saying",
+    "subtitle": "Cameroonian schools that modernized their management.",
+    "items": {
+      "1": {
+        "text": "Finally software that fits our installment payments and francophone and anglophone sections.",
+        "author": "Headteacher",
+        "role": "Private school · Yaoundé"
+      },
+      "2": {
+        "text": "The offline desktop version saved us during internet outages. Receipts print in one click.",
+        "author": "Secretary",
+        "role": "School group · Douala"
+      },
+      "3": {
+        "text": "I check unpaid balances from my phone in the evening — no more waiting for tomorrow's report.",
+        "author": "Founder",
+        "role": "Nursery school · Bafoussam"
+      },
+      "4": {
+        "text": "Migration from Excel in one day with their support. Report cards ready for the class council.",
+        "author": "Dean",
+        "role": "High school · Garoua"
+      },
+      "5": {
+        "text": "Clear interface, quick staff training. Responsive WhatsApp support.",
+        "author": "Accountant",
+        "role": "Bilingual school · Limbe"
+      },
+      "6": {
+        "text": "One tool for students, payments and grades — exactly what we needed.",
+        "author": "Principal",
+        "role": "Primary school · Kribi"
+      }
+    }
+  },
+  "sync": {
+    "title": "Desktop, browser, phone — same data",
+    "subtitle": "The secretary collects fees offline on PC. The headteacher checks unpaid balances on her phone after sync.",
+    "desktop": "Office PC",
+    "desktopHint": "Windows app · offline",
+    "cloud": "Sync",
+    "cloudHint": "Automatic · secure",
+    "mobile": "Phone & web",
+    "mobileHint": "Same account · same school"
+  },
+  "ctaBand": {
+    "title": "Ready to modernize your school?",
+    "subtitle": "Create your school in 3 minutes or install the desktop app for the office.",
+    "register": "Get started free",
+    "download": "Install on Windows"
+  },
+  "pricingTeaser": {
+    "title": "Plans that fit your enrollment",
+    "from": "From",
+    "currency": "FCFA / year",
+    "seeAll": "See all pricing"
+  },
+  "faq": {
+    "title": "Frequently asked questions",
+    "items": {
+      "offline": {
+        "q": "Does it work without internet?",
+        "a": "Yes. The installed Windows version at the office works fully offline. Browser and phone require a connection."
+      },
+      "data": {
+        "q": "Where is my data stored?",
+        "a": "On the school PC (Documents/SchoolManager) and, when cloud sync is enabled, a secure copy for web and mobile access."
+      },
+      "install": {
+        "q": "Do you need to visit for installation?",
+        "a": "No. Download the installer, run it, sign in with the same account as on the web. Our support can guide you remotely."
+      },
+      "migrate": {
+        "q": "Can I migrate from another system?",
+        "a": "Yes — CSV student import and assisted migration for lists and balances on request."
+      },
+      "sections": {
+        "q": "Does it support francophone, anglophone and nursery?",
+        "a": "Yes — Cameroon levels, multiple sections and nursery classes are supported natively."
+      },
+      "support": {
+        "q": "What support do you offer?",
+        "a": "WhatsApp support Mon–Sat, remote installation help and migration assistance on Standard and Premium plans."
+      }
+    }
+  },
+  "download": {
+    "title": "Download SchoolManager",
+    "subtitle": "Windows desktop version — recommended for the office (offline, printing, performance).",
+    "version": "Version {version}",
+    "windows": "Windows 10 or later · 64-bit",
+    "button": "Download installer",
+    "sizeHint": "About 110 MB · 2-minute setup",
+    "orWeb": "Or use without installing",
+    "orWebDesc": "Access your school from any browser with the same account.",
+    "orWebCta": "Sign in on the web",
+    "requirements": {
+      "title": "Requirements",
+      "items": {
+        "os": "Windows 10, 11 or later (64-bit)",
+        "ram": "4 GB RAM minimum recommended",
+        "disk": "500 MB free disk space",
+        "net": "Internet required only for activation and sync"
+      }
+    },
+    "steps": {
+      "title": "Install in 3 steps",
+      "1": "Download and run the installer (.exe)",
+      "2": "Sign in with your school email and password",
+      "3": "Your data syncs — the desktop works offline"
+    },
+    "faq": {
+      "title": "Installation FAQ",
+      "otherPc": {
+        "q": "Install on a second office PC?",
+        "a": "Yes — same account, same school. Download again from this page or Settings → Desktop app."
+      },
+      "update": {
+        "q": "How to update?",
+        "a": "The app checks for updates automatically. You can also re-run the installer from this page."
+      }
+    }
+  },
+  "pricing": {
+    "title": "Pricing",
+    "subtitle": "Annual license per school — no hidden fees.",
+    "perYear": "/ year",
+    "currency": "FCFA",
+    "cta": "Get started",
+    "contact": "Need a custom quote?",
+    "contactCta": "Contact us",
+    "seeDetails": "See full pricing details",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "students": "Up to 150 students",
+        "features": ["Students & classes", "Payments & receipts", "Grades & report cards", "WhatsApp support"]
+      },
+      "standard": {
+        "name": "Standard",
+        "badge": "Popular",
+        "students": "Up to 400 students",
+        "features": ["Everything in Starter", "Attendance & announcements", "Multi-user", "Priority support"]
+      },
+      "premium": {
+        "name": "Premium",
+        "students": "Unlimited enrollment",
+        "features": ["Everything in Standard", "Cloud & mobile sync", "Assisted migration", "Dedicated support"]
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact & support",
+    "subtitle": "Questions, a demo, or help migrating your data — we respond quickly.",
+    "whatsapp": "WhatsApp support",
+    "whatsappHint": "Same-day reply · Mon – Sat",
+    "demo": "Request a demo",
+    "demoHint": "30-minute remote walkthrough for your team",
+    "demoMessage": "Hello, I would like a SchoolManager demo for my school.",
+    "installHelp": "Installation help",
+    "installHint": "Remote guided setup with our team",
+    "installMessage": "Hello, I need help installing SchoolManager on my school PC.",
+    "footerDownload": "Download the app",
+    "footerRegister": "Create my school"
+  },
+  "footer": {
+    "product": "Product",
+    "legal": "Legal",
+    "rights": "© {year} SchoolManager · Cameroon",
+    "privacy": "Privacy",
+    "terms": "Terms of use"
+  },
+  "desktopApp": {
+    "title": "Windows desktop app",
+    "subtitle": "Recommended for the office — offline, printing and performance.",
+    "installed": "You are using the desktop app",
+    "installedHint": "Version {version} · Manage updates below.",
+    "webOnly": "You are in the browser",
+    "webOnlyHint": "Install the app on the office PC to work without internet.",
+    "download": "Download for Windows",
+    "downloadPage": "Download page",
+    "version": "Version {version} available"
+  }
+}

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Save, CheckSquare } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageShell from '@/components/layout/PageShell'
@@ -13,7 +14,8 @@ import { useSmartFilters } from '@/hooks/useSmartFilters'
 import { useStudentDeepLink } from '@/hooks/useStudentDeepLink'
 import { useClasses } from '@/hooks/useClasses'
 import { studentLinks } from '@/lib/student-context-links'
-import { PRESENCE_DATE_PRESETS, dateWithOffset } from '@/lib/filter-presets'
+import { dateWithOffset } from '@/lib/filter-presets'
+import { usePresenceDatePresets, useTranslatedEnums } from '@/hooks/useTranslatedEnums'
 
 interface ElevePresence {
   id: string
@@ -26,43 +28,24 @@ interface ElevePresence {
 
 type Statut = 'present' | 'absent' | 'retard' | 'excuse'
 
-const FILTER_FIELDS = [
-  {
-    key: 'classe',
-    type: 'select' as const,
-    label: 'Classe',
-    options: [{ value: '', label: 'Sélectionner une classe' }],
-    defaultValue: '',
-  },
-  {
-    key: 'date',
-    type: 'date' as const,
-    label: 'Date',
-    defaultValue: new Date().toISOString().split('T')[0],
-  },
-  {
-    key: 'q',
-    type: 'search' as const,
-    placeholder: 'Filtrer un élève...',
-    debounce: true,
-  },
-  {
-    key: 'statut',
-    type: 'pills' as const,
-    label: 'Afficher',
-    options: [
-      { value: 'tous', label: 'Tous' },
-      { value: 'present', label: 'Présents' },
-      { value: 'absent', label: 'Absents' },
-      { value: 'retard', label: 'Retards' },
-      { value: 'excuse', label: 'Excusés' },
-    ],
-    defaultValue: 'tous',
-  },
-]
+function PresencesPageFallback() {
+  const t = useTranslations('presences')
+  const tc = useTranslations('common')
+
+  return (
+    <PageShell title={t('title')} breadcrumb={t('breadcrumb')}>
+      <div className="card p-12 text-center text-slate-400">{tc('loading')}</div>
+    </PageShell>
+  )
+}
 
 function PresencesPageContent() {
   const { slug } = useParams() as { slug: string }
+  const t = useTranslations('presences')
+  const tc = useTranslations('common')
+  const tf = useTranslations('filters')
+  const te = useTranslatedEnums()
+  const datePresets = usePresenceDatePresets()
   const { classes } = useClasses()
   const [eleves, setEleves] = useState<ElevePresence[]>([])
   const [presences, setPresences] = useState<Record<string, Statut>>({})
@@ -70,13 +53,42 @@ function PresencesPageContent() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const fields = useMemo(() => FILTER_FIELDS.map(f =>
-    f.key === 'classe'
-      ? { ...f, options: [{ value: '', label: 'Sélectionner une classe' }, ...classes.map(c => ({ value: c.id, label: c.nom }))] }
-      : f
-  ), [classes])
+  const filterFields = useMemo(() => [
+    {
+      key: 'classe',
+      type: 'select' as const,
+      label: tf('labels.class'),
+      options: [{ value: '', label: t('selectClassOption') }, ...classes.map(c => ({ value: c.id, label: c.nom }))],
+      defaultValue: '',
+    },
+    {
+      key: 'date',
+      type: 'date' as const,
+      label: tf('labels.date'),
+      defaultValue: new Date().toISOString().split('T')[0],
+    },
+    {
+      key: 'q',
+      type: 'search' as const,
+      placeholder: t('filterStudent'),
+      debounce: true,
+    },
+    {
+      key: 'statut',
+      type: 'pills' as const,
+      label: t('filterShow'),
+      options: [
+        { value: 'tous', label: tc('all') },
+        { value: 'present', label: t('summary.present') },
+        { value: 'absent', label: t('summary.absent') },
+        { value: 'retard', label: t('summary.retard') },
+        { value: 'excuse', label: t('summary.excuse') },
+      ],
+      defaultValue: 'tous',
+    },
+  ], [classes, t, tc, tf])
 
-  const { values, debouncedValues, setFilter, setFilters, reset, activeFilters } = useSmartFilters(fields)
+  const { values, debouncedValues, setFilter, setFilters, reset, activeFilters } = useSmartFilters(filterFields)
   const { student } = useStudentDeepLink(setFilters)
   const classeId = values.classe
   const date = values.date || new Date().toISOString().split('T')[0]
@@ -134,7 +146,7 @@ function PresencesPageContent() {
     })
     setSaving(false)
     setSaved(true)
-    toast.success('Appel enregistré')
+    toast.success(t('toasts.saved'))
     setTimeout(() => setSaved(false), 2000)
   }
 
@@ -146,26 +158,33 @@ function PresencesPageContent() {
   }
 
   const statutConfig: Record<Statut, { label: string; active: string; inactive: string }> = {
-    present: { label: 'Présent', active: 'bg-emerald-500 text-white', inactive: 'bg-slate-100 text-slate-500 hover:bg-emerald-50' },
-    absent: { label: 'Absent', active: 'bg-red-500 text-white', inactive: 'bg-slate-100 text-slate-500 hover:bg-red-50' },
-    retard: { label: 'Retard', active: 'bg-amber-500 text-white', inactive: 'bg-slate-100 text-slate-500 hover:bg-amber-50' },
-    excuse: { label: 'Excusé', active: 'bg-blue-500 text-white', inactive: 'bg-slate-100 text-slate-500 hover:bg-blue-50' },
+    present: { label: te.presenceStatus('present'), active: 'bg-emerald-500 text-white', inactive: 'bg-slate-100 text-slate-500 hover:bg-emerald-50' },
+    absent: { label: te.presenceStatus('absent'), active: 'bg-red-500 text-white', inactive: 'bg-slate-100 text-slate-500 hover:bg-red-50' },
+    retard: { label: te.presenceStatus('retard'), active: 'bg-amber-500 text-white', inactive: 'bg-slate-100 text-slate-500 hover:bg-amber-50' },
+    excuse: { label: te.presenceStatus('excuse'), active: 'bg-blue-500 text-white', inactive: 'bg-slate-100 text-slate-500 hover:bg-blue-50' },
+  }
+
+  const summaryLabels: Record<keyof typeof stats, string> = {
+    present: t('summary.present'),
+    absent: t('summary.absent'),
+    retard: t('summary.retard'),
+    excuse: t('summary.excuse'),
   }
 
   return (
-    <PageShell title="Présences" subtitle="Registre d'appel quotidien par classe" breadcrumb="Présences">
+    <PageShell title={t('title')} subtitle={t('subtitle')} breadcrumb={t('breadcrumb')}>
       <SmartFilterBar
-        fields={fields}
+        fields={filterFields}
         values={values}
         onChange={setFilter}
         onReset={reset}
         activeFilters={activeFilters}
         resultCount={classeId ? filteredEleves.length : undefined}
-        resultLabel="élève(s)"
+        resultLabel={t('resultLabel')}
         loading={loading}
         extra={
           <div className="flex flex-wrap gap-1.5">
-            {PRESENCE_DATE_PRESETS.map(p => (
+            {datePresets.map(p => (
               <button
                 key={p.label}
                 type="button"
@@ -179,12 +198,12 @@ function PresencesPageContent() {
               <>
                 <button onClick={setTousPresents}
                   className="text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-200 text-emerald-600 hover:bg-emerald-50">
-                  Tous présents
+                  {t('markAllPresent')}
                 </button>
                 <button onClick={handleSave} disabled={saving}
                   className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 text-white text-xs font-semibold px-3 py-1.5 rounded-full">
                   <Save className="w-3.5 h-3.5" />
-                  {saving ? 'Sauvegarde...' : saved ? 'Sauvegardé !' : "Valider l'appel"}
+                  {saving ? tc('saving') : saved ? tc('saved') : t('validate')}
                 </button>
               </>
             )}
@@ -197,7 +216,7 @@ function PresencesPageContent() {
 
       {eleves.length > 0 && (
         <div className="grid grid-cols-4 gap-3 mb-6">
-          {Object.entries(stats).map(([key, val]) => (
+          {(Object.keys(stats) as Array<keyof typeof stats>).map(key => (
             <button
               key={key}
               type="button"
@@ -206,24 +225,22 @@ function PresencesPageContent() {
                 values.statut === key ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'
               }`}
             >
-              <span className="text-sm text-slate-500 capitalize">
-                {key === 'present' ? 'Présents' : key === 'absent' ? 'Absents' : key === 'retard' ? 'Retards' : 'Excusés'}
-              </span>
-              <span className="font-bold text-slate-800">{val}</span>
+              <span className="text-sm text-slate-500">{summaryLabels[key]}</span>
+              <span className="font-bold text-slate-800">{stats[key]}</span>
             </button>
           ))}
         </div>
       )}
 
       {!classeId ? (
-        <div className="card p-12 text-center text-slate-400 text-sm">Sélectionnez une classe pour faire l&apos;appel</div>
+        <div className="card p-12 text-center text-slate-400 text-sm">{t('selectClass')}</div>
       ) : loading ? (
-        <div className="card p-12 text-center text-slate-400 text-sm">Chargement...</div>
+        <div className="card p-12 text-center text-slate-400 text-sm">{tc('loading')}</div>
       ) : filteredEleves.length === 0 ? (
         <EmptyState
           icon={CheckSquare}
-          title="Aucun élève trouvé"
-          description="Modifiez la date, la classe ou la recherche pour afficher des élèves."
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
         />
       ) : (
         <div className="card overflow-hidden">
@@ -231,8 +248,8 @@ function PresencesPageContent() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">#</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Élève</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Statut</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('columns.student')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('columns.status')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -270,7 +287,7 @@ function PresencesPageContent() {
 
 export default function PresencesPage() {
   return (
-    <Suspense fallback={<PageShell title="Présences" breadcrumb="Présences"><div className="card p-12 text-center text-slate-400">Chargement...</div></PageShell>}>
+    <Suspense fallback={<PresencesPageFallback />}>
       <PresencesPageContent />
     </Suspense>
   )

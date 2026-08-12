@@ -1,0 +1,28 @@
+{
+  "title": "Livret Maternelle",
+  "subtitle": "Évaluation des compétences par domaine",
+  "breadcrumb": "Maternelle",
+  "printBooklet": "Imprimer le livret",
+  "domains": "Domaines",
+  "allNurseryClasses": "Toutes les classes maternelle",
+  "allStudents": "Tous les élèves",
+  "student": "Élève",
+  "sequence": "Séquence",
+  "competence": "Compétence",
+  "notEvaluated": "Non évalué",
+  "matricule": "Matricule : {value}",
+  "emptyTitle": "Aucun élève maternelle",
+  "emptyDescription": "Inscrivez des élèves en section maternelle ou modifiez vos filtres.",
+  "printHeader": "Livret de compétences — Maternelle",
+  "settingsTitle": "Gérer les domaines de compétences",
+  "newCompetencePlaceholder": "Nouvelle compétence...",
+  "newDomainPlaceholder": "Nom du nouveau domaine...",
+  "sequences": {
+    "sequence1": "Séquence 1",
+    "sequence2": "Séquence 2",
+    "sequence3": "Séquence 3",
+    "sequence4": "Séquence 4",
+    "sequence5": "Séquence 5",
+    "sequence6": "Séquence 6"
+  }
+}

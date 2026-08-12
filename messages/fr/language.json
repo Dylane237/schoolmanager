@@ -1,0 +1,7 @@
+{
+  "label": "Langue",
+  "fr": "Français",
+  "en": "English",
+  "switchTo": "Passer en {locale}",
+  "current": "Langue actuelle : {locale}"
+}

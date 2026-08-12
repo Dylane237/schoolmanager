@@ -1,0 +1,164 @@
+{
+  "list": {
+    "title": "Classes",
+    "subtitle": "{count} class(es) · Year {year}",
+    "breadcrumb": "Classes",
+    "transfers": "Distribution",
+    "referential": "CM framework",
+    "newClass": "New class",
+    "searchPlaceholder": "Search a class, level...",
+    "resultLabel": "class(es)",
+    "referentialTitle": "Level framework — Cameroon",
+    "referentialDesc": "Select the levels to create for year {year}. Existing classes are skipped.",
+    "exists": "Exists",
+    "creating": "Creating...",
+    "createCount": "Create {count} class(es)",
+    "modalNewTitle": "New class",
+    "fields": {
+      "section": "Section *",
+      "level": "Level (framework)",
+      "chooseLevel": "— Choose a level —",
+      "className": "Class name *",
+      "classNamePlaceholder": "CM2 A, Class 3 B...",
+      "schoolYear": "School year",
+      "maxCapacity": "Max capacity"
+    },
+    "createClass": "Create class",
+    "emptyTitle": "No classes configured",
+    "emptyDescription": "Use the Cameroon framework to create your classes in one click.",
+    "emptyAction": "Open framework",
+    "noMatchTitle": "No matching classes",
+    "noMatchDescription": "Adjust your search criteria or reset the filters.",
+    "resetFilters": "Reset filters",
+    "studentsCount": "{count} student(s)",
+    "places": "{count} seats",
+    "titulaire": "Class teacher",
+    "notAssigned": "Not assigned",
+    "full": "Class full",
+    "almostFull": "Almost full",
+    "available": "{pct}% available",
+    "toasts": {
+      "createError": "Error creating class",
+      "created": "Class created successfully",
+      "createdBulk": "{count} class(es) created",
+      "assignError": "Error assigning teacher",
+      "assigned": "Teacher assigned"
+    }
+  },
+  "detail": {
+    "breadcrumb": "Class",
+    "loadingBreadcrumb": "Loading...",
+    "stats": {
+      "studentsEnrolled": "Enrolled students",
+      "placesSub": "/ {max} seats",
+      "fillRate": "Occupancy",
+      "subjects": "Subjects",
+      "unpaid": "Unpaid",
+      "studentsSub": "student(s)"
+    },
+    "titularTeacher": "Class teacher",
+    "noTeacher": "No teacher assigned",
+    "chooseTeacher": "Choose a teacher...",
+    "manageStaff": "Manage staff →",
+    "quickActions": {
+      "title": "Quick actions",
+      "enroll": {
+        "label": "Enroll",
+        "desc": "New student"
+      },
+      "attendance": {
+        "label": "Roll call",
+        "desc": "Attendance"
+      },
+      "grades": {
+        "label": "Grades",
+        "desc": "Entry"
+      },
+      "payments": {
+        "label": "Payments",
+        "desc": "Overview"
+      }
+    },
+    "installments": {
+      "title": "Fee instalments",
+      "empty": "No instalments configured for this class",
+      "configure": "Configure instalments →",
+      "installment": "Instalment {n}",
+      "beforeDate": "· due by {date}",
+      "amount": "Amount (FCFA)",
+      "amountPlaceholder": "E.g. 50000",
+      "dueDate": "Due date (optional)",
+      "add": "Add instalment",
+      "total": "Total:"
+    },
+    "examFees": {
+      "title": "Exam fees",
+      "defaultLabel": "Form 1 entrance exam",
+      "empty": "No exam fee for this class",
+      "emptyHint": "E.g. CM2 exam, official exams…",
+      "configureLink": "Configure →",
+      "unpaidCount": "{count, plural, one {# unpaid} other {# unpaid}}",
+      "dueDateLabel": "Due date: {date}",
+      "label": "Label",
+      "labelPlaceholder": "E.g. Form 1 entrance exam",
+      "amount": "Amount (FCFA)",
+      "amountPlaceholder": "E.g. 15000",
+      "dueDate": "Due date (all students)",
+      "confirmDelete": "Remove exam fees for this class?"
+    },
+    "capacity": {
+      "title": "Class capacity",
+      "maxStudents": "Maximum number of students",
+      "minimum": "Minimum {n} (students already enrolled)",
+      "studentsRatio": "{current} / {max} students"
+    },
+    "students": {
+      "title": "Students ({count})",
+      "viewAll": "View all →",
+      "empty": "No students enrolled in this class",
+      "enrollStudent": "Enroll a student",
+      "boy": "Boy",
+      "girl": "Girl",
+      "columns": {
+        "student": "Student",
+        "matricule": "ID number",
+        "payment": "Payment",
+        "exam": "Exam",
+        "remainingDue": "Amount due"
+      },
+      "profile": "Profile"
+    },
+    "subjects": {
+      "title": "Subjects ({count})"
+    },
+    "available": "Available",
+    "configured": "configured",
+    "toasts": {
+      "notFound": "Class not found",
+      "assignError": "Error assigning teacher",
+      "teacherUpdated": "Class teacher updated",
+      "saveError": "Error saving",
+      "tranchesUpdated": "Instalments updated",
+      "examFeesSaved": "Exam fees saved",
+      "examFeesDeleted": "Exam fees removed",
+      "error": "Error",
+      "capacityTooLow": "Capacity cannot be lower than the number of enrolled students ({count})",
+      "capacityUpdated": "Capacity updated"
+    }
+  },
+  "transfers": {
+    "title": "Student distribution",
+    "subtitle": "Drag and drop students between classes",
+    "breadcrumb": "Transfers",
+    "searchPlaceholder": "Search a student...",
+    "resultLabel": "visible student(s)",
+    "howToTitle": "How to use",
+    "howToBody": "Click and hold on a student, then drop them in the target class column. Full classes will automatically reject the transfer.",
+    "noClass": "No class",
+    "notAssigned": "Unassigned",
+    "dropHint": "Drop a student here",
+    "transferring": "Transfer in progress...",
+    "transferSuccess": "{name} transferred",
+    "transferError": "Transfer error"
+  }
+}
