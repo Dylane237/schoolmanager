@@ -1,66 +1,87 @@
--- SchoolManager — schéma cloud (Supabase)
--- Exécuter dans l'éditeur SQL Supabase du projet lié à Vercel.
+-- Phase 2 : sync données opérationnelles (desktop → cloud, lecture web read-only)
+-- Exécuter après le schéma de base dans l'éditeur SQL Supabase.
 
--- Métadonnées école sur les licences activées
-ALTER TABLE licences ADD COLUMN IF NOT EXISTS ecole_slug TEXT;
-ALTER TABLE licences ADD COLUMN IF NOT EXISTS ecole_nom TEXT;
-ALTER TABLE licences ADD COLUMN IF NOT EXISTS parrain_code TEXT;
-ALTER TABLE licences ADD COLUMN IF NOT EXISTS machine_fingerprint TEXT;
-ALTER TABLE licences ADD COLUMN IF NOT EXISTS activated_at TIMESTAMPTZ;
+CREATE TABLE IF NOT EXISTS cloud_sync_meta (
+  ecole_slug TEXT PRIMARY KEY REFERENCES ecoles(slug) ON DELETE CASCADE,
+  annee_scolaire TEXT,
+  synced_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  eleves_count INT NOT NULL DEFAULT 0,
+  classes_count INT NOT NULL DEFAULT 0,
+  machine_fingerprint TEXT,
+  app_version TEXT,
+  dashboard_stats JSONB
+);
 
--- Registre cloud des établissements (miroir des inscriptions desktop)
-CREATE TABLE IF NOT EXISTS ecoles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug TEXT UNIQUE NOT NULL,
+CREATE TABLE IF NOT EXISTS cloud_classes (
+  ecole_slug TEXT NOT NULL REFERENCES ecoles(slug) ON DELETE CASCADE,
+  local_id TEXT NOT NULL,
   nom TEXT NOT NULL,
-  directeur_nom TEXT,
-  telephone TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  section TEXT,
+  niveau TEXT,
+  annee_scolaire TEXT,
+  capacite_max INT,
+  nb_eleves INT NOT NULL DEFAULT 0,
+  enseignant_nom TEXT,
+  synced_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (ecole_slug, local_id)
 );
 
-CREATE INDEX IF NOT EXISTS ecoles_slug_idx ON ecoles (slug);
+CREATE INDEX IF NOT EXISTS cloud_classes_slug_idx ON cloud_classes (ecole_slug);
 
--- Parrainages centralisés (vue éditeur)
-CREATE TABLE IF NOT EXISTS parrainages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  local_id TEXT,
-  parrain_code TEXT NOT NULL,
-  parrain_ecole_slug TEXT,
-  parrain_ecole_nom TEXT NOT NULL,
-  parrain_directeur_nom TEXT,
-  contact_nom TEXT NOT NULL,
-  contact_ecole TEXT,
-  contact_telephone TEXT NOT NULL,
-  notes TEXT,
-  statut TEXT NOT NULL DEFAULT 'en_cours'
-    CHECK (statut IN ('en_cours', 'abonnement_actif', 'commission_versee', 'annule')),
-  montant_abonnement NUMERIC,
-  commission_pct NUMERIC NOT NULL DEFAULT 10,
-  commission_montant NUMERIC,
-  filleul_ecole_slug TEXT,
-  filleul_ecole_nom TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS cloud_eleves (
+  ecole_slug TEXT NOT NULL REFERENCES ecoles(slug) ON DELETE CASCADE,
+  local_id TEXT NOT NULL,
+  numero_matricule TEXT,
+  nom TEXT NOT NULL,
+  prenom TEXT NOT NULL,
+  sexe TEXT,
+  section TEXT,
+  statut TEXT NOT NULL DEFAULT 'actif',
+  classe_local_id TEXT,
+  classe_nom TEXT,
+  date_naissance TEXT,
+  parent_nom TEXT,
+  parent_telephone TEXT,
+  total_paye NUMERIC NOT NULL DEFAULT 0,
+  total_attendu NUMERIC NOT NULL DEFAULT 0,
+  synced_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (ecole_slug, local_id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS parrainages_local_dedup
-  ON parrainages (parrain_code, local_id)
-  WHERE local_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS cloud_eleves_slug_idx ON cloud_eleves (ecole_slug);
+CREATE INDEX IF NOT EXISTS cloud_eleves_classe_idx ON cloud_eleves (ecole_slug, classe_local_id);
 
-CREATE INDEX IF NOT EXISTS parrainages_parrain_code_idx ON parrainages (parrain_code);
-CREATE INDEX IF NOT EXISTS parrainages_statut_idx ON parrainages (statut);
+CREATE TABLE IF NOT EXISTS cloud_payment_summaries (
+  ecole_slug TEXT NOT NULL REFERENCES ecoles(slug) ON DELETE CASCADE,
+  eleve_local_id TEXT NOT NULL,
+  numero_matricule TEXT,
+  nom TEXT NOT NULL,
+  prenom TEXT NOT NULL,
+  classe_local_id TEXT,
+  classe_nom TEXT,
+  total_attendu NUMERIC NOT NULL DEFAULT 0,
+  total_paye NUMERIC NOT NULL DEFAULT 0,
+  total_reste NUMERIC NOT NULL DEFAULT 0,
+  statut TEXT NOT NULL DEFAULT 'non_configure',
+  synced_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (ecole_slug, eleve_local_id)
+);
 
--- RLS : accès direct anon/authenticated interdit (API Vercel = service_role)
-ALTER TABLE licences ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ecoles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE parrainages ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS cloud_payment_summaries_slug_idx ON cloud_payment_summaries (ecole_slug);
 
-DROP POLICY IF EXISTS licences_service_only ON licences;
-CREATE POLICY licences_service_only ON licences FOR ALL USING (false);
+ALTER TABLE cloud_sync_meta ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cloud_classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cloud_eleves ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cloud_payment_summaries ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS ecoles_service_only ON ecoles;
-CREATE POLICY ecoles_service_only ON ecoles FOR ALL USING (false);
+DROP POLICY IF EXISTS cloud_sync_meta_service_only ON cloud_sync_meta;
+CREATE POLICY cloud_sync_meta_service_only ON cloud_sync_meta FOR ALL USING (false);
 
-DROP POLICY IF EXISTS parrainages_service_only ON parrainages;
-CREATE POLICY parrainages_service_only ON parrainages FOR ALL USING (false);
+DROP POLICY IF EXISTS cloud_classes_service_only ON cloud_classes;
+CREATE POLICY cloud_classes_service_only ON cloud_classes FOR ALL USING (false);
+
+DROP POLICY IF EXISTS cloud_eleves_service_only ON cloud_eleves;
+CREATE POLICY cloud_eleves_service_only ON cloud_eleves FOR ALL USING (false);
+
+DROP POLICY IF EXISTS cloud_payment_summaries_service_only ON cloud_payment_summaries;
+CREATE POLICY cloud_payment_summaries_service_only ON cloud_payment_summaries FOR ALL USING (false);

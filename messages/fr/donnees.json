@@ -3,6 +3,7 @@
   "subtitle": "Importez, exportez et sauvegardez les données de votre établissement",
   "breadcrumb": "Données",
   "sections": {
+    "sync": "Sync cloud",
     "import": "Import",
     "export": "Export",
     "documents": "Documents imprimables",
@@ -65,5 +66,20 @@
     "title": "Sauvegarde complète",
     "description": "Exportez ou restaurez la base SQLite depuis les paramètres.",
     "action": "Gérer les sauvegardes"
+  },
+  "sync": {
+    "title": "Synchronisation cloud",
+    "description": "Envoyez élèves, classes et paiements vers le cloud pour un accès web lecture seule. La sync automatique se fait à chaque consultation de la licence.",
+    "lastSync": "Dernière sync",
+    "students": "Élèves sync",
+    "classes": "Classes sync",
+    "mode": "Environnement",
+    "modeCloud": "Web (lecture cloud)",
+    "modeDesktop": "Desktop (source)",
+    "never": "Jamais",
+    "action": "Synchroniser maintenant",
+    "syncing": "Synchronisation…",
+    "success": "Données synchronisées avec le cloud",
+    "error": "Échec de la synchronisation"
   }
 }

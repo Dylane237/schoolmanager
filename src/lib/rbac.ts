@@ -33,7 +33,7 @@ const MODULE_API_PREFIX: Record<Module, string[]> = {
   maternelle: ['/api/maternelle'],
   personnel: ['/api/personnel'],
   annonces: ['/api/annonces'],
-  parametres: ['/api/ecole', '/api/annees-scolaires', '/api/backup', '/api/tranches-config', '/api/users', '/api/licence', '/api/audit', '/api/data'],
+  parametres: ['/api/ecole', '/api/annees-scolaires', '/api/backup', '/api/tranches-config', '/api/users', '/api/licence', '/api/audit', '/api/data', '/api/sync'],
 }
 
 export function hasModuleAccess(role: string, module: Module): boolean {

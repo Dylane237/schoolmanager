@@ -1,12 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import {
   Upload, Download, FileSpreadsheet, FileJson, FileText,
   Users, School, CreditCard, ClipboardList, CheckSquare, UserCheck,
-  ArrowRight, DatabaseBackup, ExternalLink,
+  ArrowRight, DatabaseBackup, ExternalLink, Cloud, CloudUpload, RefreshCw,
 } from 'lucide-react'
 import PageShell from '@/components/layout/PageShell'
 import { useSchool } from '@/components/layout/SchoolProvider'
@@ -45,6 +45,52 @@ export default function DonneesPage() {
   )
 
   const canImport = hasModuleAccess(userRole, 'eleves')
+  const canSync = hasModuleAccess(userRole, 'parametres')
+
+  const [syncStatus, setSyncStatus] = useState<{
+    synced: boolean
+    synced_at: string | null
+    eleves_count: number
+    classes_count: number
+    cloudReadMode: boolean
+  } | null>(null)
+  const [syncing, setSyncing] = useState(false)
+
+  useEffect(() => {
+    if (!canSync) return
+    fetch('/api/sync/status')
+      .then(r => r.json())
+      .then(d => setSyncStatus(d))
+      .catch(() => {})
+  }, [canSync])
+
+  const handleSyncNow = async () => {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/sync/trigger', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || t('sync.error'))
+        return
+      }
+      toast.success(t('sync.success'))
+      const statusRes = await fetch('/api/sync/status')
+      setSyncStatus(await statusRes.json())
+    } catch {
+      toast.error(t('sync.error'))
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const formatSyncDate = (iso: string | null) => {
+    if (!iso) return t('sync.never')
+    try {
+      return new Date(iso).toLocaleString()
+    } catch {
+      return iso
+    }
+  }
 
   const handleExport = async (entity: ExportEntity, format: ExportFormat) => {
     const key = `${entity}-${format}`
@@ -75,6 +121,60 @@ export default function DonneesPage() {
   return (
     <PageShell title={t('title')} subtitle={t('subtitle')} breadcrumb={t('breadcrumb')}>
       <div className="space-y-10 max-w-5xl">
+        {/* Cloud sync */}
+        {canSync && (
+          <section>
+            <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <Cloud className="w-5 h-5 text-emerald-600" />
+              {t('sections.sync')}
+            </h2>
+            <div className="card p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-5">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-slate-800">{t('sync.title')}</h3>
+                  <p className="text-sm text-slate-500 mt-1">{t('sync.description')}</p>
+                  {syncStatus && (
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                      <div className="p-3 bg-slate-50 rounded-lg">
+                        <p className="text-slate-400 text-xs">{t('sync.lastSync')}</p>
+                        <p className="font-medium text-slate-700 mt-0.5">{formatSyncDate(syncStatus.synced_at)}</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg">
+                        <p className="text-slate-400 text-xs">{t('sync.students')}</p>
+                        <p className="font-medium text-slate-700 mt-0.5">{syncStatus.eleves_count}</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg">
+                        <p className="text-slate-400 text-xs">{t('sync.classes')}</p>
+                        <p className="font-medium text-slate-700 mt-0.5">{syncStatus.classes_count}</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg">
+                        <p className="text-slate-400 text-xs">{t('sync.mode')}</p>
+                        <p className="font-medium text-slate-700 mt-0.5">
+                          {syncStatus.cloudReadMode ? t('sync.modeCloud') : t('sync.modeDesktop')}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {!syncStatus?.cloudReadMode && (
+                  <button
+                    onClick={handleSyncNow}
+                    disabled={syncing}
+                    className="btn-primary flex items-center gap-2 shrink-0"
+                  >
+                    {syncing ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CloudUpload className="w-4 h-4" />
+                    )}
+                    {syncing ? t('sync.syncing') : t('sync.action')}
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Import */}
         {canImport && (
           <section>

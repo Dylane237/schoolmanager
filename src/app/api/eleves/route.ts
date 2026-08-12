@@ -5,10 +5,11 @@ import { sqlTotalAttenduEleve } from '../../../lib/paiements-utils'
 import { checkStudentLimit } from '../../../lib/licence-limits'
 import { requireModule } from '../../../lib/rbac.server'
 import { generateMatricule } from '../../../lib/matricule'
+import { isCloudReadMode, fetchCloudEleves } from '../../../lib/cloud-read'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!user?.ecole_id && !user?.ecole_slug) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'eleves', 'GET')
   if (denied) return denied
@@ -18,6 +19,19 @@ export async function GET(request: NextRequest) {
   const section = searchParams.get('section')
   const statut_paiement = searchParams.get('statut_paiement')
   const search = searchParams.get('search')
+
+  if (isCloudReadMode() && user.ecole_slug) {
+    const slug = user.ecole_slug
+    const eleves = await fetchCloudEleves(slug, {
+      classe_id: classe_id ?? undefined,
+      section: section ?? undefined,
+      search: search ?? undefined,
+      statut_paiement: statut_paiement ?? undefined,
+    })
+    return NextResponse.json({ eleves, source: 'cloud' })
+  }
+
+  if (!user.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const db = getDb()
   const annee = getActiveAnneeScolaire(db, user.ecole_id)

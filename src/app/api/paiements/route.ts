@@ -4,16 +4,40 @@ import { getDb } from '../../../lib/db-server'
 import { countImpayes, getElevesSituation } from '../../../lib/paiements-utils'
 import { requireModule } from '../../../lib/rbac.server'
 import { logAudit } from '../../../lib/audit-log'
+import { isCloudReadMode, fetchCloudPaymentSituations } from '../../../lib/cloud-read'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
-  if (!user?.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!user?.ecole_id && !user?.ecole_slug) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const denied = requireModule(user, 'paiements', 'GET')
   if (denied) return denied
 
   const { searchParams } = new URL(request.url)
   const view = searchParams.get('view')
+
+  if (view === 'situation' && isCloudReadMode() && user.ecole_slug) {
+    const slug = user.ecole_slug
+    const classe_id = searchParams.get('classe_id') || undefined
+    const search = searchParams.get('search') || undefined
+    const eleve_id = searchParams.get('eleve_id') || undefined
+    const statut = searchParams.get('statut') || undefined
+
+    const { situations, annee_scolaire } = await fetchCloudPaymentSituations(slug, {
+      classeId: classe_id,
+      search,
+      statut,
+    })
+
+    if (eleve_id) {
+      const one = situations.find(s => s.eleve_id === eleve_id) ?? null
+      return NextResponse.json({ situation: one, annee_scolaire, source: 'cloud' })
+    }
+
+    return NextResponse.json({ situations, annee_scolaire, source: 'cloud' })
+  }
+
+  if (!user.ecole_id) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const db = getDb()
 

@@ -3,6 +3,7 @@
   "subtitle": "Import, export and back up your school data",
   "breadcrumb": "Data",
   "sections": {
+    "sync": "Cloud sync",
     "import": "Import",
     "export": "Export",
     "documents": "Printable documents",
@@ -65,5 +66,20 @@
     "title": "Full backup",
     "description": "Export or restore the SQLite database from settings.",
     "action": "Manage backups"
+  },
+  "sync": {
+    "title": "Cloud synchronization",
+    "description": "Push students, classes and payments to the cloud for read-only web access. Auto-sync runs when viewing licence status.",
+    "lastSync": "Last sync",
+    "students": "Synced students",
+    "classes": "Synced classes",
+    "mode": "Environment",
+    "modeCloud": "Web (cloud read)",
+    "modeDesktop": "Desktop (source)",
+    "never": "Never",
+    "action": "Sync now",
+    "syncing": "Syncing…",
+    "success": "Data synced to cloud",
+    "error": "Sync failed"
   }
 }

@@ -10,6 +10,7 @@ import {
 } from '@/lib/licence-constants'
 import { maskLicenceKey, LICENCE_SERVER_URL } from '@/lib/licence-server'
 import { getMachineFingerprint } from '@/lib/paths'
+import { pushSchoolDataFromEcoleId } from '@/lib/sync-trigger'
 
 function pushLicenceMetaToCloud(ecoleId: string) {
   if (process.env.VERCEL) return
@@ -114,6 +115,7 @@ export async function GET(request: NextRequest) {
     : null
 
   pushLicenceMetaToCloud(user.ecole_id)
+  pushSchoolDataFromEcoleId(user.ecole_id)
 
   return NextResponse.json({
     active: !isExpired,
