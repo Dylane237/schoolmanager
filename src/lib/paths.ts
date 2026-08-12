@@ -18,6 +18,10 @@ export function getUserDataDir(): string {
     return userData
   }
 
+  if (process.env.VERCEL) {
+    return path.join('/tmp', SCHOOL_MANAGER_FOLDER)
+  }
+
   if (process.versions.electron) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -33,8 +37,12 @@ export function getUserDataDir(): string {
 
 export function ensureUserDataDir(): string {
   const dir = getUserDataDir()
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true })
+  try {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
+  } catch {
+    // FS read-only (ex. certaines lambdas) — on continue en mémoire / tmp
   }
   return dir
 }

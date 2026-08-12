@@ -19,9 +19,13 @@ export function getJwtSecret(): string {
   ensureUserDataDir()
   const secretPath = getSecretPath()
 
-  if (fs.existsSync(secretPath)) {
-    cachedSecret = fs.readFileSync(secretPath, 'utf8').trim()
-    return cachedSecret
+  try {
+    if (fs.existsSync(secretPath)) {
+      cachedSecret = fs.readFileSync(secretPath, 'utf8').trim()
+      return cachedSecret
+    }
+  } catch {
+    // ignore read errors on serverless
   }
 
   const machineHash = crypto
@@ -35,7 +39,11 @@ export function getJwtSecret(): string {
     .update(`${machineHash}:${randomPart}`)
     .digest('hex')
 
-  fs.writeFileSync(secretPath, cachedSecret, { mode: 0o600 })
+  try {
+    fs.writeFileSync(secretPath, cachedSecret, { mode: 0o600 })
+  } catch {
+    // secret kept in memory only (Vercel sans SM_JWT_SECRET)
+  }
   return cachedSecret
 }
 

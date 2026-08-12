@@ -10,7 +10,8 @@ const documentsDataDir = path
   .replace(/\\/g, '/')
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // Standalone uniquement pour Electron / self-host — pas sur Vercel
+  ...(process.env.VERCEL ? {} : { output: 'standalone' as const }),
   serverExternalPackages: ['better-sqlite3', 'bcryptjs'],
   allowedDevOrigins: ['127.0.0.1', 'localhost'],
   turbopack: {},
