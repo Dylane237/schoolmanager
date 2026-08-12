@@ -5,26 +5,8 @@ import { useTranslations } from 'next-intl'
 import { AlertTriangle, Cloud, Laptop, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { computeMergePreview } from '@/lib/sync-merge-preview'
-
-type SyncChangeEntry = {
-  at: string
-  platform: 'desktop' | 'web'
-  entity_type: string
-  entity_id: string | null
-  action: string
-  label: string
-  source: string
-}
-
-type SyncDiffItem = {
-  entity_type: string
-  entity_id: string
-  label: string
-  kind: 'local_only' | 'cloud_only' | 'both_modified'
-  local_summary: string | null
-  cloud_summary: string | null
-  fields_changed: string[]
-}
+import type { SyncDiffItem } from '@/lib/sync-diff-types'
+import type { SyncChangeEntry } from '@/lib/sync-changelog'
 
 type ChangelogPayload = {
   conflict: boolean
@@ -164,7 +146,7 @@ export default function SyncConflictPanel({
     )
   }
 
-  if (!data?.diff.has_differences && !data.conflict) return null
+  if (!data?.diff.has_differences && !data?.conflict) return null
 
   const kindLabel = (kind: SyncDiffItem['kind']) => {
     if (kind === 'local_only') return t('kindLocalOnly')

@@ -62,7 +62,7 @@ export async function syncStructuredFromEcoleDb(
   }
 
   const result = await upsertSchoolDataOnCloud(payload)
-  if (!result.ok) return result
+  if (!result.ok) return { ok: false, error: result.error }
 
   const elevesActif = payload.eleves.filter(e => e.statut === 'actif').length
   return {
