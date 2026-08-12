@@ -1,4 +1,4 @@
--- Phase 2 : sync données opérationnelles (desktop → cloud, lecture web read-only)
+-- Phase 3 : comptes cloud — voir aussi supabase/schema-cloud-auth.sql
 -- Exécuter après le schéma de base dans l'éditeur SQL Supabase.
 
 CREATE TABLE IF NOT EXISTS cloud_sync_meta (

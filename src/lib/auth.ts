@@ -15,6 +15,9 @@ export interface AuthUser {
   ecole_id: string | null
   ecole_slug: string | null
   nom: string | null
+  auth_source?: 'local' | 'cloud'
+  account_id?: string
+  prenom?: string | null
 }
 
 export interface JwtPayload extends AuthUser {
@@ -88,12 +91,47 @@ export async function loginUser(email: string, password: string) {
       ecole_id: null,
       ecole_slug: null,
       nom: 'Super Admin',
+      auth_source: 'local',
     }
     const token = await signToken(payload)
     return { token, user: payload }
   }
 
-  // ── Auth SQLite pour les autres utilisateurs (Electron local uniquement) ──
+  const { isCloudAuthAvailable, loginCloudUser, cloudAuthErrorMessage } = await import('./cloud-auth')
+
+  // ── Web (Vercel) : auth cloud uniquement ──
+  if (process.env.VERCEL && isCloudAuthAvailable()) {
+    const cloud = await loginCloudUser(normalizedEmail, password)
+    if (!cloud.ok) {
+      return { error: cloudAuthErrorMessage(cloud.error) as 'Email introuvable' | 'Mot de passe incorrect' | 'Licence expirée' }
+    }
+    const user: AuthUser = { ...cloud.result.user, auth_source: 'cloud' }
+    const token = await signToken(user)
+    return { token, user }
+  }
+
+  // ── Desktop : SQLite d'abord, puis cloud si email absent localement ──
+  const localResult = await loginLocalUser(normalizedEmail, password)
+  if (!('error' in localResult)) return localResult
+  if (localResult.error === 'Mot de passe incorrect' || localResult.error === 'Licence expirée' || localResult.error === 'Licence utilisée sur un autre ordinateur') {
+    return localResult
+  }
+
+  if (isCloudAuthAvailable()) {
+    const cloud = await loginCloudUser(normalizedEmail, password)
+    if (!cloud.ok) {
+      return { error: cloudAuthErrorMessage(cloud.error) as 'Email introuvable' | 'Mot de passe incorrect' | 'Licence expirée' }
+    }
+    const { buildLocalAuthFromCloudLogin } = await import('./local-provision')
+    const user = buildLocalAuthFromCloudLogin(cloud.result, normalizedEmail)
+    const token = await signToken(user)
+    return { token, user }
+  }
+
+  return localResult
+}
+
+async function loginLocalUser(email: string, password: string) {
   let db: ReturnType<typeof getDb>
   try {
     db = getDb()
@@ -106,7 +144,7 @@ export async function loginUser(email: string, password: string) {
     FROM users u
     LEFT JOIN ecoles e ON e.id = u.ecole_id
     WHERE u.email = ?
-  `).get(normalizedEmail) as Record<string, unknown> | undefined
+  `).get(email) as Record<string, unknown> | undefined
 
   if (!user) {
     return { error: 'Email introuvable' as const }
@@ -144,6 +182,8 @@ export async function loginUser(email: string, password: string) {
     ecole_id: (user.ecole_id as string) || null,
     ecole_slug: (user.ecole_slug as string) || null,
     nom: (user.nom as string) || null,
+    prenom: (user.prenom as string) as string | null | undefined,
+    auth_source: 'local',
   }
 
   const token = await signToken(payload)

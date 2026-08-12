@@ -66,6 +66,15 @@ export default async function DashboardPage({
   if (!token) return null
   const payload = await verifyToken(token)
   if (!payload) return null
+
+  const isCloudSession = payload.auth_source === 'cloud'
+    || (process.env.VERCEL === '1' && payload.role !== 'super_admin')
+
+  if (isCloudSession) {
+    const CloudDashboard = (await import('./CloudDashboard')).default
+    return <CloudDashboard slug={slug} />
+  }
+
   const nom    = payload.nom as string
   const prenom = payload.prenom as string | undefined
   const initials = ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase() || 'AD'

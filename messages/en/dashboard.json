@@ -1,4 +1,6 @@
 {
+  "title": "Dashboard",
+  "subtitle": "Overview of your school",
   "breadcrumb": "Dashboard",
   "greeting": "Hello, {name}",
   "enrollStudent": "Enroll a student",
@@ -59,5 +61,14 @@
     "enterGrades": { "label": "Enter grades", "desc": "Current period grades" },
     "attendance": { "label": "Take attendance", "desc": "Attendance register" },
     "settings": { "label": "School settings", "desc": "Configuration & profile" }
+  },
+  "cloud": {
+    "readOnlyBadge": "Cloud mode — read-only",
+    "syncedAt": "Synced: {date}",
+    "noDataTitle": "No synced data yet",
+    "noDataDescription": "Open the desktop app and run a sync from Data to view your students online.",
+    "syncAction": "Go to Data",
+    "paymentByClass": "Payments by class",
+    "recentPayments": "Recent payments"
   }
 }

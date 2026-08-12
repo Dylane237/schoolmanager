@@ -1,4 +1,6 @@
 {
+  "title": "Tableau de bord",
+  "subtitle": "Vue d'ensemble de votre établissement",
   "breadcrumb": "Tableau de bord",
   "greeting": "Bonjour, {name}",
   "enrollStudent": "Inscrire un élève",
@@ -81,5 +83,14 @@
       "tooltip": "{paid}/{total} élèves ({pct}%) · À jour",
       "moreClasses": "{count} autre(s) classe(s) — voir la liste complète"
     }
+  },
+  "cloud": {
+    "readOnlyBadge": "Mode cloud — lecture seule",
+    "syncedAt": "Sync : {date}",
+    "noDataTitle": "Aucune donnée synchronisée",
+    "noDataDescription": "Ouvrez l'application desktop et lancez une synchronisation depuis Données pour consulter vos élèves en ligne.",
+    "syncAction": "Aller aux Données",
+    "paymentByClass": "Paiements par classe",
+    "recentPayments": "Derniers paiements"
   }
 }
