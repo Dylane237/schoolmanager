@@ -26,6 +26,15 @@ function getSecretKey(): Uint8Array | null {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const host = request.headers.get('host') || ''
+
+  // Restauration Electron : appel sans cookie depuis le processus principal (127.0.0.1)
+  if (
+    pathname === '/api/backup/restore'
+    && (host.startsWith('127.0.0.1') || host.startsWith('localhost'))
+  ) {
+    return NextResponse.next()
+  }
 
   if (publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)))) {
     return NextResponse.next()
