@@ -82,30 +82,43 @@ function openDatabaseAtPath(dbPath: string): InstanceType<typeof Database> {
 export async function openVercelSchoolDb(
   ecoleSlug: string,
   options?: { buffer?: Buffer | null; provision?: (db: InstanceType<typeof Database>) => Promise<void> },
-): Promise<InstanceType<typeof Database>> {
+): Promise<{ db: InstanceType<typeof Database>; loadedFromBuffer: boolean }> {
   const cached = _dbsBySlug.get(ecoleSlug)
-  if (cached) return cached
+  if (cached) return { db: cached, loadedFromBuffer: true }
 
-  const { loadBufferIntoMemoryDb } = await import('./db-vercel')
+  const { loadBufferIntoMemoryDb, tryLoadBufferIntoMemoryDb } = await import('./db-vercel')
   let db: InstanceType<typeof Database>
+  let loadedFromBuffer = false
 
-  if (options?.buffer && options.buffer.length > 0) {
-    db = loadBufferIntoMemoryDb(options.buffer)
-    runVersionedMigrations(db)
-  } else {
-    db = loadBufferIntoMemoryDb(Buffer.alloc(0))
+  const provisionFresh = async (target: InstanceType<typeof Database>) => {
     if (options?.provision) {
-      await options.provision(db)
+      await options.provision(target)
     } else {
-      initSchema(db)
-      runMigrations(db)
-      runVersionedMigrations(db)
-      seedInitialData(db)
+      initSchema(target)
+      runMigrations(target)
+      runVersionedMigrations(target)
+      seedInitialData(target)
     }
   }
 
+  if (options?.buffer && options.buffer.length > 0) {
+    const loaded = tryLoadBufferIntoMemoryDb(options.buffer)
+    if (loaded) {
+      db = loaded
+      loadedFromBuffer = true
+      runVersionedMigrations(db)
+    } else {
+      console.warn(`[openVercelSchoolDb] blob illisible pour "${ecoleSlug}" — provision depuis cloud`)
+      db = loadBufferIntoMemoryDb(Buffer.alloc(0))
+      await provisionFresh(db)
+    }
+  } else {
+    db = loadBufferIntoMemoryDb(Buffer.alloc(0))
+    await provisionFresh(db)
+  }
+
   _dbsBySlug.set(ecoleSlug, db)
-  return db
+  return { db, loadedFromBuffer }
 }
 
 export function exportVercelSchoolDbBuffer(ecoleSlug: string): Buffer | null {
@@ -114,18 +127,22 @@ export function exportVercelSchoolDbBuffer(ecoleSlug: string): Buffer | null {
   return exportMemoryDbToBuffer(db)
 }
 
-/** Desktop : singleton. Web (Vercel) : base par slug si fourni. */
+/** Desktop : singleton fichier. Web/serverless : base mémoire par slug. */
 export function getDb(ecoleSlug?: string) {
   if (_testDbOverride) return _testDbOverride
 
-  if (isServerlessRuntime()) {
-    const slug = ecoleSlug ?? getVercelActiveSlug() ?? undefined
-    if (!slug) {
-      throw new Error('[getDb] ecoleSlug requis sur Vercel — appelez prepareSchoolDb() avant.')
-    }
+  const slug = ecoleSlug ?? (isServerlessRuntime() ? getVercelActiveSlug() ?? undefined : undefined)
+
+  if (slug) {
     const cached = _dbsBySlug.get(slug)
     if (cached) return cached
-    throw new Error(`[getDb] Base Vercel non préparée pour "${slug}" — appelez prepareSchoolDb() avant.`)
+    if (isServerlessRuntime()) {
+      throw new Error(`[getDb] Base non préparée pour "${slug}" — appelez prepareSchoolDb() avant.`)
+    }
+  }
+
+  if (isServerlessRuntime()) {
+    throw new Error('[getDb] ecoleSlug requis sur serverless — appelez prepareSchoolDb() avant.')
   }
 
   if (_db) return _db
@@ -138,7 +155,7 @@ export function getDbForSlug(ecoleSlug?: string) {
 }
 
 export function closeDbForSlug(ecoleSlug?: string): void {
-  if (isServerlessRuntime() && ecoleSlug) {
+  if (ecoleSlug && _dbsBySlug.has(ecoleSlug)) {
     const db = _dbsBySlug.get(ecoleSlug)
     if (db) {
       try { db.close() } catch { /* ignore */ }

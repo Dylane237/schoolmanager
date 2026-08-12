@@ -387,18 +387,17 @@ export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
         buffer = await downloadSchoolDbBuffer(ecoleSlug)
       }
 
-      if (buffer && buffer.length > 0) {
-        await openVercelSchoolDb(ecoleSlug, { buffer })
-        if (cloudMeta) {
-          vercelSyncedVersions.set(ecoleSlug, cloudMeta.version)
-          markLocalSynced(ecoleSlug, cloudMeta.version)
-        }
-      } else {
-        await openVercelSchoolDb(ecoleSlug, {
-          provision: async (provisionDb) => {
-            await provisionSchoolDbFromCloud(provisionDb, ecoleSlug)
-          },
-        })
+      const { loadedFromBuffer } = await openVercelSchoolDb(ecoleSlug, {
+        buffer: buffer && buffer.length > 0 ? buffer : undefined,
+        provision: async (provisionDb) => {
+          await provisionSchoolDbFromCloud(provisionDb, ecoleSlug)
+        },
+      })
+      if (cloudMeta && loadedFromBuffer) {
+        vercelSyncedVersions.set(ecoleSlug, cloudMeta.version)
+        markLocalSynced(ecoleSlug, cloudMeta.version)
+      } else if (cloudMeta && buffer && buffer.length > 0 && !loadedFromBuffer) {
+        console.warn(`[prepareSchoolDb] blob cloud illisible pour "${ecoleSlug}" — provision structurée`)
       }
       preparedSlugs.add(ecoleSlug)
     }

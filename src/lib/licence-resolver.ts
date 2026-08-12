@@ -1,6 +1,6 @@
 import 'server-only'
 import { downloadSchoolDbBuffer } from './db-blob-sync'
-import { loadBufferIntoMemoryDb } from './db-vercel'
+import { tryLoadBufferIntoMemoryDb } from './db-vercel'
 import { getSupabaseAdmin, isSupabaseConfigured } from './supabase-admin'
 
 export interface ActiveCloudLicence {
@@ -59,31 +59,44 @@ export async function fetchActiveCloudLicenceRecord(
 export async function fetchLicenceFromSchoolBlob(
   ecoleSlug: string,
 ): Promise<ActiveCloudLicence | null> {
-  const buffer = await downloadSchoolDbBuffer(ecoleSlug)
-  if (!buffer?.length) return null
-
-  const db = loadBufferIntoMemoryDb(buffer)
   try {
-    const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as {
-      id: string
-    } | undefined
-    if (!ecole) return null
+    const buffer = await downloadSchoolDbBuffer(ecoleSlug)
+    if (!buffer?.length) return null
 
-    const lic = db.prepare(`
-      SELECT cle_licence, type, date_fin FROM licences
-      WHERE ecole_id = ? AND is_active = 1 AND date_fin >= date('now')
-      ORDER BY date_fin DESC LIMIT 1
-    `).get(ecole.id) as { cle_licence: string; type: string; date_fin: string } | undefined
-
-    if (!lic?.cle_licence) return null
-
-    return {
-      cle_licence: lic.cle_licence,
-      type: lic.type ?? 'standard',
-      date_fin: String(lic.date_fin).slice(0, 10),
+    const db = tryLoadBufferIntoMemoryDb(buffer)
+    if (!db) {
+      console.warn(`[licence-resolver] blob SQLite illisible pour "${ecoleSlug}" — fallback table licences`)
+      return null
     }
-  } finally {
-    db.close()
+
+    try {
+      const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as {
+        id: string
+      } | undefined
+      if (!ecole) return null
+
+      const lic = db.prepare(`
+        SELECT cle_licence, type, date_fin FROM licences
+        WHERE ecole_id = ? AND is_active = 1 AND date_fin >= date('now')
+        ORDER BY date_fin DESC LIMIT 1
+      `).get(ecole.id) as { cle_licence: string; type: string; date_fin: string } | undefined
+
+      if (!lic?.cle_licence) return null
+
+      return {
+        cle_licence: lic.cle_licence,
+        type: lic.type ?? 'standard',
+        date_fin: String(lic.date_fin).slice(0, 10),
+      }
+    } finally {
+      db.close()
+    }
+  } catch (err) {
+    console.warn(
+      `[licence-resolver] échec lecture blob licence pour "${ecoleSlug}":`,
+      err instanceof Error ? err.message : err,
+    )
+    return null
   }
 }
 
