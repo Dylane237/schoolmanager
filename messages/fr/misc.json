@@ -1,25 +1,12 @@
 {
-  "licenceExpired": {
-    "title": "Licence expirée",
-    "redirect": "Redirection vers la page de renouvellement..."
+  "title": "Licence expirée",
+  "subtitle": "L'abonnement de votre établissement n'est plus actif. Renouvelez votre licence pour retrouver l'accès à toutes les fonctionnalités.",
+  "howToRenew": "Comment renouveler ?",
+  "steps": {
+    "1": "Contactez votre représentant SchoolManager",
+    "2": "Recevez votre nouvelle clé de licence",
+    "3": "Activez la clé ci-dessous ou contactez le support"
   },
-  "moduleGuard": {
-    "accessDenied": "Accès refusé",
-    "noPermission": "Vous n'avez pas la permission d'accéder à ce module.",
-    "contactAdmin": "Contactez l'administrateur de l'établissement."
-  },
-  "support": {
-    "whatsappHint": "Besoin d'aide ?",
-    "whatsappLabel": "WhatsApp — {phone}",
-    "contactSupport": "Contacter le support"
-  },
-  "errors": {
-    "generic": "Une erreur est survenue",
-    "network": "Erreur réseau — vérifiez votre connexion",
-    "notFound": "Page introuvable",
-    "unauthorized": "Non autorisé"
-  },
-  "empty": {
-    "noData": "Aucune donnée disponible"
-  }
+  "whatsappMessage": "Bonjour, ma licence SchoolManager a expiré. Je souhaite la renouveler.",
+  "emailSupport": "Email support"
 }

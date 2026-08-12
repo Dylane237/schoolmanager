@@ -107,12 +107,16 @@ export function getSecretPath(): string {
 }
 
 export function getMachineFingerprint(): string {
-  const parts = [
-    os.hostname(),
-    os.userInfo().username,
-    os.platform(),
-    os.arch(),
-    'schoolmanager-v2',
-  ]
-  return parts.join('|')
+  try {
+    const parts = [
+      os.hostname(),
+      os.userInfo().username,
+      os.platform(),
+      os.arch(),
+      'schoolmanager-v2',
+    ]
+    return parts.join('|')
+  } catch {
+    return `serverless-${process.env.VERCEL_REGION ?? 'default'}`
+  }
 }

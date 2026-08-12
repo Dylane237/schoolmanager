@@ -57,7 +57,7 @@ export async function cloudSlugExists(slug: string): Promise<boolean> {
 
 export async function uniqueCloudSlug(base: string): Promise<string> {
   const { slugify } = await import('./utils/slug')
-  let slug = slugify(base) || 'ecole'
+  const slug = slugify(base) || 'ecole'
   if (!(await cloudSlugExists(slug))) return slug
   for (let i = 2; i < 1000; i++) {
     const candidate = `${slug}-${i}`

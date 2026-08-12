@@ -4,9 +4,10 @@ import { getDefaultAnneeScolaireLabel, getDefaultAnneeScolaireBounds, getLegacyA
 import { ensureSuperAdminCredentials } from './super-admin-credentials'
 import { runVersionedMigrations } from './migrations/runner'
 import { getVercelActiveSlug } from './school-db-context'
+import { exportMemoryDbToBuffer } from './db-vercel'
 
 let _db: InstanceType<typeof Database> | null = null
-let _dbsBySlug = new Map<string, InstanceType<typeof Database>>()
+const _dbsBySlug = new Map<string, InstanceType<typeof Database>>()
 let _testDbOverride: InstanceType<typeof Database> | null = null
 
 /** Injecte une base SQLite de test (Vitest). */
@@ -78,7 +79,6 @@ export async function openVercelSchoolDb(
 export function exportVercelSchoolDbBuffer(ecoleSlug: string): Buffer | null {
   const db = _dbsBySlug.get(ecoleSlug)
   if (!db) return null
-  const { exportMemoryDbToBuffer } = require('./db-vercel') as typeof import('./db-vercel')
   return exportMemoryDbToBuffer(db)
 }
 
@@ -420,6 +420,9 @@ function migrateAnneeScolaireDefault(db: InstanceType<typeof Database>) {
 }
 
 export function seedInitialData(db: InstanceType<typeof Database>) {
+  // Sur Vercel, chaque école a sa propre base mémoire — pas de super-admin local.
+  if (process.env.VERCEL) return
+
   const existing = db.prepare('SELECT id FROM users WHERE role = ?').get('super_admin')
   if (existing) return
 

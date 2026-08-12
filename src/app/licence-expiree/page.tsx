@@ -5,8 +5,7 @@ import { WhatsAppSupportLink } from '@/components/support/whatsapp-support-link'
 import LicenceRenewForm from '@/components/licence/LicenceRenewForm'
 
 export default async function LicenceExpireePage() {
-  const t = await getTranslations('misc')
-  const tAuth = await getTranslations('auth')
+  const t = await getTranslations('licence.expired')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
@@ -26,15 +25,15 @@ export default async function LicenceExpireePage() {
           <ol className="space-y-3 text-slate-300 text-base">
             <li className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold flex items-center justify-center shrink-0">1</span>
-              {t('steps.1')}
+              {t('step1')}
             </li>
             <li className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold flex items-center justify-center shrink-0">2</span>
-              {t('steps.2')}
+              {t('step2')}
             </li>
             <li className="flex gap-3">
               <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-bold flex items-center justify-center shrink-0">3</span>
-              {t('steps.3')}
+              {t('step3')}
             </li>
           </ol>
 
@@ -58,7 +57,7 @@ export default async function LicenceExpireePage() {
         <Link href="/login"
           className="mt-6 flex items-center justify-center gap-2 text-slate-400 hover:text-white text-base transition-colors">
           <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-          {tAuth('backToLoginFull')}
+          {t('backToLogin')}
         </Link>
       </div>
     </div>

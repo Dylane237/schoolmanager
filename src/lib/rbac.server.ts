@@ -23,7 +23,7 @@ export function requireModule(
 }
 
 export function requireApiAccess(user: JwtPayload, pathname: string, method: string): NextResponse | null {
-  const module = getModuleForApiPath(pathname)
-  if (!module) return null
-  return requireModule(user, module, method)
+  const apiModule = getModuleForApiPath(pathname)
+  if (!apiModule) return null
+  return requireModule(user, apiModule, method)
 }

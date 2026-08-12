@@ -24,6 +24,82 @@ const dirtySlugs = new Set<string>()
 const preparedSlugs = new Set<string>()
 const flushScheduled = new Set<string>()
 
+export interface CloudRegisterSchoolData {
+  nom_ecole: string
+  directeur_nom: string
+  telephone?: string | null
+  sections?: string[]
+  cle_licence: string
+  plan?: string
+  date_fin?: string
+  email: string
+  password_hash: string
+}
+
+/** Garantit école + licence + admin dans la base locale après inscription cloud (Vercel). */
+export function ensureCloudRegisterSchoolData(
+  db: Database.Database,
+  ecoleSlug: string,
+  data: CloudRegisterSchoolData,
+): string {
+  let ecoleId: string
+
+  const existing = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (existing) {
+    ecoleId = existing.id
+  } else {
+    db.prepare(`
+      INSERT INTO ecoles (nom, slug, telephone, directeur_nom, sections, email)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      data.nom_ecole,
+      ecoleSlug,
+      data.telephone ?? null,
+      data.directeur_nom,
+      JSON.stringify(data.sections ?? ['francophone']),
+      data.email,
+    )
+    ecoleId = (db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string }).id
+  }
+
+  const hasAnnee = db.prepare('SELECT id FROM annees_scolaires WHERE ecole_id = ? LIMIT 1').get(ecoleId)
+  if (!hasAnnee) {
+    const { label, date_debut, date_fin } = getDefaultAnneeScolaireBounds()
+    db.prepare(`
+      INSERT INTO annees_scolaires (ecole_id, label, date_debut, date_fin, is_active)
+      VALUES (?, ?, ?, ?, 1)
+    `).run(ecoleId, label, date_debut, date_fin)
+  }
+
+  const hasLicence = db.prepare(`
+    SELECT id FROM licences WHERE ecole_id = ? AND is_active = 1 LIMIT 1
+  `).get(ecoleId)
+  if (!hasLicence && data.cle_licence && data.date_fin) {
+    db.prepare(`
+      INSERT INTO licences (ecole_id, type, date_debut, date_fin, is_active, cle_licence, machine_fingerprint)
+      VALUES (?, ?, date('now'), ?, 1, ?, ?)
+    `).run(
+      ecoleId,
+      data.plan ?? 'standard',
+      data.date_fin,
+      data.cle_licence.trim().toUpperCase(),
+      getMachineFingerprint(),
+    )
+  }
+
+  const hasAdmin = db.prepare(`
+    SELECT id FROM users WHERE ecole_id = ? AND role = 'admin' LIMIT 1
+  `).get(ecoleId)
+  if (!hasAdmin) {
+    db.prepare(`
+      INSERT INTO users (email, password_hash, nom, role, ecole_id)
+      VALUES (?, ?, ?, 'admin', ?)
+    `).run(data.email, data.password_hash, data.directeur_nom, ecoleId)
+  }
+
+  return ecoleId
+}
+
 /** Ouvre / télécharge la base école (web ou desktop après pull). */
 export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
   if (process.env.VERCEL) {

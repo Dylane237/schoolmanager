@@ -77,19 +77,34 @@ async function registerOnCloud(body: Record<string, unknown>) {
     return NextResponse.json({ error: 'Erreur lors de la création du compte cloud' }, { status: 500 })
   }
 
-  const { prepareSchoolDb, markSchoolDbDirty, flushSchoolDb } = await import('../../../../lib/school-db')
+  const { prepareSchoolDb, markSchoolDbDirty, flushSchoolDb, ensureCloudRegisterSchoolData } = await import('../../../../lib/school-db')
   await prepareSchoolDb(finalSlug)
-  markSchoolDbDirty(finalSlug)
-  await flushSchoolDb(finalSlug)
 
-  const { getDb, resolveEcoleId } = await import('../../../../lib/db-server')
+  const { getDb } = await import('../../../../lib/db-server')
   const db = getDb(finalSlug)
-  const ecoleId = resolveEcoleId(db, finalSlug, finalSlug)
+  const ecoleId = ensureCloudRegisterSchoolData(db, finalSlug, {
+    nom_ecole,
+    directeur_nom,
+    telephone,
+    sections,
+    cle_licence,
+    plan: verify.plan,
+    date_fin: verify.date_fin,
+    email,
+    password_hash: passwordHash,
+  })
+
+  markSchoolDbDirty(finalSlug)
+  try {
+    await flushSchoolDb(finalSlug)
+  } catch (err) {
+    console.warn('[register] sync cloud non bloquante:', err)
+  }
 
   const token = await signToken({
     id: created.user_id,
     role: 'admin',
-    ecole_id: ecoleId ?? finalSlug,
+    ecole_id: ecoleId,
     ecole_slug: finalSlug,
     nom: directeur_nom,
     auth_source: 'cloud',

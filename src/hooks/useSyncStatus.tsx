@@ -111,11 +111,12 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!canSync) return
-    refresh()
+    const bootstrap = window.setTimeout(() => { void refresh() }, 0)
     const interval = setInterval(refresh, POLL_MS)
     const onOnline = () => refresh()
     window.addEventListener('online', onOnline)
     return () => {
+      clearTimeout(bootstrap)
       clearInterval(interval)
       window.removeEventListener('online', onOnline)
     }
