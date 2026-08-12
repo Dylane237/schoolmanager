@@ -1,0 +1,12 @@
+{
+  "state": {
+    "synced": "Sync à jour",
+    "syncing": "Synchronisation…",
+    "pending": "Sync en attente",
+    "conflict": "Conflit de sync",
+    "error": "Erreur de sync",
+    "offline": "Hors ligne"
+  },
+  "resolveKeepLocal": "Garder mes modifications locales",
+  "resolveKeepCloud": "Récupérer la version cloud"
+}

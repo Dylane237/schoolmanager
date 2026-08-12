@@ -38,5 +38,10 @@ export async function POST(request: NextRequest) {
 
   db.prepare('UPDATE eleves SET photo_url = ? WHERE id = ?').run(result.url, eleveId)
 
+  if (user.ecole_slug) {
+    const { pushSchoolUploads } = await import('../../../lib/upload-blob-sync')
+    pushSchoolUploads(user.ecole_slug, user.ecole_id).catch(() => {})
+  }
+
   return NextResponse.json({ success: true, photo_url: result.url })
 }

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import PageShell from '@/components/layout/PageShell'
 import { useSchool } from '@/components/layout/SchoolProvider'
+import { useSyncStatusOptional } from '@/hooks/useSyncStatus'
 import { hasModuleAccess, type Module } from '@/lib/rbac'
 import { ENTITY_MODULES, type ExportEntity, type ExportFormat } from '@/lib/data-export/types'
 import toast from 'react-hot-toast'
@@ -53,8 +54,13 @@ export default function DonneesPage() {
     eleves_count: number
     classes_count: number
     db_synced?: boolean
+    sync_state?: string
+    conflict?: boolean
+    last_error?: string | null
   } | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const syncContext = useSyncStatusOptional()
+  const tSync = useTranslations('sync')
 
   useEffect(() => {
     if (!canSync) return
@@ -64,18 +70,29 @@ export default function DonneesPage() {
       .catch(() => {})
   }, [canSync])
 
-  const handleSyncNow = async () => {
+  const handleSyncNow = async (strategy?: 'keep_local' | 'keep_cloud') => {
     setSyncing(true)
     try {
-      const res = await fetch('/api/sync/db', { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error(data.error || t('sync.error'))
-        return
-      }
-      toast.success(t('sync.success'))
+      const ok = syncContext
+        ? await syncContext.runSync(strategy)
+        : await (async () => {
+          const res = await fetch('/api/sync/db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(strategy ? { strategy } : {}),
+          })
+          const data = await res.json()
+          if (!res.ok) {
+            toast.error(data.error || t('sync.error'))
+            return false
+          }
+          return true
+        })()
+
+      if (ok) toast.success(t('sync.success'))
       const statusRes = await fetch('/api/sync/status')
       setSyncStatus(await statusRes.json())
+      await syncContext?.refresh()
     } catch {
       toast.error(t('sync.error'))
     } finally {
@@ -157,7 +174,7 @@ export default function DonneesPage() {
                   )}
                 </div>
                 <button
-                  onClick={handleSyncNow}
+                  onClick={() => handleSyncNow()}
                   disabled={syncing}
                   className="btn-primary flex items-center gap-2 shrink-0"
                 >
@@ -168,6 +185,24 @@ export default function DonneesPage() {
                   )}
                   {syncing ? t('sync.syncing') : t('sync.action')}
                 </button>
+                {(syncStatus?.conflict || syncStatus?.sync_state === 'conflict') && (
+                  <div className="flex flex-col gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => handleSyncNow('keep_local')}
+                      disabled={syncing}
+                      className="btn-secondary text-sm"
+                    >
+                      {tSync('resolveKeepLocal')}
+                    </button>
+                    <button
+                      onClick={() => handleSyncNow('keep_cloud')}
+                      disabled={syncing}
+                      className="btn-secondary text-sm"
+                    >
+                      {tSync('resolveKeepCloud')}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </section>

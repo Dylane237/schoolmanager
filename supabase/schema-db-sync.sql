@@ -19,3 +19,22 @@ ALTER TABLE cloud_db_snapshots ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS cloud_db_snapshots_service_only ON cloud_db_snapshots;
 CREATE POLICY cloud_db_snapshots_service_only ON cloud_db_snapshots FOR ALL USING (false);
+
+-- Manifeste des fichiers uploadés (photos élèves, etc.)
+CREATE TABLE IF NOT EXISTS cloud_upload_files (
+  ecole_slug TEXT NOT NULL REFERENCES ecoles(slug) ON DELETE CASCADE,
+  relative_path TEXT NOT NULL,
+  size_bytes BIGINT,
+  checksum TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (ecole_slug, relative_path)
+);
+
+ALTER TABLE cloud_upload_files ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS cloud_upload_files_service_only ON cloud_upload_files;
+CREATE POLICY cloud_upload_files_service_only ON cloud_upload_files FOR ALL USING (false);
+
+-- Créer aussi le bucket Storage :
+--   Nom : school-uploads
+--   Public : non

@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { getSupabaseAdmin, isSupabaseConfigured } from './supabase-admin'
+import { recordSyncEvent } from './sync-monitor'
 
 export const DB_STORAGE_BUCKET = 'school-databases'
 
@@ -70,6 +71,7 @@ export async function uploadSchoolDb(
     .upload(storagePath, buffer, { upsert: true, contentType: 'application/octet-stream' })
 
   if (uploadError) {
+    recordSyncEvent(ecoleSlug, 'push_fail', uploadError.message)
     return { ok: false, error: uploadError.message }
   }
 
@@ -85,8 +87,10 @@ export async function uploadSchoolDb(
     })
 
   if (metaError) {
+    recordSyncEvent(ecoleSlug, 'push_fail', metaError.message)
     return { ok: false, error: metaError.message }
   }
 
+  recordSyncEvent(ecoleSlug, 'push_ok', undefined, version)
   return { ok: true, version }
 }

@@ -58,11 +58,11 @@ export async function getUserFromRequest(request?: NextRequest): Promise<JwtPayl
     const db = getDb(user.ecole_slug)
     const resolved = resolveEcoleId(db, user.ecole_slug, user.ecole_id)
     if (resolved) user.ecole_id = resolved
-
-    if (request && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
-      markSchoolDbDirty(user.ecole_slug)
-    }
     scheduleSchoolDbFlush(user.ecole_slug)
+  }
+
+  if (user.ecole_slug && request && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+    markSchoolDbDirty(user.ecole_slug)
   }
 
   return user

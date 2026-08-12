@@ -25,6 +25,8 @@ dist2/
 
 # Uploads et données utilisateur
 uploads/
+!src/app/api/uploads/
+!src/app/api/uploads/**
 backups/
 exports/
 

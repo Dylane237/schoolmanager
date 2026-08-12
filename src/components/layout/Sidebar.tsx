@@ -13,6 +13,7 @@ import { useSchool } from './SchoolProvider'
 import { hasModuleAccess, NAV_MODULE_MAP, type Module } from '@/lib/rbac'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import LicenceSidebarButton from './LicenceSidebarButton'
+import SyncStatusBadge from './SyncStatusBadge'
 import SchoolLogoMark from './SchoolLogoMark'
 import NavIcon from '@/components/ui/NavIcon'
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
@@ -139,6 +140,7 @@ export default function Sidebar({ slug, ecoleNom }: SidebarProps) {
       </nav>
 
       <div className="p-3 border-t border-slate-700/50 space-y-1">
+        {showLicence && <SyncStatusBadge slug={slug} />}
         {showLicence && <LicenceSidebarButton />}
         <LanguageSwitcher />
         <button

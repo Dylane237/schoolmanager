@@ -13,6 +13,10 @@ import { isSupabaseConfigured } from './supabase-admin'
 import { getDefaultAnneeScolaireBounds } from './school-year'
 import { getMachineFingerprint } from './paths'
 import { setVercelActiveSlug } from './school-db-context'
+import { markLocalEdited, markLocalSynced, recordSyncError } from './sync-meta'
+import { detectSyncConflict } from './sync-conflict'
+import { recordSyncEvent } from './sync-monitor'
+import { pushSchoolUploads, pullSchoolUploads } from './upload-blob-sync'
 
 const dirtySlugs = new Set<string>()
 const preparedSlugs = new Set<string>()
@@ -36,6 +40,12 @@ export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
     if (cloudMeta && (!hasLocal || cloudMeta.version > localVersion)) {
       await downloadSchoolDb(ecoleSlug, dbPath)
       fs.writeFileSync(versionPath, String(cloudMeta.version))
+      markLocalSynced(ecoleSlug, cloudMeta.version)
+
+      const { getDbForSlug } = await import('./db')
+      const db = getDbForSlug(ecoleSlug)
+      const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+      if (ecole?.id) await pullSchoolUploads(ecoleSlug, ecole.id)
     } else if (!hasLocal) {
       await provisionEmptySchoolDb(ecoleSlug, dbPath)
     }
@@ -133,6 +143,7 @@ async function provisionEmptySchoolDb(ecoleSlug: string, dbPath: string): Promis
 
 export function markSchoolDbDirty(ecoleSlug: string): void {
   dirtySlugs.add(ecoleSlug)
+  markLocalEdited(ecoleSlug)
 }
 
 export function scheduleSchoolDbFlush(ecoleSlug: string): void {
@@ -159,6 +170,15 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
   const result = await uploadSchoolDb(ecoleSlug, dbPath)
   if (result.ok && result.version) {
     fs.writeFileSync(getLocalSyncVersionPath(ecoleSlug), String(result.version))
+    markLocalSynced(ecoleSlug, result.version)
+    recordSyncEvent(ecoleSlug, 'push_ok', undefined, result.version)
+
+    const { getDbForSlug } = await import('./db')
+    const db = getDbForSlug(ecoleSlug)
+    const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+    if (ecole?.id) await pushSchoolUploads(ecoleSlug, ecole.id)
+  } else if (result.error) {
+    recordSyncEvent(ecoleSlug, 'push_fail', result.error)
   }
 
   const { pushSchoolDataFromEcoleId } = await import('./sync-trigger')
@@ -185,7 +205,10 @@ export function resolveEcoleId(
 }
 
 /** Pull cloud → local (desktop). Remplace le fichier si le cloud est plus récent. */
-export async function pullSchoolDbToLocal(ecoleSlug: string): Promise<{ pulled: boolean; version?: number }> {
+export async function pullSchoolDbToLocal(
+  ecoleSlug: string,
+  options?: { force?: boolean },
+): Promise<{ pulled: boolean; version?: number; conflict?: boolean }> {
   const cloudMeta = await fetchCloudDbMeta(ecoleSlug)
   if (!cloudMeta) return { pulled: false }
 
@@ -196,6 +219,12 @@ export async function pullSchoolDbToLocal(ecoleSlug: string): Promise<{ pulled: 
 
   if (cloudMeta.version <= localVersion) return { pulled: false, version: localVersion }
 
+  const conflict = await detectSyncConflict(ecoleSlug)
+  if (!options?.force && conflict.hasConflict) {
+    recordSyncEvent(ecoleSlug, 'conflict', 'Cloud plus récent avec modifications locales')
+    return { pulled: false, version: localVersion, conflict: true }
+  }
+
   const { closeDbForSlug, resetDesktopDbSingleton } = await import('./db')
   closeDbForSlug(ecoleSlug)
   resetDesktopDbSingleton()
@@ -204,15 +233,35 @@ export async function pullSchoolDbToLocal(ecoleSlug: string): Promise<{ pulled: 
   const ok = await downloadSchoolDb(ecoleSlug, dbPath)
   if (ok) {
     fs.writeFileSync(versionPath, String(cloudMeta.version))
+    markLocalSynced(ecoleSlug, cloudMeta.version)
     preparedSlugs.delete(ecoleSlug)
+    recordSyncEvent(ecoleSlug, 'pull_ok', undefined, cloudMeta.version)
+
+    const { getDbForSlug } = await import('./db')
+    const db = getDbForSlug(ecoleSlug)
+    const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+    if (ecole?.id) await pullSchoolUploads(ecoleSlug, ecole.id)
+
     return { pulled: true, version: cloudMeta.version }
   }
+  recordSyncEvent(ecoleSlug, 'pull_fail', 'Téléchargement DB échoué')
   return { pulled: false }
 }
 
 /** Push local → cloud (desktop). */
-export async function pushSchoolDbFromLocal(ecoleSlug: string): Promise<{ ok: boolean; version?: number; error?: string }> {
-  const { closeDbForSlug, getDbForSlug, resetDesktopDbSingleton } = await import('./db')
+export async function pushSchoolDbFromLocal(
+  ecoleSlug: string,
+  options?: { force?: boolean },
+): Promise<{ ok: boolean; version?: number; error?: string; conflict?: boolean }> {
+  if (!options?.force) {
+    const conflict = await detectSyncConflict(ecoleSlug)
+    if (conflict.hasConflict) {
+      recordSyncEvent(ecoleSlug, 'conflict', 'Push bloqué — cloud modifié entre-temps')
+      return { ok: false, conflict: true, error: 'Conflit de synchronisation' }
+    }
+  }
+
+  const { closeDbForSlug, resetDesktopDbSingleton } = await import('./db')
 
   let dbPath: string
   if (process.env.VERCEL) {
@@ -231,7 +280,17 @@ export async function pushSchoolDbFromLocal(ecoleSlug: string): Promise<{ ok: bo
   const result = await uploadSchoolDb(ecoleSlug, dbPath)
   if (result.ok && result.version) {
     fs.writeFileSync(getLocalSyncVersionPath(ecoleSlug), String(result.version))
+    markLocalSynced(ecoleSlug, result.version)
     dirtySlugs.delete(ecoleSlug)
+    recordSyncEvent(ecoleSlug, 'push_ok', undefined, result.version)
+
+    const { getDbForSlug } = await import('./db')
+    const db = getDbForSlug(ecoleSlug)
+    const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+    if (ecole?.id) await pushSchoolUploads(ecoleSlug, ecole.id)
+  } else if (result.error) {
+    recordSyncError(ecoleSlug, result.error)
+    recordSyncEvent(ecoleSlug, 'push_fail', result.error)
   }
   return result
 }

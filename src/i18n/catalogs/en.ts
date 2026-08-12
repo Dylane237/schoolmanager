@@ -21,6 +21,7 @@ import parametres from '../../../messages/en/parametres.json'
 import personnel from '../../../messages/en/personnel.json'
 import presences from '../../../messages/en/presences.json'
 import superAdmin from '../../../messages/en/superAdmin.json'
+import sync from '../../../messages/en/sync.json'
 
 const enMessages = {
   adminLicences,
@@ -46,6 +47,7 @@ const enMessages = {
   personnel,
   presences,
   superAdmin,
+  sync,
 }
 
 export default enMessages

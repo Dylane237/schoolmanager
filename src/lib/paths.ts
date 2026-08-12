@@ -70,6 +70,13 @@ export function getLocalSyncVersionPath(ecoleSlug: string): string {
   return path.join(ensureUserDataDir(), `.sync-version-${ecoleSlug}`)
 }
 
+export function getLocalSyncMetaPath(ecoleSlug: string): string {
+  if (process.env.VERCEL) {
+    return path.join('/tmp', SCHOOL_MANAGER_FOLDER, ecoleSlug, '.sync-meta.json')
+  }
+  return path.join(ensureUserDataDir(), `.sync-meta-${ecoleSlug}.json`)
+}
+
 export function getUploadsDir(subdir?: string): string {
   const base = path.join(ensureUserDataDir(), 'uploads')
   const dir = subdir ? path.join(base, subdir) : base

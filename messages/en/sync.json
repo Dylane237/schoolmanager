@@ -1,0 +1,12 @@
+{
+  "state": {
+    "synced": "In sync",
+    "syncing": "Syncing…",
+    "pending": "Sync pending",
+    "conflict": "Sync conflict",
+    "error": "Sync error",
+    "offline": "Offline"
+  },
+  "resolveKeepLocal": "Keep my local changes",
+  "resolveKeepCloud": "Use cloud version"
+}

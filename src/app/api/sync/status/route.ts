@@ -4,6 +4,9 @@ import { requireModule } from '@/lib/rbac.server'
 import { getCloudSyncStatus } from '@/lib/cloud-read'
 import { fetchCloudDbMeta } from '@/lib/db-blob-sync'
 import { getLocalSyncVersionPath } from '@/lib/paths'
+import { detectSyncConflict } from '@/lib/sync-conflict'
+import { readLocalSyncMeta } from '@/lib/sync-meta'
+import { getLastSyncEvent } from '@/lib/sync-monitor'
 import fs from 'fs'
 
 export async function GET(request: NextRequest) {
@@ -13,12 +16,21 @@ export async function GET(request: NextRequest) {
   const denied = requireModule(user, 'parametres', 'GET')
   if (denied) return denied
 
-  const status = await getCloudSyncStatus(user.ecole_slug)
-  const dbMeta = await fetchCloudDbMeta(user.ecole_slug)
-  const versionPath = getLocalSyncVersionPath(user.ecole_slug)
+  const slug = user.ecole_slug
+  const status = await getCloudSyncStatus(slug)
+  const dbMeta = await fetchCloudDbMeta(slug)
+  const versionPath = getLocalSyncVersionPath(slug)
   const localVersion = fs.existsSync(versionPath)
     ? Number(fs.readFileSync(versionPath, 'utf8').trim()) || 0
     : 0
+  const conflict = await detectSyncConflict(slug)
+  const meta = readLocalSyncMeta(slug)
+  const lastEvent = getLastSyncEvent(slug)
+
+  let syncState: 'synced' | 'pending' | 'conflict' | 'error' = 'pending'
+  if (conflict.hasConflict) syncState = 'conflict'
+  else if (meta.lastError) syncState = 'error'
+  else if (dbMeta && dbMeta.version === localVersion) syncState = 'synced'
 
   return NextResponse.json({
     ...status,
@@ -27,5 +39,11 @@ export async function GET(request: NextRequest) {
     db_local_version: localVersion,
     db_updated_at: dbMeta?.updated_at ?? null,
     readOnly: false,
+    conflict: conflict.hasConflict,
+    conflict_detail: conflict,
+    sync_state: syncState,
+    last_sync_at: meta.lastSyncAt,
+    last_error: meta.lastError,
+    last_event: lastEvent?.type ?? meta.lastEvent,
   })
 }
