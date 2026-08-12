@@ -41,6 +41,49 @@ function supabase() {
   return getSupabaseAdmin()!
 }
 
+export interface ActiveCloudLicence {
+  cle_licence: string | null
+  type: string
+  date_fin: string
+}
+
+/** Licence active cloud — compat ancienne prod (ecole_id = slug sans ecole_slug). */
+export async function fetchActiveCloudLicenceRecord(
+  ecoleSlug: string,
+): Promise<ActiveCloudLicence | null> {
+  if (!isSupabaseConfigured()) return null
+
+  const slug = ecoleSlug.trim()
+  if (!slug) return null
+
+  const today = new Date().toISOString().split('T')[0]
+  const sb = supabase()
+
+  const { data } = await sb
+    .from('licences')
+    .select('id, cle_licence, type, date_fin, is_active, ecole_slug, ecole_id')
+    .eq('is_active', true)
+    .or(`ecole_slug.eq.${slug},ecole_id.eq.${slug}`)
+    .order('date_fin', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!data?.is_active || !data.date_fin) return null
+
+  const dateFin = String(data.date_fin).slice(0, 10)
+  if (dateFin < today) return null
+
+  if (!data.ecole_slug) {
+    await sb.from('licences').update({ ecole_slug: slug }).eq('id', data.id)
+  }
+
+  return {
+    cle_licence: data.cle_licence ?? null,
+    type: data.type ?? 'standard',
+    date_fin: dateFin,
+  }
+}
+
 export function isCloudAuthAvailable(): boolean {
   return isSupabaseConfigured()
 }
@@ -206,6 +249,51 @@ export async function linkCloudUserLocalId(accountId: string, ecoleSlug: string,
     .eq('ecole_slug', ecoleSlug)
 }
 
+/** Migre un compte desktop local vers cloud_accounts (ancienne prod sans cloud auth). */
+export async function ensureCloudAccountForLocalUser(
+  email: string,
+  db: import('better-sqlite3').Database,
+): Promise<void> {
+  if (!isSupabaseConfigured()) return
+
+  const normalized = email.trim().toLowerCase()
+  if (await cloudEmailExists(normalized)) return
+
+  const row = db.prepare(`
+    SELECT u.id, u.password_hash, u.recovery_code_hash, u.nom, u.role,
+      e.slug, e.nom as ecole_nom, e.telephone, e.directeur_nom
+    FROM users u
+    JOIN ecoles e ON e.id = u.ecole_id
+    WHERE u.email = ? AND u.role IN ('admin', 'secretaire', 'comptable', 'enseignant')
+  `).get(normalized) as {
+    id: string
+    password_hash: string
+    recovery_code_hash: string | null
+    nom: string | null
+    role: string
+    slug: string
+    ecole_nom: string
+    telephone: string | null
+    directeur_nom: string | null
+  } | undefined
+
+  if (!row?.slug) return
+
+  const created = await createCloudAccount({
+    email: normalized,
+    passwordHash: row.password_hash,
+    recoveryHash: row.recovery_code_hash ?? '',
+    ecole_slug: row.slug,
+    ecole_nom: row.ecole_nom,
+    directeur_nom: row.directeur_nom ?? row.nom ?? 'Admin',
+    telephone: row.telephone,
+  })
+
+  if (created.ok) {
+    await linkCloudUserLocalId(created.account_id, row.slug, row.id)
+  }
+}
+
 export async function loginCloudUser(
   email: string,
   password: string,
@@ -241,17 +329,8 @@ export async function loginCloudUser(
     .eq('slug', cloudUser.ecole_slug)
     .maybeSingle()
 
-  const { data: licence } = await supabase()
-    .from('licences')
-    .select('cle_licence, type, date_fin, is_active')
-    .eq('ecole_slug', cloudUser.ecole_slug)
-    .eq('is_active', true)
-    .order('date_fin', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const today = new Date().toISOString().split('T')[0]
-  if (!licence?.is_active || (licence.date_fin && licence.date_fin < today)) {
+  const licence = await fetchActiveCloudLicenceRecord(cloudUser.ecole_slug)
+  if (!licence) {
     return { ok: false, error: 'licence_expired' }
   }
 
@@ -320,22 +399,9 @@ export async function resetCloudPassword(
 }
 
 export async function fetchCloudLicenceForSlug(ecoleSlug: string): Promise<{ type: string; date_fin: string } | null> {
-  if (!isSupabaseConfigured()) return null
-
-  const { data } = await supabase()
-    .from('licences')
-    .select('type, date_fin, is_active')
-    .eq('ecole_slug', ecoleSlug)
-    .eq('is_active', true)
-    .order('date_fin', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (!data?.is_active) return null
-  const today = new Date().toISOString().split('T')[0]
-  const dateFin = String(data.date_fin).slice(0, 10)
-  if (dateFin < today) return null
-  return { type: data.type, date_fin: dateFin }
+  const licence = await fetchActiveCloudLicenceRecord(ecoleSlug)
+  if (!licence) return null
+  return { type: licence.type, date_fin: licence.date_fin }
 }
 
 export async function fetchCloudEcole(slug: string): Promise<{ id: string; nom: string; logo_url: string | null } | null> {

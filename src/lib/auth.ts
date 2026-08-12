@@ -122,7 +122,7 @@ export async function loginUser(email: string, password: string) {
     return { token, user: payload }
   }
 
-  const { isCloudAuthAvailable, loginCloudUser, cloudAuthErrorMessage } = await import('./cloud-auth')
+  const { isCloudAuthAvailable, loginCloudUser, cloudAuthErrorMessage, ensureCloudAccountForLocalUser } = await import('./cloud-auth')
 
   // ── Web (Vercel) : auth cloud + base SQLite synchronisée ──
   if (process.env.VERCEL && isCloudAuthAvailable()) {
@@ -154,7 +154,17 @@ export async function loginUser(email: string, password: string) {
 
   // ── Desktop : SQLite d'abord, puis cloud (compte web ou licence locale expirée) ──
   const localResult = await loginLocalUser(normalizedEmail, password)
-  if (!('error' in localResult)) return localResult
+  if (!('error' in localResult)) {
+    if (!process.env.VERCEL && isCloudAuthAvailable()) {
+      try {
+        const db = getDb()
+        await ensureCloudAccountForLocalUser(normalizedEmail, db)
+      } catch (err) {
+        console.warn('[login] migration cloud non bloquante:', err)
+      }
+    }
+    return localResult
+  }
   if (localResult.error === 'Mot de passe incorrect' || localResult.error === 'Licence utilisée sur un autre ordinateur') {
     return localResult
   }

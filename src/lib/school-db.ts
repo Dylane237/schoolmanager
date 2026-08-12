@@ -246,17 +246,10 @@ export async function hydrateSchoolFromSupabase(
   `).get(ecoleRow.id)
 
   if (!localActive) {
-    const { data: licence } = await supabase
-      .from('licences')
-      .select('cle_licence, type, date_fin, is_active')
-      .eq('ecole_slug', ecoleSlug)
-      .eq('is_active', true)
-      .order('date_fin', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    const { fetchActiveCloudLicenceRecord } = await import('./cloud-auth')
+    const licence = await fetchActiveCloudLicenceRecord(ecoleSlug)
 
-    const today = new Date().toISOString().split('T')[0]
-    if (licence?.cle_licence && licence.date_fin && licence.date_fin >= today) {
+    if (licence?.cle_licence) {
       upsertActiveLicenceInDb(
         db,
         ecoleRow.id,
