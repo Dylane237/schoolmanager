@@ -31,4 +31,26 @@ describe('db-vercel buffer roundtrip', () => {
     expect(exportMemoryDbToBuffer(db).length).toBeGreaterThan(0)
     db.close()
   })
+
+  it('materializeSqliteFileFromBuffer converts serialize() to on-disk SQLite', async () => {
+    const fs = await import('fs')
+    const os = await import('os')
+    const path = await import('path')
+    const { materializeSqliteFileFromBuffer } = await import('../src/lib/db-vercel')
+
+    const src = new Database(':memory:')
+    src.exec('CREATE TABLE t (name TEXT)')
+    src.prepare('INSERT INTO t (name) VALUES (?)').run('cloud')
+    const serialized = src.serialize()
+    src.close()
+
+    const target = path.join(os.tmpdir(), `sm-test-${Date.now()}.db`)
+    await materializeSqliteFileFromBuffer(serialized, target)
+
+    const fileDb = new Database(target, { readonly: true })
+    const row = fileDb.prepare('SELECT name FROM t').get() as { name: string }
+    expect(row.name).toBe('cloud')
+    fileDb.close()
+    fs.unlinkSync(target)
+  })
 })

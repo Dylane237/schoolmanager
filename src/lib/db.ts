@@ -1,10 +1,11 @@
 import Database from 'better-sqlite3'
+import fs from 'fs'
 import { getDbPath, ensureUserDataDir } from './paths'
 import { getDefaultAnneeScolaireLabel, getDefaultAnneeScolaireBounds, getLegacyAnneeScolaireLabel } from './school-year'
 import { ensureSuperAdminCredentials } from './super-admin-credentials'
 import { runVersionedMigrations } from './migrations/runner'
 import { getVercelActiveSlug } from './school-db-context'
-import { exportMemoryDbToBuffer } from './db-vercel'
+import { exportMemoryDbToBuffer, isSqliteCorruptError } from './db-vercel'
 
 let _db: InstanceType<typeof Database> | null = null
 const _dbsBySlug = new Map<string, InstanceType<typeof Database>>()
@@ -35,15 +36,42 @@ function configureDbPragmas(db: InstanceType<typeof Database>): void {
   db.pragma('foreign_keys = ON')
 }
 
+function quarantineCorruptDb(dbPath: string): void {
+  if (!fs.existsSync(dbPath)) return
+  const quarantine = `${dbPath}.corrupt-${Date.now()}`
+  try {
+    fs.renameSync(dbPath, quarantine)
+    console.warn(`[db] Base locale corrompue déplacée vers ${quarantine}`)
+  } catch {
+    try {
+      fs.unlinkSync(dbPath)
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 function openDatabaseAtPath(dbPath: string): InstanceType<typeof Database> {
   ensureUserDataDir()
-  const db = new Database(dbPath)
-  configureDbPragmas(db)
-  initSchema(db)
-  runMigrations(db)
-  runVersionedMigrations(db)
-  seedInitialData(db)
-  return db
+  try {
+    const db = new Database(dbPath)
+    configureDbPragmas(db)
+    initSchema(db)
+    runMigrations(db)
+    runVersionedMigrations(db)
+    seedInitialData(db)
+    return db
+  } catch (err) {
+    if (!isSqliteCorruptError(err) || !fs.existsSync(dbPath)) throw err
+    quarantineCorruptDb(dbPath)
+    const db = new Database(dbPath)
+    configureDbPragmas(db)
+    initSchema(db)
+    runMigrations(db)
+    runVersionedMigrations(db)
+    seedInitialData(db)
+    return db
+  }
 }
 
 /** Ouvre une base école en mémoire sur Vercel (pas de fichier /tmp persistant). */

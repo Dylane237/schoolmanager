@@ -701,17 +701,28 @@ export async function pullSchoolDbToLocal(
   const dbPath = getDbPathForSlug(ecoleSlug)
   const ok = await downloadSchoolDb(ecoleSlug, dbPath)
   if (ok) {
-    fs.writeFileSync(versionPath, String(cloudMeta.version))
-    markLocalSynced(ecoleSlug, cloudMeta.version)
-    preparedSlugs.delete(ecoleSlug)
-    recordSyncEvent(ecoleSlug, 'pull_ok', undefined, cloudMeta.version)
+    try {
+      const { getDbForSlug } = await import('./db')
+      resetDesktopDbSingleton()
+      const db = getDbForSlug(ecoleSlug)
+      fs.writeFileSync(versionPath, String(cloudMeta.version))
+      markLocalSynced(ecoleSlug, cloudMeta.version)
+      preparedSlugs.delete(ecoleSlug)
+      recordSyncEvent(ecoleSlug, 'pull_ok', undefined, cloudMeta.version)
 
-    const { getDbForSlug } = await import('./db')
-    const db = getDbForSlug(ecoleSlug)
-    const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
-    if (ecole?.id) await pullSchoolUploads(ecoleSlug, ecole.id)
+      const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+      if (ecole?.id) await pullSchoolUploads(ecoleSlug, ecole.id)
 
-    return { pulled: true, version: cloudMeta.version }
+      return { pulled: true, version: cloudMeta.version }
+    } catch (err) {
+      try {
+        if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath)
+      } catch {
+        /* ignore */
+      }
+      recordSyncEvent(ecoleSlug, 'pull_fail', err instanceof Error ? err.message : 'Ouverture DB après pull')
+      return { pulled: false }
+    }
   }
   recordSyncEvent(ecoleSlug, 'pull_fail', 'Téléchargement DB échoué')
   return { pulled: false }

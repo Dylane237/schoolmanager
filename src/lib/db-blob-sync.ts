@@ -53,9 +53,22 @@ export async function downloadSchoolDb(ecoleSlug: string, targetPath: string): P
   const buffer = await downloadSchoolDbBuffer(ecoleSlug)
   if (!buffer) return false
 
-  fs.mkdirSync(path.dirname(targetPath), { recursive: true })
-  fs.writeFileSync(targetPath, buffer)
-  return true
+  const { materializeSqliteFileFromBuffer, assertValidSqliteFile } = await import('./db-vercel')
+
+  try {
+    await materializeSqliteFileFromBuffer(buffer, targetPath)
+    assertValidSqliteFile(targetPath)
+    return true
+  } catch (err) {
+    try {
+      if (fs.existsSync(targetPath)) fs.unlinkSync(targetPath)
+    } catch {
+      /* ignore */
+    }
+    const message = err instanceof Error ? err.message : 'Conversion DB échouée'
+    recordSyncEvent(ecoleSlug, 'pull_fail', message)
+    return false
+  }
 }
 
 export async function uploadSchoolDbBuffer(
