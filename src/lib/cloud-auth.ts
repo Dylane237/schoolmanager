@@ -1,7 +1,7 @@
 import 'server-only'
 import bcrypt from 'bcryptjs'
 import { getSupabaseAdmin, isSupabaseConfigured } from './supabase-admin'
-import { upsertEcoleCloud } from './licence-cloud-sync'
+import { upsertEcoleCloud, linkLicenceRowToEcole } from './licence-cloud-sync'
 import type { AuthUser } from './auth'
 import { resolveActiveCloudLicence } from './licence-resolver'
 
@@ -97,21 +97,25 @@ export async function activateLicenceOnCloud(params: {
   const today = new Date().toISOString().split('T')[0]
   if (licence.date_fin < today) return { ok: false, error: 'Licence expirée' }
 
-  await sb.from('licences').update({
-    ecole_id: params.ecole_slug,
-    ecole_slug: params.ecole_slug,
-    ecole_nom: params.ecole_nom,
-    parrain_code: params.parrain_code?.startsWith('SM-') ? params.parrain_code : null,
-    machine_fingerprint: params.machine_fingerprint ?? null,
-    activated_at: new Date().toISOString(),
-  }).eq('id', licence.id)
-
   await upsertEcoleCloud({
     slug: params.ecole_slug,
     nom: params.ecole_nom,
     directeur_nom: params.directeur_nom,
     telephone: params.telephone,
   })
+
+  const linked = await linkLicenceRowToEcole({
+    licenceId: licence.id,
+    ecole_slug: params.ecole_slug,
+    ecole_nom: params.ecole_nom,
+    parrain_code: params.parrain_code,
+    machine_fingerprint: params.machine_fingerprint ?? null,
+    setActivatedAt: true,
+  })
+
+  if (!linked.ok) {
+    return { ok: false, error: linked.error ?? 'Activation licence échouée' }
+  }
 
   return { ok: true }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-admin'
-import { upsertEcoleCloud } from '@/lib/licence-cloud-sync'
+import { upsertEcoleCloud, linkLicenceRowToEcole } from '@/lib/licence-cloud-sync'
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,30 +39,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Clé déjà utilisée' }, { status: 400 })
     }
 
+    if (!ecole_slug) {
+      return NextResponse.json({ error: 'ecole_slug requis' }, { status: 400 })
+    }
+
     const today = new Date().toISOString().split('T')[0]
     if (licence.date_fin < today) {
       return NextResponse.json({ error: 'Licence expirée' }, { status: 400 })
     }
-
-    const ecoleRef = ecole_slug || crypto.randomUUID()
-
-    await supabase
-      .from('licences')
-      .update({
-        ecole_id: ecoleRef,
-        ecole_slug,
-        ecole_nom,
-        parrain_code: parrain_code?.startsWith('SM-') ? parrain_code : null,
-        machine_fingerprint,
-        activated_at: new Date().toISOString(),
-      })
-      .eq('id', licence.id)
 
     if (ecole_slug && ecole_nom) {
       await upsertEcoleCloud({
         slug: ecole_slug,
         nom: ecole_nom,
       })
+    }
+
+    const linked = await linkLicenceRowToEcole({
+      licenceId: licence.id,
+      ecole_slug: ecole_slug ?? '',
+      ecole_nom,
+      parrain_code,
+      machine_fingerprint,
+      setActivatedAt: true,
+    })
+
+    if (!linked.ok) {
+      return NextResponse.json({ error: linked.error ?? 'Activation licence échouée' }, { status: 400 })
     }
 
     if (parrain_code?.startsWith('SM-') && ecole_slug && ecole_nom) {
@@ -79,7 +82,7 @@ export async function POST(request: NextRequest) {
         .ilike('contact_ecole', ecole_nom)
     }
 
-    return NextResponse.json({ success: true, ecole_id: ecoleRef })
+    return NextResponse.json({ success: true, ecole_id: linked.ecole_id })
 
   } catch (err) {
     console.error('[use-licence] error:', err)

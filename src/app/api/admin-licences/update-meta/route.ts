@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-admin'
 import { isAdminLicencesAuthed } from '@/lib/admin-licences-auth'
-import { upsertEcoleCloud } from '@/lib/licence-cloud-sync'
+import { upsertEcoleCloud, linkLicenceRowToEcole } from '@/lib/licence-cloud-sync'
 
 export async function PUT(request: NextRequest) {
   if (!(await isAdminLicencesAuthed(request))) {
@@ -24,22 +24,27 @@ export async function PUT(request: NextRequest) {
   const supabase = getSupabaseAdmin()!
   const slug = ecole_slug || ecole_nom.toLowerCase().replace(/\s+/g, '-').slice(0, 64)
 
+  await upsertEcoleCloud({ slug, nom: ecole_nom })
+
+  const linked = await linkLicenceRowToEcole({
+    licenceId: id,
+    ecole_slug: slug,
+    ecole_nom,
+  })
+
+  if (!linked.ok) {
+    return NextResponse.json({ error: linked.error ?? 'Mise à jour échouée' }, { status: 500 })
+  }
+
   const { data, error } = await supabase
     .from('licences')
-    .update({
-      ecole_nom,
-      ecole_slug: slug,
-      ecole_id: slug,
-    })
-    .eq('id', id)
     .select('*')
+    .eq('id', id)
     .single()
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-
-  await upsertEcoleCloud({ slug, nom: ecole_nom })
 
   return NextResponse.json({ licence: data })
 }

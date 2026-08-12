@@ -2,6 +2,7 @@ import 'server-only'
 import { downloadSchoolDbBuffer } from './db-blob-sync'
 import { tryLoadBufferIntoMemoryDb } from './db-vercel'
 import { getSupabaseAdmin, isSupabaseConfigured } from './supabase-admin'
+import { linkLicenceRowToEcole } from './licence-cloud-sync'
 
 export interface ActiveCloudLicence {
   cle_licence: string | null
@@ -27,25 +28,41 @@ export async function fetchActiveCloudLicenceRecord(
     .eq('slug', slug)
     .maybeSingle()
 
-  const orParts = [`ecole_slug.eq.${slug}`, `ecole_id.eq.${slug}`]
-  if (ecoleRow?.id) orParts.push(`ecole_id.eq.${ecoleRow.id}`)
+  const selectCols = 'id, cle_licence, type, date_fin, is_active, ecole_slug, ecole_id'
 
-  const { data } = await sb
+  const { data: bySlug } = await sb
     .from('licences')
-    .select('id, cle_licence, type, date_fin, is_active, ecole_slug, ecole_id')
-    .eq('is_active', true)
-    .or(orParts.join(','))
+    .select(selectCols)
+    .eq('is_active', 1)
+    .eq('ecole_slug', slug)
     .order('date_fin', { ascending: false })
     .limit(1)
     .maybeSingle()
+
+  let data = bySlug
+
+  if (!data && ecoleRow?.id) {
+    const { data: byEcoleUuid } = await sb
+      .from('licences')
+      .select(selectCols)
+      .eq('is_active', 1)
+      .eq('ecole_id', ecoleRow.id)
+      .order('date_fin', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    data = byEcoleUuid
+  }
 
   if (!data?.is_active || !data.date_fin) return null
 
   const dateFin = String(data.date_fin).slice(0, 10)
   if (dateFin < today) return null
 
-  if (!data.ecole_slug) {
-    await sb.from('licences').update({ ecole_slug: slug, ecole_id: slug }).eq('id', data.id)
+  if (!data.ecole_slug || !data.ecole_id) {
+    await linkLicenceRowToEcole({
+      licenceId: data.id,
+      ecole_slug: slug,
+    })
   }
 
   return {
@@ -107,13 +124,19 @@ async function backfillSupabaseLicenceLink(
   if (!isSupabaseConfigured() || !licence.cle_licence) return
 
   const sb = getSupabaseAdmin()!
-  await sb
+  const { data: row } = await sb
     .from('licences')
-    .update({
-      ecole_slug: ecoleSlug,
-      ecole_id: ecoleSlug,
-    })
+    .select('id')
     .eq('cle_licence', licence.cle_licence.trim().toUpperCase())
+    .maybeSingle()
+
+  if (!row?.id) return
+
+  await linkLicenceRowToEcole({
+    licenceId: row.id,
+    ecole_slug: ecoleSlug,
+    setActivatedAt: false,
+  })
 }
 
 /**

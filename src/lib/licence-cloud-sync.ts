@@ -30,6 +30,61 @@ export async function upsertEcoleCloud(meta: {
   )
 }
 
+/** UUID Postgres de l'école (colonne licences.ecole_id). */
+export async function resolveEcoleUuidForSlug(ecoleSlug: string): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null
+
+  const slug = ecoleSlug.trim()
+  if (!slug) return null
+
+  const { data } = await getSupabaseAdmin()!
+    .from('ecoles')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
+
+  return data?.id ?? null
+}
+
+export async function linkLicenceRowToEcole(params: {
+  licenceId: string
+  ecole_slug: string
+  ecole_nom?: string | null
+  parrain_code?: string | null
+  machine_fingerprint?: string | null
+  setActivatedAt?: boolean
+}): Promise<{ ok: boolean; error?: string; ecole_id?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: 'Supabase non configuré' }
+  }
+
+  const slug = params.ecole_slug.trim()
+  if (!slug) return { ok: false, error: 'Slug école requis' }
+
+  const ecoleUuid = await resolveEcoleUuidForSlug(slug)
+  if (!ecoleUuid) return { ok: false, error: 'École introuvable dans Supabase' }
+
+  const supabase = getSupabaseAdmin()!
+  const { error } = await supabase
+    .from('licences')
+    .update({
+      ecole_id: ecoleUuid,
+      ecole_slug: slug,
+      ...(params.ecole_nom != null ? { ecole_nom: params.ecole_nom } : {}),
+      ...(params.parrain_code !== undefined
+        ? { parrain_code: params.parrain_code?.startsWith('SM-') ? params.parrain_code : null }
+        : {}),
+      ...(params.machine_fingerprint !== undefined
+        ? { machine_fingerprint: params.machine_fingerprint }
+        : {}),
+      ...(params.setActivatedAt ? { activated_at: new Date().toISOString() } : {}),
+    })
+    .eq('id', params.licenceId)
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, ecole_id: ecoleUuid }
+}
+
 /** Met à jour ecole_nom / ecole_slug sur une licence cloud + miroir ecoles. */
 export async function syncLicenceMetaToCloud(
   meta: LicenceCloudMeta,
@@ -62,26 +117,23 @@ export async function syncLicenceMetaToCloud(
     return { ok: false, error: 'Licence révoquée' }
   }
 
-  const { error: updateErr } = await supabase
-    .from('licences')
-    .update({
-      ecole_id: ecole_slug,
-      ecole_slug,
-      ecole_nom,
-      ...(licence.ecole_id ? {} : { activated_at: new Date().toISOString() }),
-    })
-    .eq('id', licence.id)
-
-  if (updateErr) {
-    return { ok: false, error: updateErr.message }
-  }
-
   await upsertEcoleCloud({
     slug: ecole_slug,
     nom: ecole_nom,
     directeur_nom: meta.directeur_nom,
     telephone: meta.telephone,
   })
+
+  const linked = await linkLicenceRowToEcole({
+    licenceId: licence.id,
+    ecole_slug,
+    ecole_nom,
+    setActivatedAt: !licence.ecole_id,
+  })
+
+  if (!linked.ok) {
+    return { ok: false, error: linked.error ?? 'Liaison licence échouée' }
+  }
 
   return { ok: true }
 }

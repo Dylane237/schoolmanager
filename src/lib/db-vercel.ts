@@ -83,6 +83,9 @@ export function tryLoadBufferIntoMemoryDb(buffer: Buffer): SqliteDb | null {
   if (!buffer.length) return null
 
   if (isOnDiskSqliteFileBuffer(buffer)) {
+    // Desktop uploads are on-disk .db files; direct buffer open works on Node/Vercel.
+    const direct = loadSerializedBuffer(buffer)
+    if (direct) return direct
     return loadOnDiskBufferViaTemp(buffer)
   }
 

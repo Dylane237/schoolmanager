@@ -1,0 +1,64 @@
+---
+description: Isoler correctifs Vercel vs desktop dans la codebase partagée — fichiers pivots et contrat de sync
+globs: src/lib/**/*.ts,src/app/api/**/*.ts,src/lib/**/*.tsx
+alwaysApply: false
+---
+
+# Web (Vercel) vs Desktop (Electron) — même codebase, runtimes distincts
+
+Une seule codebase. **Ne jamais dupliquer** la logique métier. Isoler via `isServerlessRuntime()` (seul point de détection — pas de `process.env.VERCEL` ailleurs).
+
+## Fichiers pivots (toucher avec prudence)
+
+| Fichier | Rôle | Web | Desktop |
+|---------|------|-----|---------|
+| `src/lib/runtime-env.ts` | Détection serverless | ✓ | ✓ |
+| `src/lib/paths.ts` | Chemins DB / uploads | `/tmp` | `SM_USER_DATA` / Documents |
+| `src/lib/db.ts` | Ouverture SQLite | mémoire par slug | fichier `schoolmanager.db` |
+| `src/lib/db-vercel.ts` | Buffers blob (serialize + on-disk) | ✓ | pull/push cloud |
+| `src/lib/school-db.ts` | prepare / flush / pull / hydrate | push blob + tables | pull blob si plus récent |
+| `src/lib/auth.ts` | Login | cloud-first | local-first → cloud fallback |
+| `src/lib/licence-resolver.ts` | Licence active | Supabase → blob | idem + SQLite local |
+| `src/lib/cloud-auth.ts` | Comptes cloud | ✓ | migration optionnelle |
+| `src/lib/db-blob-sync.ts` | Storage Supabase | ✓ | ✓ |
+| `src/lib/sync-trigger.ts` | Push données structurées | après mutation | si cloud dispo |
+
+## Règles lors d'un correctif
+
+### Fix Vercel (web)
+- Branches **uniquement** sous `if (isServerlessRuntime()) { ... }`
+- Interdit : `fs` sur DB école, `openDatabaseAtPath`, supposer un JWT = `users.id` local
+- Vérifier : `/api/health` → `serverless: true`, login cloud, licence, blob lisible
+- Tests : `tests/runtime-env.test.ts`, `tests/db-vercel.test.ts`, `tests/licence-resolver-blob.test.ts`
+
+### Fix Desktop (Electron)
+- Branches sous `if (!isServerlessRuntime()) { ... }` ou code sans branche (défaut desktop)
+- Interdit : casser le chemin `Documents/SchoolManager`, le standalone Electron, le login local SQLite
+- Vérifier : `npm run electron:dev`, login local, pull blob si version cloud > locale
+- Ne pas exiger Supabase pour le mode offline pur
+
+### Ne jamais faire
+- Copier un fichier en `-vercel.ts` / `-desktop.ts` sauf contrainte technique extrême
+- Modifier `electron/main.js` pour de la logique métier (UI/shell seulement)
+- Stocker un **slug** dans `licences.ecole_id` (UUID Postgres) — utiliser `linkLicenceRowToEcole()`
+
+## Contrat de connexion (les deux doivent rester alignés)
+
+```
+Desktop SQLite  ←──pull/push blob──→  Supabase Storage (school-databases)
+       ↓                                      ↓
+  licence locale                    licences + ecoles + cloud_users
+       ↓                                      ↓
+              licence-resolver (source de vérité au login)
+```
+
+- **Blob** : tranches, config locale, état complet école
+- **Tables Supabase** : auth cloud, licence pool, élèves/classes sync structurée
+- **Les deux** : après fix licence ou blob, tester login **web ET** sync desktop
+
+## Checklist avant commit (si touché aux pivots)
+
+1. `npm test` — 60+ tests verts
+2. Fix web → relire branches desktop dans les mêmes fichiers
+3. Fix desktop → relire branches `isServerlessRuntime()` dans les mêmes fichiers
+4. Si auth/licence/sync : login Vercel + smoke desktop (ou e2e si dispo)

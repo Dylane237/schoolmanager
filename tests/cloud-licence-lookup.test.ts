@@ -1,5 +1,19 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
+vi.mock('../src/lib/licence-cloud-sync', () => ({
+  linkLicenceRowToEcole: vi.fn(async () => ({ ok: true })),
+}))
+
+const licenceRow = {
+  id: 'lic-1',
+  cle_licence: 'SM-TEST-KEY',
+  type: 'standard',
+  date_fin: '2027-12-31',
+  is_active: 1,
+  ecole_slug: null,
+  ecole_id: 'ecole-uuid-1',
+}
+
 vi.mock('../src/lib/supabase-admin', () => ({
   isSupabaseConfigured: () => true,
   getSupabaseAdmin: () => ({
@@ -8,36 +22,44 @@ vi.mock('../src/lib/supabase-admin', () => ({
         return {
           select: () => ({
             eq: () => ({
-              maybeSingle: async () => ({ data: null }),
+              maybeSingle: async () => ({ data: { id: 'ecole-uuid-1' } }),
             }),
           }),
         }
       }
-      if (table !== 'licences') throw new Error(`unexpected table ${table}`)
-      return {
-        select: () => ({
-          eq: () => ({
-            or: () => ({
-              order: () => ({
-                limit: () => ({
-                  maybeSingle: async () => ({
-                    data: {
-                      id: 'lic-1',
-                      cle_licence: 'SM-TEST-KEY',
-                      type: 'standard',
-                      date_fin: '2027-12-31',
-                      is_active: true,
-                      ecole_slug: null,
-                      ecole_id: 'mon-ecole',
-                    },
+      if (table === 'licences') {
+        return {
+          select: () => ({
+            eq: (col: string, val: string | number) => {
+              if (col === 'is_active' && val === 1) {
+                return {
+                  eq: (col2: string, val2: string) => ({
+                    order: () => ({
+                      limit: () => ({
+                        maybeSingle: async () => {
+                          if (col2 === 'ecole_slug') return { data: null }
+                          if (col2 === 'ecole_id' && val2 === 'ecole-uuid-1') {
+                            return { data: licenceRow }
+                          }
+                          return { data: null }
+                        },
+                      }),
+                    }),
+                  }),
+                }
+              }
+              return {
+                order: () => ({
+                  limit: () => ({
+                    maybeSingle: async () => ({ data: null }),
                   }),
                 }),
-              }),
-            }),
+              }
+            },
           }),
-        }),
-        update: () => ({ eq: async () => ({ error: null }) }),
+        }
       }
+      throw new Error(`unexpected table ${table}`)
     },
   }),
 }))
@@ -47,7 +69,7 @@ describe('fetchActiveCloudLicenceRecord', () => {
     vi.resetModules()
   })
 
-  it('trouve une licence liée par ecole_id (ancienne prod)', async () => {
+  it('trouve une licence liée par ecole_id UUID (ancienne prod)', async () => {
     const { fetchActiveCloudLicenceRecord } = await import('../src/lib/cloud-auth')
     const licence = await fetchActiveCloudLicenceRecord('mon-ecole')
     expect(licence?.cle_licence).toBe('SM-TEST-KEY')
