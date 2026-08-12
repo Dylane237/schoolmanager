@@ -15,6 +15,10 @@ export function getDocumentsSchoolManagerPath(): string {
 export function getUserDataDir(): string {
   const userData = runtimeEnv('SM_USER_DATA')
   if (userData) {
+    // Chemin Windows copié par erreur dans les env Vercel (Linux)
+    if (process.env.VERCEL && (/^[A-Za-z]:[\\/]/.test(userData) || userData.includes('\\'))) {
+      return path.join('/tmp', SCHOOL_MANAGER_FOLDER)
+    }
     return userData
   }
 
