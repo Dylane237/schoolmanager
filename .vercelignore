@@ -1,4 +1,4 @@
-# Electron - pas nécessaire sur le serveur
+# Electron — pas nécessaire sur Vercel (build = next build direct)
 electron/
 scripts/
 dist/

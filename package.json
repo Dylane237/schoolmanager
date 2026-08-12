@@ -6,7 +6,8 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "node scripts/ensure-node-native.js && next dev",
-    "build": "node scripts/build-next.js",
+    "build": "next build --webpack",
+    "build:electron": "node scripts/build-next.js",
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
@@ -15,7 +16,7 @@
     "test:e2e:install": "playwright install chromium",
     "electron:dev": "node scripts/ensure-node-native.js && node scripts/electron-dev.js",
     "electron:prepare": "node scripts/prepare-electron.js",
-    "electron:build": "node scripts/free-standalone.js && node scripts/build-next.js && node scripts/prepare-electron.js && node scripts/rebuild-electron-native.js && electron-builder",
+    "electron:build": "node scripts/free-standalone.js && npm run build:electron && node scripts/prepare-electron.js && node scripts/rebuild-electron-native.js && electron-builder",
     "rebuild:native": "npm rebuild better-sqlite3",
     "rebuild:electron": "node scripts/rebuild-electron-native.js",
     "postinstall": "npm rebuild better-sqlite3",
