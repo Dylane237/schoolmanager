@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 import { getDb } from './db-server'
 import { getJwtSecretKey } from './secrets'
 import { getMachineFingerprint } from './paths'
-import { isVercelRuntime } from './runtime-env'
+import { isVercelRuntime, runtimeEnv } from './runtime-env'
 import {
   prepareSchoolDb,
   markSchoolDbDirty,
@@ -186,7 +186,7 @@ export async function loginUser(email: string, password: string) {
     }
     return localResult
   }
-  if (localResult.error === 'Mot de passe incorrect' || localResult.error === 'Licence utilisée sur un autre ordinateur') {
+  if (localResult.error === 'Mot de passe incorrect') {
     return localResult
   }
 
@@ -271,12 +271,15 @@ async function loginLocalUser(email: string, password: string) {
       return { error: 'Licence expirée' as const }
     }
 
-    const fingerprint = getMachineFingerprint()
-    if (licence.machine_fingerprint && licence.machine_fingerprint !== fingerprint) {
-      return { error: 'Licence utilisée sur un autre ordinateur' as const }
-    }
-    if (!licence.machine_fingerprint) {
-      db.prepare('UPDATE licences SET machine_fingerprint = ? WHERE id = ?').run(fingerprint, licence.id)
+    const { isCloudAuthAvailable } = await import('./cloud-auth')
+    if (!isCloudAuthAvailable()) {
+      const fingerprint = getMachineFingerprint()
+      if (licence.machine_fingerprint && licence.machine_fingerprint !== fingerprint) {
+        return { error: 'Licence utilisée sur un autre ordinateur' as const }
+      }
+      if (!licence.machine_fingerprint) {
+        db.prepare('UPDATE licences SET machine_fingerprint = ? WHERE id = ?').run(fingerprint, licence.id)
+      }
     }
   }
 

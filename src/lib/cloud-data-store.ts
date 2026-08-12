@@ -25,11 +25,6 @@ async function verifyLicenceForPush(payload: SchoolSyncPayload): Promise<{ ok: b
   if (error || !licence) return { ok: false, error: 'Licence introuvable' }
   if (!licence.is_active) return { ok: false, error: 'Licence révoquée' }
 
-  const fp = payload.machine_fingerprint.trim()
-  if (fp && licence.machine_fingerprint && licence.machine_fingerprint !== fp) {
-    return { ok: false, error: 'Empreinte machine non concordante' }
-  }
-
   if (licence.ecole_slug && licence.ecole_slug !== payload.ecole_slug) {
     return { ok: false, error: 'Slug école non concordant' }
   }

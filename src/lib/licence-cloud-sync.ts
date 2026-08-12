@@ -62,22 +62,12 @@ export async function syncLicenceMetaToCloud(
     return { ok: false, error: 'Licence révoquée' }
   }
 
-  const fp = meta.machine_fingerprint?.trim()
-  if (
-    fp
-    && licence.machine_fingerprint
-    && licence.machine_fingerprint !== fp
-  ) {
-    return { ok: false, error: 'Empreinte machine non concordante' }
-  }
-
   const { error: updateErr } = await supabase
     .from('licences')
     .update({
       ecole_id: ecole_slug,
       ecole_slug,
       ecole_nom,
-      machine_fingerprint: fp || licence.machine_fingerprint,
       ...(licence.ecole_id ? {} : { activated_at: new Date().toISOString() }),
     })
     .eq('id', licence.id)

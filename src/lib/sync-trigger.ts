@@ -1,11 +1,12 @@
 import { getDb } from './db-server'
 import { getMachineFingerprint } from './paths'
+import { isVercelRuntime } from './runtime-env'
 import { buildSchoolSyncPayload, type SchoolSyncPayload } from './sync-payload'
 import { pushSchoolDataToCloud } from './data-cloud-sync'
 import { pushSchoolDbFromLocal } from './school-db'
 
 async function pushStructuredSync(payload: SchoolSyncPayload): Promise<void> {
-  if (process.env.VERCEL) {
+  if (isVercelRuntime()) {
     const { upsertSchoolDataOnCloud } = await import('./cloud-data-store')
     await upsertSchoolDataOnCloud(payload)
     return
@@ -42,7 +43,7 @@ export async function pushSchoolDataFromEcoleIdAsync(
 
     await pushStructuredSync(payload)
 
-    if (!process.env.VERCEL) {
+    if (!isVercelRuntime()) {
       await pushSchoolDbFromLocal(ecole.slug).catch(() => {})
     }
   } catch {
