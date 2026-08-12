@@ -5,16 +5,13 @@ import path from 'path'
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
+const isVercel = Boolean(process.env.VERCEL)
+
 const documentsDataDir = path
   .join(os.homedir(), 'Documents', 'SchoolManager')
   .replace(/\\/g, '/')
 
-const nextConfig: NextConfig = {
-  // Standalone uniquement pour Electron / self-host — pas sur Vercel
-  ...(process.env.VERCEL ? {} : { output: 'standalone' as const }),
-  serverExternalPackages: ['better-sqlite3', 'bcryptjs'],
-  allowedDevOrigins: ['127.0.0.1', 'localhost'],
-  turbopack: {},
+const electronTracing = {
   outputFileTracingIncludes: {
     '/*': [
       './messages/**/*',
@@ -41,6 +38,16 @@ const nextConfig: NextConfig = {
       `${documentsDataDir}/**`,
     ],
   },
+} satisfies Pick<NextConfig, 'outputFileTracingIncludes' | 'outputFileTracingExcludes'>
+
+const nextConfig: NextConfig = {
+  // Standalone uniquement pour Electron — pas sur Vercel
+  ...(isVercel ? {} : { output: 'standalone' as const }),
+  // File tracing custom uniquement pour standalone Electron (casse le handler Vercel sinon)
+  ...(isVercel ? {} : electronTracing),
+  serverExternalPackages: isVercel ? ['bcryptjs'] : ['better-sqlite3', 'bcryptjs'],
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
+  turbopack: {},
   webpack: (config, { webpack }) => {
     config.plugins.push(
       new webpack.IgnorePlugin({ resourceRegExp: /^electron$/ })
