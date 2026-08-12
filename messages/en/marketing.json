@@ -321,7 +321,7 @@
     "title": "Windows desktop app",
     "subtitle": "Recommended for the office — offline, printing and performance.",
     "installed": "You are using the desktop app",
-    "installedHint": "Version {version} · Manage updates below.",
+    "installedHint": "Version {version} · Updates are on the Licence page.",
     "webOnly": "You are in the browser",
     "webOnlyHint": "Install the app on the office PC to work without internet.",
     "download": "Download for Windows",

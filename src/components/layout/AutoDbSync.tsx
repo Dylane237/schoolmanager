@@ -26,7 +26,7 @@ export default function AutoDbSync() {
       syncing.current = true
       sync.setSyncing(true)
       try {
-        await sync.runSync()
+        await sync.runSync(undefined, { silent: true })
       } finally {
         syncing.current = false
         await sync.refresh()

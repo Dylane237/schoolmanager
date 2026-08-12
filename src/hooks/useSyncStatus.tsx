@@ -29,13 +29,24 @@ type SyncStatusContextValue = {
   lastError: string | null
   lastSyncAt: string | null
   refresh: () => Promise<void>
-  runSync: (strategy?: 'keep_local' | 'keep_cloud') => Promise<boolean>
+  runSync: (strategy?: 'keep_local' | 'keep_cloud', options?: { silent?: boolean }) => Promise<boolean>
   setSyncing: (syncing: boolean) => void
 }
 
 const SyncStatusContext = createContext<SyncStatusContextValue | null>(null)
 
 const POLL_MS = 30_000
+
+/** Évite les toasts en double (AutoDbSync + sync manuelle) pour un même conflit. */
+let conflictToastShown = false
+
+function notifySyncConflict(silent?: boolean) {
+  if (silent || conflictToastShown) return
+  conflictToastShown = true
+  toast.error('Conflit de sync — choisissez quelle version garder dans Données', {
+    id: 'sync-conflict',
+  })
+}
 
 export function SyncStatusProvider({ children }: { children: ReactNode }) {
   const { slug, userRole } = useSchool()
@@ -47,7 +58,10 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
   const applyPayload = useCallback((data: SyncStatusPayload) => {
     if (data.conflict || data.sync_state === 'conflict') setState('conflict')
     else if (data.last_error || data.sync_state === 'error') setState('error')
-    else if (data.sync_state === 'synced' || data.db_synced) setState('synced')
+    else if (data.sync_state === 'synced' || data.db_synced) {
+      conflictToastShown = false
+      setState('synced')
+    }
     else setState('pending')
     setLastError(data.last_error ?? null)
     setLastSyncAt(data.last_sync_at ?? data.synced_at ?? null)
@@ -68,7 +82,10 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
     }
   }, [applyPayload, canSync])
 
-  const runSync = useCallback(async (strategy?: 'keep_local' | 'keep_cloud') => {
+  const runSync = useCallback(async (
+    strategy?: 'keep_local' | 'keep_cloud',
+    options?: { silent?: boolean },
+  ) => {
     if (!canSync) return false
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setState('offline')
@@ -87,7 +104,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
       if (res.status === 409) {
         setState('conflict')
         setLastError(data.error ?? 'Conflit de synchronisation')
-        toast.error('Conflit de sync — choisissez quelle version garder dans Données')
+        notifySyncConflict(options?.silent)
         return false
       }
 

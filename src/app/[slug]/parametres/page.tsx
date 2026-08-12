@@ -13,7 +13,6 @@ import PageShell from '@/components/layout/PageShell'
 import UsersManagement from '@/components/parametres/UsersManagement'
 import AuditLogPanel from '@/components/parametres/AuditLogPanel'
 import DesktopAppPanel from '@/components/parametres/DesktopAppPanel'
-import AppUpdates from '@/components/parametres/AppUpdates'
 import SectionIcon from '@/components/ui/SectionIcon'
 import { useSchool } from '@/components/layout/SchoolProvider'
 import toast from 'react-hot-toast'
@@ -532,7 +531,6 @@ export default function ParametresPage() {
         )}
 
         <DesktopAppPanel />
-        <AppUpdates />
 
         <section className="card overflow-hidden xl:col-span-12">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
