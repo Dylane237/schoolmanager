@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
   let syncState: 'synced' | 'pending' | 'conflict' | 'error' = 'pending'
   if (conflict.hasConflict) syncState = 'conflict'
   else if (meta.lastError) syncState = 'error'
+  else if (conflict.localDirty) syncState = 'pending'
   else if (dbMeta && dbMeta.version === localVersion) syncState = 'synced'
 
   const syncedAt = meta.lastSyncAt ?? status.synced_at ?? dbMeta?.updated_at ?? null
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ...status,
     synced_at: syncedAt,
-    db_synced: dbMeta ? dbMeta.version === localVersion : false,
+    db_synced: dbMeta ? dbMeta.version === localVersion && !conflict.localDirty : false,
     db_cloud_version: dbMeta?.version ?? null,
     db_local_version: localVersion,
     db_updated_at: dbMeta?.updated_at ?? null,

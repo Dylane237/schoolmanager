@@ -729,6 +729,19 @@ export function markSchoolDbDirty(ecoleSlug: string, source = 'api'): void {
   markLocalEdited(ecoleSlug, source)
 }
 
+/** Exporte la base bureau après checkpoint WAL (serialize() ne marche qu'en :memory:). */
+async function exportDesktopSchoolDbBuffer(): Promise<Buffer | null> {
+  const { getDb, closeDbForSlug, resetDesktopDbSingleton } = await import('./db')
+  const db = getDb()
+  db.pragma('wal_checkpoint(TRUNCATE)')
+  closeDbForSlug()
+  resetDesktopDbSingleton()
+
+  const dbPath = getDbPathForSlug()
+  if (!fs.existsSync(dbPath)) return null
+  return fs.readFileSync(dbPath)
+}
+
 export function scheduleSchoolDbFlush(ecoleSlug: string): void {
   if (!isServerlessRuntime() || flushScheduled.has(ecoleSlug)) return
   flushScheduled.add(ecoleSlug)
@@ -757,8 +770,6 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
     return
   }
 
-  dirtySlugs.delete(ecoleSlug)
-
   if (isServerlessRuntime()) {
     const { exportVercelSchoolDbBuffer } = await import('./db')
     const buffer = exportVercelSchoolDbBuffer(ecoleSlug)
@@ -776,6 +787,7 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
 
     const result = await uploadSchoolDbBuffer(ecoleSlug, buffer)
     if (result.ok && result.version) {
+      dirtySlugs.delete(ecoleSlug)
       vercelSyncedVersions.set(ecoleSlug, result.version)
       markLocalSynced(ecoleSlug, result.version)
       recordSyncEvent(ecoleSlug, 'push_ok', undefined, result.version)
@@ -793,13 +805,8 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
     return
   }
 
-  const { closeDbForSlug } = await import('./db')
-  closeDbForSlug(ecoleSlug)
-
-  const dbPath = getDbPathForSlug(ecoleSlug)
-  if (!fs.existsSync(dbPath)) return
-
-  const buffer = fs.readFileSync(dbPath)
+  const buffer = await exportDesktopSchoolDbBuffer()
+  if (!buffer) return
 
   const { shouldSkipBlobRegression } = await import('./structured-sync')
   if (await shouldSkipBlobRegression(ecoleSlug, buffer)) {
@@ -811,8 +818,9 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
     return
   }
 
-  const result = await uploadSchoolDb(ecoleSlug, dbPath)
+  const result = await uploadSchoolDbBuffer(ecoleSlug, buffer)
   if (result.ok && result.version) {
+    dirtySlugs.delete(ecoleSlug)
     fs.writeFileSync(getLocalSyncVersionPath(ecoleSlug), String(result.version))
     markLocalSynced(ecoleSlug, result.version)
     recordSyncEvent(ecoleSlug, 'push_ok', undefined, result.version)
@@ -948,16 +956,9 @@ export async function pushSchoolDbFromLocal(
     return result
   }
 
-  const { closeDbForSlug, resetDesktopDbSingleton, getDb } = await import('./db')
-  const db = getDb()
-  db.pragma('wal_checkpoint(TRUNCATE)')
-  closeDbForSlug()
-  resetDesktopDbSingleton()
-  const dbPath = getDbPathForSlug()
+  const buffer = await exportDesktopSchoolDbBuffer()
+  if (!buffer) return { ok: false, error: 'Base locale introuvable' }
 
-  if (!fs.existsSync(dbPath)) return { ok: false, error: 'Base locale introuvable' }
-
-  const buffer = fs.readFileSync(dbPath)
   const { shouldSkipBlobRegression, syncStructuredAfterBlobUpload } = await import('./structured-sync')
   if (await shouldSkipBlobRegression(ecoleSlug, buffer)) {
     recordSyncEvent(
@@ -968,7 +969,7 @@ export async function pushSchoolDbFromLocal(
     return { ok: false, error: 'Base locale vide — utilisez « Garder le cloud » ou restaurez une sauvegarde' }
   }
 
-  const result = await uploadSchoolDb(ecoleSlug, dbPath)
+  const result = await uploadSchoolDbBuffer(ecoleSlug, buffer)
   if (result.ok && result.version) {
     fs.writeFileSync(getLocalSyncVersionPath(ecoleSlug), String(result.version))
     markLocalSynced(ecoleSlug, result.version)
@@ -992,8 +993,17 @@ export function clearSchoolDbCache(ecoleSlug?: string): void {
   if (ecoleSlug) {
     preparedSlugs.delete(ecoleSlug)
     vercelSyncedVersions.delete(ecoleSlug)
+    void import('./db').then(({ closeDbForSlug }) => closeDbForSlug(ecoleSlug)).catch(() => {})
     return
   }
   preparedSlugs.clear()
   vercelSyncedVersions.clear()
+}
+
+/** Recharge la base depuis le cloud avant une comparaison (évite un cache web périmé). */
+export async function refreshSchoolDbForCompare(ecoleSlug: string): Promise<void> {
+  clearSchoolDbCache(ecoleSlug)
+  const { closeDbForSlug } = await import('./db')
+  closeDbForSlug(ecoleSlug)
+  await prepareSchoolDb(ecoleSlug)
 }

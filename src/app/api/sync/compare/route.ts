@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { requireModule } from '@/lib/rbac.server'
 import { getSchoolDbContext } from '@/lib/school-api'
-import { prepareSchoolDb } from '@/lib/db-server'
+import { refreshSchoolDbForCompare } from '@/lib/school-db'
 import { detectSyncConflict, describeSyncSides } from '@/lib/sync-conflict'
 import { fetchCloudDbMeta } from '@/lib/db-blob-sync'
 import { readLocalSyncMeta } from '@/lib/sync-meta'
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   if (denied) return denied
 
   const slug = user.ecole_slug
-  await prepareSchoolDb(slug)
+  await refreshSchoolDbForCompare(slug)
 
   const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
   if (!ecoleId || !ecoleSlug) {
