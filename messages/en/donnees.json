@@ -69,7 +69,7 @@
   },
   "sync": {
     "title": "Cloud synchronization",
-    "description": "Keep the full database in sync between desktop and web. Auto-sync runs when desktop goes online and after each change on the web.",
+    "description": "Compare desktop and web manually before merging. Click « Sync now » to see differences and choose what to keep, item by item.",
     "lastSync": "Last sync",
     "students": "Synced students",
     "classes": "Synced classes",
@@ -80,8 +80,10 @@
     "modePending": "Pending",
     "never": "Never",
     "action": "Sync now",
-    "syncing": "Syncing…",
-    "success": "Data synced to cloud",
+    "syncing": "Comparing…",
+    "alreadySynced": "Everything is already in sync — no differences found",
+    "compareReady": "{count} difference(s) to review below",
+    "success": "Merge applied and data synced",
     "error": "Sync failed"
   }
 }

@@ -69,7 +69,7 @@
   },
   "sync": {
     "title": "Synchronisation cloud",
-    "description": "Synchronisez la base complète entre desktop et web. La sync automatique se déclenche au retour en ligne sur le desktop et après chaque modification sur le web.",
+    "description": "Comparez manuellement desktop et web avant de fusionner. Cliquez sur « Synchroniser maintenant » pour voir les différences et choisir quoi garder, ligne par ligne.",
     "lastSync": "Dernière sync",
     "students": "Élèves sync",
     "classes": "Classes sync",
@@ -80,8 +80,10 @@
     "modePending": "En attente",
     "never": "Jamais",
     "action": "Synchroniser maintenant",
-    "syncing": "Synchronisation…",
-    "success": "Données synchronisées avec le cloud",
+    "syncing": "Analyse en cours…",
+    "alreadySynced": "Tout est déjà synchronisé — aucune différence détectée",
+    "compareReady": "{count} différence(s) à examiner ci-dessous",
+    "success": "Fusion appliquée et données synchronisées",
     "error": "Échec de la synchronisation"
   }
 }

@@ -4,7 +4,6 @@ import { useSchool } from './SchoolProvider'
 import Sidebar from './Sidebar'
 import SchoolWatermark from './SchoolWatermark'
 import ModuleGuard from './ModuleGuard'
-import AutoDbSync from './AutoDbSync'
 import { LicenceStatusProvider } from '@/hooks/useLicenceStatus'
 import { SyncStatusProvider } from '@/hooks/useSyncStatus'
 
@@ -18,7 +17,6 @@ export default function AppShell({ children }: AppShellProps) {
   return (
     <LicenceStatusProvider>
       <SyncStatusProvider>
-        <AutoDbSync />
         <div className="flex h-screen bg-slate-50 overflow-hidden">
           <Sidebar slug={slug} ecoleNom={ecoleNom} />
           <main className="flex-1 overflow-y-auto pt-14 lg:pt-0 relative">

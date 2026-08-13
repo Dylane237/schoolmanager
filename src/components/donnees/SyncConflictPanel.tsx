@@ -21,12 +21,18 @@ type ChangelogPayload = {
   }
 }
 
+export type { ChangelogPayload }
+
 type MergeChoice = 'local' | 'cloud' | 'skip'
 
 export default function SyncConflictPanel({
   onResolved,
+  compareKey = 0,
+  comparePayload = null,
 }: {
   onResolved?: () => void
+  compareKey?: number
+  comparePayload?: ChangelogPayload | null
 }) {
   const t = useTranslations('sync.changelog')
   const [data, setData] = useState<ChangelogPayload | null>(null)
@@ -35,32 +41,45 @@ export default function SyncConflictPanel({
   const [choices, setChoices] = useState<Record<string, MergeChoice>>({})
   const [allowDestructive, setAllowDestructive] = useState(false)
 
+  const [showComparedEmpty, setShowComparedEmpty] = useState(false)
+
   const entityTypeLabel = useCallback((type: string) => {
     const labels = t.raw('entityTypes') as Record<string, string> | undefined
     return labels?.[type] ?? type
   }, [t])
+
+  const applyPayload = useCallback((json: ChangelogPayload, fromCompare: boolean) => {
+    setData(json)
+    setShowComparedEmpty(fromCompare && !json.diff?.has_differences)
+    const defaults: Record<string, MergeChoice> = {}
+    for (const item of json.diff?.items ?? []) {
+      const key = `${item.entity_type}:${item.entity_id}`
+      if (item.kind === 'local_only') defaults[key] = 'local'
+      else if (item.kind === 'cloud_only') defaults[key] = 'cloud'
+      else defaults[key] = 'local'
+    }
+    setChoices(defaults)
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/sync/changelog')
       if (!res.ok) return
-      const json = await res.json()
-      setData(json)
-      const defaults: Record<string, MergeChoice> = {}
-      for (const item of json.diff?.items ?? []) {
-        const key = `${item.entity_type}:${item.entity_id}`
-        if (item.kind === 'local_only') defaults[key] = 'local'
-        else if (item.kind === 'cloud_only') defaults[key] = 'cloud'
-        else defaults[key] = 'local'
-      }
-      setChoices(defaults)
+      applyPayload(await res.json(), false)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [applyPayload])
 
   useEffect(() => { void load() }, [load])
+
+  useEffect(() => {
+    if (compareKey > 0 && comparePayload) {
+      applyPayload(comparePayload, true)
+      setLoading(false)
+    }
+  }, [compareKey, comparePayload, applyPayload])
 
   const setChoice = (item: SyncDiffItem, choice: MergeChoice) => {
     const key = `${item.entity_type}:${item.entity_id}`
@@ -147,6 +166,14 @@ export default function SyncConflictPanel({
       <div className="mt-4 p-4 bg-slate-50 rounded-lg text-sm text-slate-500 flex items-center gap-2">
         <RefreshCw className="w-4 h-4 animate-spin" />
         {t('loading')}
+      </div>
+    )
+  }
+
+  if (showComparedEmpty) {
+    return (
+      <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
+        {t('allSynced')}
       </div>
     )
   }

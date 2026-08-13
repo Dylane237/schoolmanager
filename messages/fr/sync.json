@@ -42,6 +42,7 @@
     "confirmLosses": "{count} entrée(s) seront supprimées du bureau. Continuer ?",
     "alreadySynced": "Plus aucune différence — déjà synchronisé",
     "nothingToApply": "Sélectionnez au moins un élément à fusionner (pas tout sur Ignorer)",
+    "allSynced": "Aucune différence entre cette plateforme et le cloud. Les deux copies sont alignées.",
     "entityTypes": {
       "eleve": "Élève",
       "classe": "Classe",
@@ -52,6 +53,12 @@
       "matiere": "Matière",
       "frais_annexe": "Frais annexe",
       "presence": "Présence",
+      "parametre_ecole": "Paramètres école",
+      "parametre_maternelle": "Paramètres maternelle",
+      "annee_scolaire": "Année scolaire",
+      "annonce": "Annonce",
+      "utilisateur": "Utilisateur",
+      "competence": "Compétence maternelle",
       "autre": "Autre"
     }
   }

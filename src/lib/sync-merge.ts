@@ -284,7 +284,7 @@ export async function applyMergeDecisions(
           continue
         }
         err = await applyBlobMergeDecision(
-          db, cloudDb, ecoleId, cloudEcoleId,
+          db, cloudDb, ecoleId, cloudEcoleId, ecoleSlug,
           d.entity_type, d.entity_id, d.choice, kind,
           allowDestructive,
         )

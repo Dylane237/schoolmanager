@@ -273,11 +273,111 @@ function removeLocalPresence(localDb: Database.Database, ecoleId: string, entity
   return null
 }
 
+const ECOLE_SETTING_FIELDS = [
+  'nom', 'telephone', 'adresse', 'email', 'directeur_nom',
+  'logo_url', 'entete_url', 'nom_caissier', 'sections',
+] as const
+
+function copyEcoleSettingsFromCloud(
+  localDb: Database.Database,
+  cloudDb: Database.Database,
+  ecoleId: string,
+  ecoleSlug: string,
+): string | null {
+  const cloudRow = cloudDb.prepare(`
+    SELECT ${ECOLE_SETTING_FIELDS.join(', ')} FROM ecoles WHERE slug = ?
+  `).get(ecoleSlug) as Record<string, unknown> | undefined
+  if (!cloudRow) return 'Paramètres école cloud introuvables'
+
+  const sets = ECOLE_SETTING_FIELDS.map(f => `${f} = ?`).join(', ')
+  localDb.prepare(`UPDATE ecoles SET ${sets} WHERE id = ?`).run(
+    ...ECOLE_SETTING_FIELDS.map(f => cloudRow[f] ?? null),
+    ecoleId,
+  )
+  return null
+}
+
+function copyParametresMaternelleFromCloud(
+  localDb: Database.Database,
+  cloudDb: Database.Database,
+  ecoleId: string,
+  cloudEcoleId: string,
+): string | null {
+  const row = cloudDb.prepare(
+    'SELECT valeur FROM parametres_maternelle WHERE ecole_id = ?',
+  ).get(cloudEcoleId) as { valeur: string } | undefined
+  if (!row) return 'Paramètres maternelle cloud introuvables'
+
+  localDb.prepare(`
+    INSERT INTO parametres_maternelle (ecole_id, valeur) VALUES (?, ?)
+    ON CONFLICT(ecole_id) DO UPDATE SET valeur = excluded.valeur
+  `).run(ecoleId, row.valeur)
+  return null
+}
+
+function copyRowById(
+  localDb: Database.Database,
+  cloudDb: Database.Database,
+  ecoleId: string,
+  table: string,
+  entityId: string,
+  insertColumns: string[],
+): string | null {
+  const row = cloudDb.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(entityId) as Record<string, unknown> | undefined
+  if (!row) return `${table} cloud introuvable`
+
+  const exists = localDb.prepare(`SELECT id FROM ${table} WHERE id = ?`).get(entityId)
+  if (exists) {
+    const sets = insertColumns.filter(c => c !== 'id').map(c => `${c} = ?`).join(', ')
+    localDb.prepare(`UPDATE ${table} SET ${sets} WHERE id = ? AND ecole_id = ?`).run(
+      ...insertColumns.filter(c => c !== 'id').map(c => row[c] ?? null),
+      entityId,
+      ecoleId,
+    )
+  } else {
+    const cols = insertColumns.join(', ')
+    const placeholders = insertColumns.map(() => '?').join(', ')
+    localDb.prepare(`INSERT INTO ${table} (${cols}) VALUES (${placeholders})`).run(
+      ...insertColumns.map(c => c === 'ecole_id' ? ecoleId : (row[c] ?? null)),
+    )
+  }
+  return null
+}
+
+function copyUserFromCloud(
+  localDb: Database.Database,
+  cloudDb: Database.Database,
+  ecoleId: string,
+  userId: string,
+): string | null {
+  const row = cloudDb.prepare('SELECT * FROM users WHERE id = ?').get(userId) as Record<string, unknown> | undefined
+  if (!row) return 'Utilisateur cloud introuvable'
+
+  const exists = localDb.prepare('SELECT id FROM users WHERE id = ?').get(userId)
+  if (exists) {
+    localDb.prepare(`
+      UPDATE users SET nom = ?, prenom = ?, email = ?, role = ?, telephone = ?
+      WHERE id = ? AND ecole_id = ?
+    `).run(row.nom, row.prenom, row.email, row.role, row.telephone, userId, ecoleId)
+  } else {
+    localDb.prepare(`
+      INSERT INTO users (id, ecole_id, nom, prenom, email, role, telephone, password_hash)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, ecoleId, row.nom, row.prenom, row.email, row.role, row.telephone, row.password_hash)
+  }
+  return null
+}
+
+function removeById(localDb: Database.Database, ecoleId: string, table: string, id: string): void {
+  localDb.prepare(`DELETE FROM ${table} WHERE id = ? AND ecole_id = ?`).run(id, ecoleId)
+}
+
 export async function applyBlobMergeDecision(
   localDb: Database.Database,
   cloudDb: Database.Database | null,
   ecoleId: string,
   cloudEcoleId: string | null,
+  ecoleSlug: string,
   entity_type: string,
   entity_id: string,
   choice: 'local' | 'cloud',
@@ -299,10 +399,40 @@ export async function applyBlobMergeDecision(
     else if (entity_type === 'matiere') removeLocalMatiere(localDb, ecoleId, entity_id)
     else if (entity_type === 'frais_annexe') removeLocalFraisAnnexe(localDb, ecoleId, entity_id)
     else if (entity_type === 'presence') return removeLocalPresence(localDb, ecoleId, entity_id)
+    else if (entity_type === 'annee_scolaire') removeById(localDb, ecoleId, 'annees_scolaires', entity_id)
+    else if (entity_type === 'annonce') removeById(localDb, ecoleId, 'annonces', entity_id)
+    else if (entity_type === 'utilisateur') removeById(localDb, ecoleId, 'users', entity_id)
+    else if (entity_type === 'competence') removeById(localDb, ecoleId, 'competences_maternelle', entity_id)
+    else if (entity_type === 'parametre_maternelle') {
+      localDb.prepare('DELETE FROM parametres_maternelle WHERE ecole_id = ?').run(ecoleId)
+    }
     return null
   }
 
   if (!cloudDb || !cloudEcoleId) return 'Snapshot cloud indisponible'
+
+  if (entity_type === 'parametre_ecole') return copyEcoleSettingsFromCloud(localDb, cloudDb, ecoleId, ecoleSlug)
+  if (entity_type === 'parametre_maternelle') {
+    return copyParametresMaternelleFromCloud(localDb, cloudDb, ecoleId, cloudEcoleId)
+  }
+  if (entity_type === 'annee_scolaire') {
+    return copyRowById(localDb, cloudDb, ecoleId, 'annees_scolaires', entity_id, [
+      'id', 'ecole_id', 'label', 'date_debut', 'date_fin', 'is_active', 'created_at',
+    ])
+  }
+  if (entity_type === 'annonce') {
+    return copyRowById(localDb, cloudDb, ecoleId, 'annonces', entity_id, [
+      'id', 'ecole_id', 'titre', 'contenu', 'cible', 'priorite', 'auteur_id',
+      'date_publication', 'date_expiration', 'is_active', 'created_at',
+    ])
+  }
+  if (entity_type === 'utilisateur') return copyUserFromCloud(localDb, cloudDb, ecoleId, entity_id)
+  if (entity_type === 'competence') {
+    return copyRowById(localDb, cloudDb, ecoleId, 'competences_maternelle', entity_id, [
+      'id', 'ecole_id', 'eleve_id', 'periode', 'domaine', 'competence', 'statut',
+      'observation', 'saisie_par', 'created_at',
+    ])
+  }
 
   if (entity_type === 'paiement') return copyPaiementFromCloud(localDb, cloudDb, ecoleId, entity_id)
   if (entity_type === 'note') return copyNoteFromCloud(localDb, cloudDb, ecoleId, entity_id)
@@ -322,4 +452,10 @@ export function isBlobEntityType(entity_type: string): boolean {
     || entity_type === 'matiere'
     || entity_type === 'frais_annexe'
     || entity_type === 'presence'
+    || entity_type === 'parametre_ecole'
+    || entity_type === 'parametre_maternelle'
+    || entity_type === 'annee_scolaire'
+    || entity_type === 'annonce'
+    || entity_type === 'utilisateur'
+    || entity_type === 'competence'
 }

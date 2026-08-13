@@ -42,6 +42,7 @@
     "confirmLosses": "{count} entry(ies) will be removed from desktop. Continue?",
     "alreadySynced": "No differences left — already in sync",
     "nothingToApply": "Select at least one item to merge (not all Skip)",
+    "allSynced": "No differences between this platform and the cloud. Both copies are aligned.",
     "entityTypes": {
       "eleve": "Student",
       "classe": "Class",
@@ -52,6 +53,12 @@
       "matiere": "Subject",
       "frais_annexe": "Extra fee",
       "presence": "Attendance",
+      "parametre_ecole": "School settings",
+      "parametre_maternelle": "Preschool settings",
+      "annee_scolaire": "School year",
+      "annonce": "Announcement",
+      "utilisateur": "User",
+      "competence": "Preschool competency",
       "autre": "Other"
     }
   }

@@ -4,6 +4,7 @@ import { fetchCloudClasses } from './cloud-read'
 import { getPendingLocalChanges, type SyncChangeEntry } from './sync-changelog'
 import { isSupabaseConfigured } from './supabase-admin'
 import { diffBlobEntities } from './sync-diff-blob'
+import { diffSettingsEntities } from './sync-diff-settings'
 import { openCloudSnapshotDb, resolveEcoleIdFromDb } from './sync-snapshot'
 import type { SyncDiffItem, SyncDiffReport } from './sync-diff-types'
 
@@ -257,6 +258,7 @@ export async function computeSyncDiff(
       const cloudEcoleId = resolveEcoleIdFromDb(cloudDb, ecoleSlug)
       if (cloudEcoleId) {
         items.push(...diffBlobEntities(db, cloudDb, ecoleId, cloudEcoleId))
+        items.push(...diffSettingsEntities(db, cloudDb, ecoleId, cloudEcoleId))
       }
     } finally {
       cloudDb.close()

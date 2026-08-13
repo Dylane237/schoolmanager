@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import {
@@ -14,7 +14,7 @@ import { useSyncStatusOptional } from '@/hooks/useSyncStatus'
 import { hasModuleAccess, type Module } from '@/lib/rbac'
 import { ENTITY_MODULES, type ExportEntity, type ExportFormat } from '@/lib/data-export/types'
 import toast from 'react-hot-toast'
-import SyncConflictPanel from '@/components/donnees/SyncConflictPanel'
+import SyncConflictPanel, { type ChangelogPayload } from '@/components/donnees/SyncConflictPanel'
 
 const ENTITIES: ExportEntity[] = ['eleves', 'classes', 'paiements', 'notes', 'presences', 'personnel']
 
@@ -60,6 +60,9 @@ export default function DonneesPage() {
     last_error?: string | null
   } | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const [compareKey, setCompareKey] = useState(0)
+  const [comparePayload, setComparePayload] = useState<ChangelogPayload | null>(null)
+  const syncPanelRef = useRef<HTMLDivElement>(null)
   const syncContext = useSyncStatusOptional()
   const tSync = useTranslations('sync')
 
@@ -71,36 +74,59 @@ export default function DonneesPage() {
       .catch(() => {})
   }, [canSync])
 
-  const handleSyncNow = async (strategy?: 'keep_local' | 'keep_cloud') => {
-    if (strategy) {
-      const confirmed = window.confirm(
-        strategy === 'keep_cloud'
-          ? tSync('confirmKeepCloudDestructive')
-          : tSync('confirmKeepLocalDestructive'),
-      )
-      if (!confirmed) return
-    }
+  const handleSyncNow = async () => {
     setSyncing(true)
     try {
-      const ok = syncContext
-        ? await syncContext.runSync(strategy, { allowDestructive: Boolean(strategy) })
-        : await (async () => {
-          const res = await fetch('/api/sync/db', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(strategy
-              ? { strategy, allow_destructive: true }
-              : {}),
-          })
-          const data = await res.json()
-          if (!res.ok) {
-            toast.error(data.error || t('sync.error'))
-            return false
-          }
-          return true
-        })()
+      const res = await fetch('/api/sync/compare', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || t('sync.error'))
+        return
+      }
+      setComparePayload({
+        conflict: Boolean(data.conflict),
+        diff: data.diff,
+        journal: data.journal,
+      })
+      setCompareKey(k => k + 1)
+      syncPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      if (!data.diff?.has_differences) {
+        toast.success(t('sync.alreadySynced'))
+      } else {
+        toast.success(t('sync.compareReady', { count: data.diff.items?.length ?? 0 }))
+      }
+      const statusRes = await fetch('/api/sync/status')
+      setSyncStatus(await statusRes.json())
+      await syncContext?.refresh()
+    } catch {
+      toast.error(t('sync.error'))
+    } finally {
+      setSyncing(false)
+    }
+  }
 
-      if (ok) toast.success(t('sync.success'))
+  const handleGlobalSync = async (strategy: 'keep_local' | 'keep_cloud') => {
+    const confirmed = window.confirm(
+      strategy === 'keep_cloud'
+        ? tSync('confirmKeepCloudDestructive')
+        : tSync('confirmKeepLocalDestructive'),
+    )
+    if (!confirmed) return
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/sync/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ strategy, allow_destructive: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || t('sync.error'))
+        return
+      }
+      toast.success(t('sync.success'))
+      setComparePayload(null)
+      setCompareKey(k => k + 1)
       const statusRes = await fetch('/api/sync/status')
       setSyncStatus(await statusRes.json())
       await syncContext?.refresh()
@@ -205,14 +231,14 @@ export default function DonneesPage() {
                       </summary>
                       <div className="flex flex-col gap-2 mt-2">
                         <button
-                          onClick={() => handleSyncNow('keep_local')}
+                          onClick={() => handleGlobalSync('keep_local')}
                           disabled={syncing}
                           className="btn-secondary text-sm"
                         >
                           {tSync('resolveKeepLocal')}
                         </button>
                         <button
-                          onClick={() => handleSyncNow('keep_cloud')}
+                          onClick={() => handleGlobalSync('keep_cloud')}
                           disabled={syncing}
                           className="btn-secondary text-sm"
                         >
@@ -223,11 +249,16 @@ export default function DonneesPage() {
                   </div>
                 )}
               </div>
-              <SyncConflictPanel onResolved={async () => {
+              <div ref={syncPanelRef}>
+              <SyncConflictPanel
+                compareKey={compareKey}
+                comparePayload={comparePayload}
+                onResolved={async () => {
                 const statusRes = await fetch('/api/sync/status')
                 setSyncStatus(await statusRes.json())
                 await syncContext?.refresh()
               }} />
+              </div>
             </div>
           </section>
         )}
