@@ -7,7 +7,7 @@ import type { Locale } from '@/i18n/config'
 import { localeLabels, locales } from '@/i18n/config'
 
 type LanguageSwitcherProps = {
-  variant?: 'sidebar' | 'auth'
+  variant?: 'sidebar' | 'auth' | 'marketing'
 }
 
 export default function LanguageSwitcher({ variant = 'sidebar' }: LanguageSwitcherProps) {
@@ -46,6 +46,24 @@ export default function LanguageSwitcher({ variant = 'sidebar' }: LanguageSwitch
                 ? 'bg-emerald-600 text-white'
                 : 'text-gray-500 hover:text-gray-800'
             }`}
+          >
+            {code.toUpperCase()}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  if (variant === 'marketing') {
+    return (
+      <div className="mk-lang-switch" role="group" aria-label={t('label')}>
+        {locales.map(code => (
+          <button
+            key={code}
+            type="button"
+            disabled={pending}
+            onClick={() => setLocale(code)}
+            className={`mk-lang-switch-btn ${locale === code ? 'mk-lang-switch-btn-active' : ''}`}
           >
             {code.toUpperCase()}
           </button>

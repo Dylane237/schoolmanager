@@ -8,27 +8,18 @@ export async function MarketingFinalCta() {
   const downloadUrl = getDesktopDownloadUrl()
 
   return (
-    <section className="mk-section mk-cta-band">
-      <div className="mk-cta-band-bg absolute inset-0" aria-hidden />
-      <div className="marketing-glow absolute inset-0" aria-hidden />
-
-      <div className="mk-container-narrow relative text-center">
-        <h2 className="mk-h2">{t('title')}</h2>
-        <p className="mk-subtitle" style={{ color: 'var(--mk-fg-secondary)' }}>
+    <section className="mk-section border-t" style={{ borderColor: 'var(--mk-border)' }}>
+      <div className="mk-container-narrow">
+        <h2 className="mk-h2 text-center">{t('title')}</h2>
+        <p className="mt-3 text-center text-base" style={{ color: 'var(--mk-muted)' }}>
           {t('subtitle')}
         </p>
-        <div className="mt-6 flex flex-col justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
-          <Link
-            href="/register"
-            className="mk-btn-primary mk-btn-inverse w-full sm:w-auto"
-          >
+        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row sm:items-center">
+          <Link href="/register" className="mk-btn-primary w-full sm:w-auto">
             {t('register')}
             <ArrowRight className="h-4 w-4" />
           </Link>
-          <a
-            href={downloadUrl}
-            className="mk-btn-secondary mk-btn-outline w-full sm:w-auto"
-          >
+          <a href={downloadUrl} className="mk-btn-secondary w-full sm:w-auto">
             <Download className="h-4 w-4" />
             {t('download')}
           </a>

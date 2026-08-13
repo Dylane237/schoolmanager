@@ -27,17 +27,17 @@ export function MarketingHeader() {
 
   return (
     <header className="mk-header">
-      <div className="mk-container flex h-14 items-center justify-between gap-3 sm:h-16">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500 shadow-md shadow-emerald-500/20 sm:h-9 sm:w-9">
-            <GraduationCap className="h-4 w-4 text-white sm:h-5 sm:w-5" strokeWidth={2} />
-          </div>
-          <span className="text-sm font-bold sm:text-base" style={{ color: 'var(--mk-fg)' }}>
-            School<span className="text-emerald-500">Manager</span>
+      <div className="mk-container mk-header-inner">
+        <Link href="/" className="mk-brand shrink-0">
+          <span className="mk-brand-mark" aria-hidden>
+            <GraduationCap className="h-[18px] w-[18px] text-white" strokeWidth={2} />
+          </span>
+          <span className="mk-brand-name">
+            School<span className="text-emerald-600">Manager</span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-0.5 md:flex">
+        <nav className="mk-nav hidden lg:flex" aria-label={t('nav.ariaMain')}>
           {NAV.map(item => (
             <Link
               key={item.href}
@@ -49,18 +49,19 @@ export function MarketingHeader() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="mk-header-actions hidden lg:flex">
           <MarketingThemeToggle />
-          <LanguageSwitcher variant="auth" />
-          <Link href="/login" className="mk-btn-ghost">
+          <LanguageSwitcher variant="marketing" />
+          <span className="mk-header-divider" aria-hidden />
+          <Link href="/login" className="mk-nav-link mk-nav-link-login">
             {t('nav.login')}
           </Link>
-          <Link href="/register" className="mk-btn-primary px-4 py-2 text-sm">
+          <Link href="/register" className="mk-btn-header-cta">
             {t('nav.register')}
           </Link>
         </div>
 
-        <div className="flex items-center gap-1 md:hidden">
+        <div className="ml-auto flex items-center gap-1 lg:hidden">
           <MarketingThemeToggle />
           <button
             type="button"
@@ -75,31 +76,41 @@ export function MarketingHeader() {
       </div>
 
       {open && (
-        <div className="border-t px-4 py-4 md:hidden" style={{ borderColor: 'var(--mk-border)' }}>
-          <nav className="flex flex-col gap-0.5">
-            {NAV.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="mk-nav-link px-3 py-2.5"
-              >
-                {t(`nav.${item.key}`)}
-              </Link>
-            ))}
+        <div className="border-t lg:hidden" style={{ borderColor: 'var(--mk-border)' }}>
+          <div className="mk-container py-4">
+            <nav className="flex flex-col gap-1" aria-label={t('nav.ariaMain')}>
+              {NAV.map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="mk-mobile-nav-link"
+                >
+                  {t(`nav.${item.key}`)}
+                </Link>
+              ))}
+            </nav>
             <div
-              className="mt-3 flex flex-col gap-2 border-t pt-3"
+              className="mt-4 flex flex-col gap-3 border-t pt-4"
               style={{ borderColor: 'var(--mk-border)' }}
             >
-              <LanguageSwitcher variant="auth" />
-              <Link href="/login" className="mk-btn-secondary w-full text-center text-sm">
+              <LanguageSwitcher variant="marketing" />
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="mk-btn-secondary w-full text-center text-sm"
+              >
                 {t('nav.login')}
               </Link>
-              <Link href="/register" className="mk-btn-primary w-full text-center text-sm">
+              <Link
+                href="/register"
+                onClick={() => setOpen(false)}
+                className="mk-btn-primary w-full text-center text-sm"
+              >
                 {t('nav.register')}
               </Link>
             </div>
-          </nav>
+          </div>
         </div>
       )}
     </header>

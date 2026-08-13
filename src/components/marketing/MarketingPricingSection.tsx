@@ -1,57 +1,79 @@
-import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
-import { Check } from 'lucide-react'
-import { LICENCE_PLANS, PLAN_PRICES } from '@/lib/licence-constants'
+'use client'
 
-export async function MarketingPricingSection() {
-  const t = await getTranslations('marketing.pricing')
+import { useState } from 'react'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { Check } from 'lucide-react'
+import { LICENCE_PLANS, PLAN_PRICES, type LicencePlan } from '@/lib/licence-constants'
+
+export function MarketingPricingSection() {
+  const t = useTranslations('marketing.pricing')
+  const [focused, setFocused] = useState<LicencePlan>('standard')
 
   return (
-    <section id="pricing" className="mk-section scroll-mt-20 border-t sm:scroll-mt-24" style={{ borderColor: 'var(--mk-border)' }}>
+    <section id="pricing" className="mk-section scroll-mt-[4.5rem] lg:scroll-mt-20">
       <div className="mk-container">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="mk-h2">{t('title')}</h2>
+          <p className="mk-eyebrow">{t('eyebrow')}</p>
+          <h2 className="mk-h2 mt-2">{t('title')}</h2>
           <p className="mk-subtitle">{t('subtitle')}</p>
+          <p className="mk-pricing-note">{t('annualNote')}</p>
         </div>
 
-        <div className="mt-8 grid gap-5 sm:mt-12 lg:mt-14 lg:grid-cols-3 lg:gap-6">
+        <div className="mt-8 grid gap-5 sm:mt-10 lg:mt-12 lg:grid-cols-3 lg:gap-6">
           {LICENCE_PLANS.map(plan => {
-            const price = PLAN_PRICES[plan].toLocaleString('fr-FR')
+            const price = PLAN_PRICES[plan]
+            const priceFmt = price.toLocaleString('fr-FR')
+            const monthlyFmt = Math.round(price / 12).toLocaleString('fr-FR')
             const features = t.raw(`plans.${plan}.features`) as string[]
             const isStandard = plan === 'standard'
+            const isFocused = focused === plan
 
             return (
               <article
                 key={plan}
-                className={`mk-card relative flex flex-col p-6 sm:p-8 ${isStandard ? 'mk-pricing-featured pt-8 sm:pt-10' : ''}`}
+                className={`mk-pricing-card ${isStandard ? 'mk-pricing-card-featured' : ''} ${isFocused ? 'mk-pricing-card-focused' : ''}`}
+                onMouseEnter={() => setFocused(plan)}
+                onFocus={() => setFocused(plan)}
+                tabIndex={0}
               >
                 {isStandard && (
                   <span className="mk-pricing-badge">{t('plans.standard.badge')}</span>
                 )}
-                <h3 className="text-lg font-bold sm:text-xl" style={{ color: 'var(--mk-fg)' }}>
+
+                <p className="mk-pricing-tagline">{t(`plans.${plan}.tagline`)}</p>
+                <h3 className="mt-1 text-xl font-bold" style={{ color: 'var(--mk-fg)' }}>
                   {t(`plans.${plan}.name`)}
                 </h3>
                 <p className="mk-text-muted mt-1 text-sm">{t(`plans.${plan}.students`)}</p>
-                <p className="mt-5 sm:mt-6">
-                  <span className="text-3xl font-bold sm:text-4xl" style={{ color: 'var(--mk-fg)' }}>
-                    {price}
-                  </span>
-                  <span className="mk-text-faint text-sm sm:text-base">
-                    {' '}{t('currency')}{t('perYear')}
-                  </span>
-                </p>
-                <ul className="mt-6 flex-1 space-y-2.5 sm:mt-8 sm:space-y-3">
+
+                <div className="mt-5">
+                  <p className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--mk-fg)' }}>
+                      {priceFmt}
+                    </span>
+                    <span className="mk-text-faint text-sm">
+                      {t('currency')}{t('perYear')}
+                    </span>
+                  </p>
+                  <p className="mk-text-faint mt-1 text-xs">
+                    {t('monthlyHint', { amount: monthlyFmt })}
+                  </p>
+                </div>
+
+                <ul className="mt-6 flex-1 space-y-2.5">
                   {features.map(f => (
-                    <li key={f} className="flex gap-2 text-sm" style={{ color: 'var(--mk-fg-secondary)' }}>
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                    <li key={f} className="flex gap-2.5 text-sm leading-snug" style={{ color: 'var(--mk-fg-secondary)' }}>
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" strokeWidth={2.5} />
                       {f}
                     </li>
                   ))}
                 </ul>
+
                 <Link
                   href="/register"
-                  className={`mt-6 block rounded-xl py-3 text-center text-sm font-semibold transition sm:mt-8 ${
-                    isStandard ? 'mk-btn-primary w-full' : 'mk-btn-secondary w-full'
+                  className={`mt-6 block rounded-lg py-3 text-center text-sm font-semibold transition sm:mt-8 ${
+                    isStandard || isFocused ? 'mk-btn-primary w-full' : 'mk-btn-secondary w-full'
                   }`}
                 >
                   {t('cta')}

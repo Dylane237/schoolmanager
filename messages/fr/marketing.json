@@ -1,223 +1,185 @@
 {
   "brand": {
     "name": "SchoolManager",
-    "tagline": "Gestion scolaire · Cameroun"
+    "tagline": "Gestion scolaire pour établissements camerounais"
   },
   "nav": {
-    "features": "Fonctionnalités",
+    "ariaMain": "Navigation principale",
+    "features": "Au quotidien",
     "pricing": "Tarifs",
-    "download": "Télécharger",
+    "download": "Version secrétariat",
     "contact": "Contact",
-    "login": "Se connecter",
-    "register": "Essai gratuit",
+    "login": "Connexion",
+    "register": "Ouvrir mon école",
     "openMenu": "Ouvrir le menu",
     "closeMenu": "Fermer le menu"
   },
   "hero": {
-    "badge": "Offline · Web · Bureau",
-    "pills": {
-      "desktop": "Bureau offline",
-      "web": "Web instantané",
-      "mobile": "Mobile partout"
-    },
-    "title1": "Gérez votre école.",
-    "title2": "Partout. Même sans internet.",
-    "title3": "Pensé pour vos tranches.",
-    "subtitle": "Inscriptions, paiements par tranches, bulletins et reçus — sur le navigateur, sur votre téléphone, ou sur le PC du secrétariat avec synchronisation automatique.",
-    "ctaRegister": "Créer mon école",
-    "ctaDownload": "Télécharger pour Windows",
-    "ctaLogin": "J'ai déjà un compte",
-    "trust": "Sections francophone, anglophone et maternelle · Données hébergées chez vous",
-    "liveDemo": "Aperçu en direct",
-    "screenshotAlt": "Interface SchoolManager — suivi des paiements et tranches de scolarité"
-  },
-  "features": {
-    "title": "Tout ce qu'une école camerounaise attend",
-    "subtitle": "Du secrétariat à la direction — un seul outil, une seule base de données.",
-    "items": {
-      "students": {
-        "title": "Élèves & classes",
-        "desc": "Matricules, photos, parents, niveaux Cameroun, transferts entre classes."
-      },
-      "payments": {
-        "title": "Paiements & tranches",
-        "desc": "Encaissements, reçus imprimables, impayés, situation par élève et par classe."
-      },
-      "grades": {
-        "title": "Notes & bulletins",
-        "desc": "Saisie par matière, moyennes, mentions, impression bulletin officiel."
-      },
-      "attendance": {
-        "title": "Présences",
-        "desc": "Appel quotidien par classe — présent, absent, retard, excusé."
-      },
-      "staff": {
-        "title": "Personnel",
-        "desc": "Enseignants et staff administratif, affectation aux classes."
-      },
-      "offline": {
-        "title": "100 % offline au bureau",
-        "desc": "Le logiciel Windows continue sans connexion. Sync automatique quand internet revient."
-      },
-      "analytics": {
-        "title": "Tableaux de bord",
-        "desc": "Encaissements, impayés par classe, tendances — la direction voit tout en un coup d'œil."
-      },
-      "secure": {
-        "title": "Sécurité & rôles",
-        "desc": "Accès par profil (direction, secrétariat, enseignant) — chacun voit ce qu'il doit voir."
-      },
-      "mobile": {
-        "title": "Web & mobile",
-        "desc": "Même compte, même école — consultez les données depuis n'importe où après synchronisation."
-      }
-    }
-  },
-  "dualChannel": {
-    "eyebrow": "Sync intelligente",
-    "title": "Même outil, nouvel écran.",
-    "subtitle": "Encaissements au PC sans internet. Consultation web ou mobile après synchronisation.",
-    "steps": {
-      "1": "Installez l'app Windows au secrétariat — elle fonctionne sans internet.",
-      "2": "Travaillez normalement : élèves, paiements, bulletins, présences.",
-      "3": "À la reconnexion, vos données se synchronisent pour le web et le mobile."
-    },
-    "cards": {
-      "desktop": {
-        "title": "PC secrétariat",
-        "hint": "App Windows · offline"
-      },
-      "mobile": {
-        "title": "Téléphone & web",
-        "hint": "Même compte · même école"
-      }
-    }
+    "kicker": "Pour les écoles primaires et secondaires du Cameroun",
+    "title": "Inscriptions, tranches, bulletins et reçus — enfin réunis",
+    "subtitle": "Le secrétariat enregistre les paiements et suit les élèves. La direction consulte les chiffres. Les enseignants saisissent les notes. Un seul outil pour toute l'école.",
+    "ctaRegister": "Ouvrir mon école",
+    "ctaDownload": "Installer au secrétariat",
+    "editorNote": "Francophone, anglophone et maternelle · Données conservées dans l'établissement"
   },
   "showcase": {
-    "payments": {
-      "label": "Paiements",
-      "title": "Encaissements et tranches sans prise de tête",
-      "desc": "Enregistrez un paiement en quelques secondes, imprimez le reçu, suivez les impayés par élève ou par classe.",
-      "imageAlt": "Capture d'écran SchoolManager — page Paiements avec filtres et situation par élève",
-      "stats": [
-        { "value": "2 min", "label": "Par encaissement" },
-        { "value": "100 %", "label": "Reçus imprimables" }
-      ]
+    "ariaTabs": "Aperçu du logiciel",
+    "tabs": {
+      "classes": "Classes & effectifs",
+      "payments": "Paiements",
+      "students": "Élèves"
     },
-    "students": {
-      "label": "Inscriptions",
-      "title": "Inscrivez et gérez vos élèves facilement",
-      "desc": "Recherche par nom ou matricule, filtres par classe et statut de paiement — tout est centralisé pour le secrétariat.",
-      "imageAlt": "Capture d'écran SchoolManager — liste des élèves et inscription",
-      "stats": [
-        { "value": "CSV", "label": "Import en masse" },
-        { "value": "1 clic", "label": "Nouvel élève" }
-      ]
-    },
-    "dashboard": {
-      "label": "Direction",
-      "title": "Vue d'ensemble pour la direction",
-      "desc": "Encaissements du mois, classes les plus en retard, effectifs — tout centralisé sur un tableau de bord clair.",
-      "stats": [
-        { "value": "24/7", "label": "Accès web & mobile" },
-        { "value": "1 base", "label": "Une seule source de vérité" }
-      ]
+    "captions": {
+      "classes": "Organisation des classes — maternelle, francophone, places et titulaires",
+      "payments": "Suivi des tranches et encaissements par classe",
+      "students": "Registre des élèves — recherche, classes et dossiers"
     }
   },
-  "howItWorks": {
-    "title": "Comment ça marche",
-    "subtitle": "De la création de compte à la gestion quotidienne — en quatre étapes simples.",
+  "productStory": {
+    "eyebrow": "Organisation",
+    "title": "Le secrétariat au bureau, la direction informée partout",
+    "intro": "Installez le logiciel sur le PC du secrétariat. Il fonctionne même quand internet est coupé. Quand la connexion revient, les informations sont mises à jour pour toute l'équipe.",
     "steps": {
       "1": {
-        "title": "Créez votre école",
-        "desc": "Inscription en 3 minutes — nom, sections, utilisateurs de base."
+        "title": "Installez au secrétariat",
+        "desc": "Une fois installé, connectez-vous avec le compte de l'école. C'est prêt en quelques minutes."
       },
       "2": {
-        "title": "Importez vos élèves",
-        "desc": "Saisie manuelle ou import CSV de vos listes existantes."
+        "title": "Gérez l'école au quotidien",
+        "desc": "Inscriptions, paiements, présences, notes — comme dans un registre, mais plus rapide et sans erreur de recopie."
       },
       "3": {
-        "title": "Installez le bureau",
-        "desc": "Téléchargez l'app Windows pour le secrétariat — offline et rapide."
-      },
-      "4": {
-        "title": "Gérez au quotidien",
-        "desc": "Paiements, notes, présences — sync automatique quand internet revient."
+        "title": "La direction reste informée",
+        "desc": "Quand internet revient, les chiffres sont disponibles pour le directeur ou la directrice, où qu'ils se trouvent."
       }
-    }
+    },
+    "footnote": "Une seule saisie : pas de doubles registres entre le bureau et la direction."
   },
-  "testimonials": {
-    "title": "Conçu pour le terrain",
-    "subtitle": "Fonctionnalités pensées pour le fonctionnement réel des écoles au Cameroun.",
-    "items": {
-      "1": {
-        "title": "Tranches camerounaises",
-        "desc": "Montants par classe, reçus numérotés, soldes restants — le modèle local, pas un ERP générique."
+  "features": {
+    "title": "Tout ce que votre établissement gère au quotidien",
+    "subtitle": "Chaque module correspond à une tâche réelle du secrétariat, de la direction ou des enseignants.",
+    "groups": {
+      "overview": {
+        "label": "Direction",
+        "items": {
+          "dashboard": {
+            "title": "Tableau de bord",
+            "desc": "Encaissements du mois, impayés par classe, effectifs — la direction voit l'essentiel d'un coup d'œil."
+          }
+        }
       },
-      "2": {
-        "title": "Offline au secrétariat",
-        "desc": "L'app Windows tourne sans internet. La sync reprend quand le réseau revient."
+      "schooling": {
+        "label": "Scolarité",
+        "items": {
+          "students": {
+            "title": "Élèves & inscriptions",
+            "desc": "Matricule, photo, parents, recherche par nom — dossier complet par élève."
+          },
+          "classes": {
+            "title": "Classes & effectifs",
+            "desc": "Niveaux camerounais, francophone, anglophone — listes par classe prêtes à imprimer."
+          },
+          "attendance": {
+            "title": "Présences",
+            "desc": "Appel quotidien : présent, absent, retard ou excusé, classe par classe."
+          },
+          "nursery": {
+            "title": "Maternelle",
+            "desc": "Suivi adapté aux plus jeunes, intégré au reste de l'établissement."
+          },
+          "transfers": {
+            "title": "Transferts de classe",
+            "desc": "Passage en classe supérieure ou changement de section en quelques clics."
+          }
+        }
       },
-      "3": {
-        "title": "Trois sections",
-        "desc": "Francophone, anglophone et maternelle dans un seul outil."
+      "finance": {
+        "label": "Finances",
+        "items": {
+          "installments": {
+            "title": "Tranches de scolarité",
+            "desc": "Montants par classe et par échéance — le modèle des écoles camerounaises."
+          },
+          "collections": {
+            "title": "Encaissements & reçus",
+            "desc": "Enregistrez un paiement, imprimez le reçu numéroté pour remettre aux parents."
+          },
+          "unpaid": {
+            "title": "Suivi des impayés",
+            "desc": "Soldes restants par élève ou par classe — pour relancer au bon moment."
+          }
+        }
       },
-      "4": {
-        "title": "Données chez vous",
-        "desc": "SQLite local + sauvegardes quotidiennes. Le cloud sert à la sync, pas à vous enfermer."
+      "pedagogy": {
+        "label": "Pédagogie",
+        "items": {
+          "grades": {
+            "title": "Saisie des notes",
+            "desc": "Notes par matière et par période — les enseignants saisissent directement."
+          },
+          "bulletins": {
+            "title": "Bulletins scolaires",
+            "desc": "Moyennes, mentions et impression du bulletin officiel par élève."
+          }
+        }
+      },
+      "admin": {
+        "label": "Administration",
+        "items": {
+          "staff": {
+            "title": "Personnel enseignant",
+            "desc": "Liste des enseignants et du personnel, affectation aux classes."
+          },
+          "announcements": {
+            "title": "Annonces",
+            "desc": "Informations de l'établissement visibles par l'équipe connectée."
+          },
+          "backup": {
+            "title": "Sauvegarde & export",
+            "desc": "Copies de sécurité et export des données — vos registres restent chez vous."
+          },
+          "access": {
+            "title": "Accès par profil",
+            "desc": "Direction, secrétariat, enseignant : chacun voit ce qui le concerne."
+          }
+        }
+      },
+      "secretariat": {
+        "label": "Secrétariat",
+        "items": {
+          "noInternet": {
+            "title": "Travail sans internet",
+            "desc": "Au bureau, le logiciel continue même quand la connexion est coupée."
+          },
+          "leadership": {
+            "title": "Consultation à distance",
+            "desc": "Quand internet revient, la direction consulte les mêmes chiffres que le secrétariat."
+          }
+        }
       }
     }
   },
   "sync": {
-    "title": "Bureau, navigateur, téléphone — les mêmes données",
-    "subtitle": "Une base par école. Sync manuelle ou automatique selon vos choix dans Données.",
+    "title": "Secrétariat et direction — les mêmes chiffres",
+    "subtitle": "Une saisie au bureau, consultation pour la direction dès que internet revient.",
     "desktop": "PC secrétariat",
-    "desktopHint": "App Windows · offline",
-    "cloud": "Synchronisation",
+    "desktopHint": "Logiciel installé · sans internet",
+    "cloud": "Mise à jour",
     "cloudHint": "Automatique · sécurisée",
-    "mobile": "Téléphone & web",
-    "mobileHint": "Même compte · même école"
+    "mobile": "Consultation",
+    "mobileHint": "Même école · même compte"
   },
   "ctaBand": {
-    "title": "Prêt à moderniser votre établissement ?",
-    "subtitle": "Créez votre école en 3 minutes ou installez la version bureau pour le secrétariat.",
-    "register": "Commencer gratuitement",
-    "download": "Installer sur Windows"
+    "title": "Prêt à simplifier la gestion de votre établissement ?",
+    "subtitle": "Créez votre école en quelques minutes ou installez le logiciel au secrétariat.",
+    "register": "Ouvrir mon école",
+    "download": "Installer au secrétariat"
   },
   "pricingTeaser": {
     "title": "Des formules adaptées à votre effectif",
     "from": "À partir de",
     "currency": "FCFA / an",
     "seeAll": "Voir tous les tarifs"
-  },
-  "faq": {
-    "title": "Questions fréquentes",
-    "items": {
-      "offline": {
-        "q": "Fonctionne-t-il sans internet ?",
-        "a": "Oui. La version Windows installée au bureau fonctionne entièrement offline. Le navigateur et le téléphone nécessitent une connexion."
-      },
-      "data": {
-        "q": "Où sont stockées mes données ?",
-        "a": "Sur le PC de l'école (Documents/SchoolManager) et, si vous activez la sync cloud, une copie sécurisée pour l'accès web et mobile."
-      },
-      "install": {
-        "q": "Dois-je être présent pour l'installation ?",
-        "a": "Non. Téléchargez l'installateur, lancez-le, connectez-vous avec le même compte que sur le web. Notre support peut vous guider à distance."
-      },
-      "migrate": {
-        "q": "Puis-je migrer depuis un autre logiciel ?",
-        "a": "Oui — import CSV des élèves et accompagnement sur demande pour récupérer vos listes et soldes."
-      },
-      "sections": {
-        "q": "Gère-t-il francophone, anglophone et maternelle ?",
-        "a": "Oui — niveaux Cameroun, sections multiples et classes maternelles sont pris en charge nativement."
-      },
-      "support": {
-        "q": "Quel support proposez-vous ?",
-        "a": "Support WhatsApp du lundi au samedi, aide à l'installation à distance et accompagnement migration sur les formules Standard et Premium."
-      }
-    }
   },
   "download": {
     "title": "Télécharger SchoolManager",
@@ -257,30 +219,56 @@
     }
   },
   "pricing": {
-    "title": "Tarifs",
-    "subtitle": "Licence annuelle par établissement — sans frais cachés.",
-    "perYear": "/ an",
-    "currency": "FCFA",
-    "cta": "Commencer",
-    "contact": "Besoin d'un devis sur mesure ?",
-    "contactCta": "Nous contacter",
-    "seeDetails": "Voir le détail des tarifs",
+    "eyebrow": "Tarification",
+    "title": "Une formule par taille d'établissement",
+    "subtitle": "Licence annuelle tout compris — logiciel secrétariat, mises à jour et support.",
+    "annualNote": "Facturation annuelle · Sans frais cachés · Paiement unique par établissement",
+    "monthlyHint": "soit {amount} FCFA / mois en moyenne",
+    "perYear": " / an",
+    "currency": " FCFA",
+    "cta": "Choisir cette formule",
+    "contact": "Effectif hors barème ou plusieurs sites ?",
+    "contactCta": "Demander un devis",
+    "seeDetails": "Comparer en détail",
     "plans": {
       "starter": {
         "name": "Starter",
+        "tagline": "Petites écoles",
         "students": "Jusqu'à 150 élèves",
-        "features": ["Élèves & classes", "Paiements & reçus", "Notes & bulletins", "Support WhatsApp"]
+        "features": [
+          "Inscriptions et dossiers élèves",
+          "Classes et niveaux camerounais",
+          "Tranches, encaissements et reçus",
+          "Notes et bulletins scolaires",
+          "Logiciel secrétariat inclus",
+          "Support WhatsApp"
+        ]
       },
       "standard": {
         "name": "Standard",
-        "badge": "Populaire",
+        "badge": "Le plus choisi",
+        "tagline": "Écoles primaires & collèges",
         "students": "Jusqu'à 400 élèves",
-        "features": ["Tout Starter", "Présences & annonces", "Multi-utilisateurs", "Priorité support"]
+        "features": [
+          "Tout Starter",
+          "Présences et maternelle",
+          "Personnel et annonces",
+          "Plusieurs utilisateurs (direction, secrétariat, enseignants)",
+          "Tableau de bord direction",
+          "Support prioritaire"
+        ]
       },
       "premium": {
         "name": "Premium",
+        "tagline": "Grands établissements",
         "students": "Effectif illimité",
-        "features": ["Tout Standard", "Sync cloud & mobile", "Migration assistée", "Support dédié"]
+        "features": [
+          "Tout Standard",
+          "Consultation à distance pour la direction",
+          "Migration de vos anciens registres",
+          "Installation guidée à distance",
+          "Support dédié"
+        ]
       }
     }
   },

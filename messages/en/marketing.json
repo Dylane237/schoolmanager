@@ -1,223 +1,185 @@
 {
   "brand": {
     "name": "SchoolManager",
-    "tagline": "School management · Cameroon"
+    "tagline": "School management for Cameroonian schools"
   },
   "nav": {
-    "features": "Features",
+    "ariaMain": "Main navigation",
+    "features": "Day to day",
     "pricing": "Pricing",
-    "download": "Download",
+    "download": "Office version",
     "contact": "Contact",
     "login": "Sign in",
-    "register": "Free trial",
+    "register": "Open my school",
     "openMenu": "Open menu",
     "closeMenu": "Close menu"
   },
   "hero": {
-    "badge": "Offline · Web · Desktop",
-    "pills": {
-      "desktop": "Offline desktop",
-      "web": "Instant web",
-      "mobile": "Mobile anywhere"
-    },
-    "title1": "Run your school.",
-    "title2": "Everywhere. Even offline.",
-    "title3": "Built for your fee terms.",
-    "subtitle": "Enrollment, installment payments, report cards and receipts — in the browser, on your phone, or on the office PC with automatic sync.",
-    "ctaRegister": "Create my school",
-    "ctaDownload": "Download for Windows",
-    "ctaLogin": "I already have an account",
-    "trust": "Francophone, anglophone & nursery sections · Your data stays with you",
-    "liveDemo": "Live preview",
-    "screenshotAlt": "SchoolManager interface — payment and installment tracking"
-  },
-  "features": {
-    "title": "Everything a Cameroonian school expects",
-    "subtitle": "From the office to the headteacher — one tool, one database.",
-    "items": {
-      "students": {
-        "title": "Students & classes",
-        "desc": "IDs, photos, parents, Cameroon levels, class transfers."
-      },
-      "payments": {
-        "title": "Payments & installments",
-        "desc": "Collections, printable receipts, unpaid balances, per-student status."
-      },
-      "grades": {
-        "title": "Grades & report cards",
-        "desc": "Subject entry, averages, honors, official report card printing."
-      },
-      "attendance": {
-        "title": "Attendance",
-        "desc": "Daily roll call — present, absent, late, excused."
-      },
-      "staff": {
-        "title": "Staff",
-        "desc": "Teachers and admin staff, class assignments."
-      },
-      "offline": {
-        "title": "100% offline at the office",
-        "desc": "The Windows app keeps working without internet. Auto-sync when back online."
-      },
-      "analytics": {
-        "title": "Dashboards",
-        "desc": "Collections, unpaid by class, trends — leadership sees everything at a glance."
-      },
-      "secure": {
-        "title": "Security & roles",
-        "desc": "Role-based access (leadership, office, teachers) — everyone sees what they need."
-      },
-      "mobile": {
-        "title": "Web & mobile",
-        "desc": "Same account, same school — check data from anywhere after sync."
-      }
-    }
-  },
-  "dualChannel": {
-    "eyebrow": "Smart sync",
-    "title": "Same tool, new screen.",
-    "subtitle": "Fees on PC without internet. Web or mobile access after sync.",
-    "steps": {
-      "1": "Install the Windows app at the office — it works without internet.",
-      "2": "Work as usual: students, payments, report cards, attendance.",
-      "3": "When back online, your data syncs for web and mobile."
-    },
-    "cards": {
-      "desktop": {
-        "title": "Office PC",
-        "hint": "Windows app · offline"
-      },
-      "mobile": {
-        "title": "Phone & web",
-        "hint": "Same account · same school"
-      }
-    }
+    "kicker": "For primary and secondary schools in Cameroon",
+    "title": "Enrollment, installments, report cards and receipts — finally together",
+    "subtitle": "The office records payments and tracks students. Leadership reviews the figures. Teachers enter grades. One tool for the whole school.",
+    "ctaRegister": "Open my school",
+    "ctaDownload": "Install at the office",
+    "editorNote": "Francophone, anglophone & nursery · Data kept at your school"
   },
   "showcase": {
-    "payments": {
-      "label": "Payments",
-      "title": "Collections and installments made simple",
-      "desc": "Record a payment in seconds, print the receipt, track unpaid balances by student or class.",
-      "imageAlt": "SchoolManager screenshot — Payments page with filters and per-student status",
-      "stats": [
-        { "value": "2 min", "label": "Per collection" },
-        { "value": "100%", "label": "Printable receipts" }
-      ]
+    "ariaTabs": "Software preview",
+    "tabs": {
+      "classes": "Classes & enrollment",
+      "payments": "Payments",
+      "students": "Students"
     },
-    "students": {
-      "label": "Enrollment",
-      "title": "Enroll and manage students with ease",
-      "desc": "Search by name or ID, filter by class and payment status — everything centralized for the office.",
-      "imageAlt": "SchoolManager screenshot — student list and enrollment",
-      "stats": [
-        { "value": "CSV", "label": "Bulk import" },
-        { "value": "1 click", "label": "New student" }
-      ]
-    },
-    "dashboard": {
-      "label": "Leadership",
-      "title": "Overview for school leadership",
-      "desc": "Monthly collections, classes with the most arrears, enrollment — all centralized on one clear dashboard.",
-      "stats": [
-        { "value": "24/7", "label": "Web & mobile access" },
-        { "value": "1 DB", "label": "Single source of truth" }
-      ]
+    "captions": {
+      "classes": "Class organization — nursery, francophone, capacity and head teachers",
+      "payments": "Installment and payment tracking by class",
+      "students": "Student register — search, classes and profiles"
     }
   },
-  "howItWorks": {
-    "title": "How it works",
-    "subtitle": "From account creation to daily management — in four simple steps.",
+  "productStory": {
+    "eyebrow": "How it works",
+    "title": "The office at school, leadership informed from anywhere",
+    "intro": "Install the software on the office PC. It keeps working when internet drops. When the connection returns, information is updated for the whole team.",
     "steps": {
       "1": {
-        "title": "Create your school",
-        "desc": "Sign up in 3 minutes — name, sections, basic users."
+        "title": "Install at the office",
+        "desc": "Once installed, sign in with the school account. Ready in a few minutes."
       },
       "2": {
-        "title": "Import your students",
-        "desc": "Manual entry or CSV import from your existing lists."
+        "title": "Run the school day to day",
+        "desc": "Enrollment, payments, attendance, grades — like a register, but faster and without copying errors."
       },
       "3": {
-        "title": "Install the desktop app",
-        "desc": "Download the Windows app for the office — offline and fast."
-      },
-      "4": {
-        "title": "Manage day to day",
-        "desc": "Payments, grades, attendance — auto-sync when internet returns."
+        "title": "Leadership stays informed",
+        "desc": "When internet returns, the headteacher can review the same figures from anywhere."
       }
-    }
+    },
+    "footnote": "Single entry: no duplicate registers between the office and leadership."
   },
-  "testimonials": {
-    "title": "Built for the field",
-    "subtitle": "Features shaped for how Cameroonian schools actually operate.",
-    "items": {
-      "1": {
-        "title": "Local fee terms",
-        "desc": "Amounts per class, numbered receipts, remaining balances — not a generic ERP."
+  "features": {
+    "title": "Everything your school manages day to day",
+    "subtitle": "Each module matches a real task for the office, leadership or teachers.",
+    "groups": {
+      "overview": {
+        "label": "Leadership",
+        "items": {
+          "dashboard": {
+            "title": "Dashboard",
+            "desc": "Monthly collections, unpaid by class, enrollment — leadership sees the essentials at a glance."
+          }
+        }
       },
-      "2": {
-        "title": "Offline at the office",
-        "desc": "The Windows app runs without internet. Sync resumes when the network returns."
+      "schooling": {
+        "label": "Schooling",
+        "items": {
+          "students": {
+            "title": "Students & enrollment",
+            "desc": "ID, photo, parents, search by name — full profile per student."
+          },
+          "classes": {
+            "title": "Classes & enrollment",
+            "desc": "Cameroon levels, francophone, anglophone — class lists ready to print."
+          },
+          "attendance": {
+            "title": "Attendance",
+            "desc": "Daily roll call: present, absent, late or excused, class by class."
+          },
+          "nursery": {
+            "title": "Nursery",
+            "desc": "Tracking adapted for the youngest, integrated with the rest of the school."
+          },
+          "transfers": {
+            "title": "Class transfers",
+            "desc": "Move to the next grade or change section in a few clicks."
+          }
+        }
       },
-      "3": {
-        "title": "Three sections",
-        "desc": "Francophone, anglophone and nursery in one tool."
+      "finance": {
+        "label": "Finance",
+        "items": {
+          "installments": {
+            "title": "School fee installments",
+            "desc": "Amounts per class and due date — the Cameroonian school model."
+          },
+          "collections": {
+            "title": "Collections & receipts",
+            "desc": "Record a payment, print the numbered receipt for parents."
+          },
+          "unpaid": {
+            "title": "Unpaid tracking",
+            "desc": "Remaining balances per student or class — to follow up at the right time."
+          }
+        }
       },
-      "4": {
-        "title": "Your data, local first",
-        "desc": "Local SQLite plus daily backups. Cloud is for sync, not lock-in."
+      "pedagogy": {
+        "label": "Pedagogy",
+        "items": {
+          "grades": {
+            "title": "Grade entry",
+            "desc": "Grades by subject and term — teachers enter directly."
+          },
+          "bulletins": {
+            "title": "Report cards",
+            "desc": "Averages, honors and official report card printing per student."
+          }
+        }
+      },
+      "admin": {
+        "label": "Administration",
+        "items": {
+          "staff": {
+            "title": "Teaching staff",
+            "desc": "Teacher and staff list, assignment to classes."
+          },
+          "announcements": {
+            "title": "Announcements",
+            "desc": "School information visible to the connected team."
+          },
+          "backup": {
+            "title": "Backup & export",
+            "desc": "Safety copies and data export — your records stay at your school."
+          },
+          "access": {
+            "title": "Role-based access",
+            "desc": "Leadership, office, teacher: each sees what concerns them."
+          }
+        }
+      },
+      "secretariat": {
+        "label": "Office",
+        "items": {
+          "noInternet": {
+            "title": "Work without internet",
+            "desc": "At the office, the software keeps running when the connection drops."
+          },
+          "leadership": {
+            "title": "Remote review",
+            "desc": "When internet returns, leadership reviews the same figures as the office."
+          }
+        }
       }
     }
   },
   "sync": {
-    "title": "Desktop, browser, phone — same data",
-    "subtitle": "Fees on PC without internet. Web or mobile access after sync.",
+    "title": "Office and leadership — the same figures",
+    "subtitle": "One entry at the office, review for leadership when internet returns.",
     "desktop": "Office PC",
-    "desktopHint": "Windows app · offline",
-    "cloud": "Sync",
+    "desktopHint": "Installed software · no internet needed",
+    "cloud": "Update",
     "cloudHint": "Automatic · secure",
-    "mobile": "Phone & web",
-    "mobileHint": "Same account · same school"
+    "mobile": "Review",
+    "mobileHint": "Same school · same account"
   },
   "ctaBand": {
-    "title": "Ready to modernize your school?",
-    "subtitle": "Create your school in 3 minutes or install the desktop app for the office.",
-    "register": "Get started free",
-    "download": "Install on Windows"
+    "title": "Ready to simplify your school's management?",
+    "subtitle": "Create your school in a few minutes or install the software at the office.",
+    "register": "Open my school",
+    "download": "Install at the office"
   },
   "pricingTeaser": {
     "title": "Plans that fit your enrollment",
     "from": "From",
     "currency": "FCFA / year",
     "seeAll": "See all pricing"
-  },
-  "faq": {
-    "title": "Frequently asked questions",
-    "items": {
-      "offline": {
-        "q": "Does it work without internet?",
-        "a": "Yes. The installed Windows version at the office works fully offline. Browser and phone require a connection."
-      },
-      "data": {
-        "q": "Where is my data stored?",
-        "a": "On the school PC (Documents/SchoolManager) and, when cloud sync is enabled, a secure copy for web and mobile access."
-      },
-      "install": {
-        "q": "Do you need to visit for installation?",
-        "a": "No. Download the installer, run it, sign in with the same account as on the web. Our support can guide you remotely."
-      },
-      "migrate": {
-        "q": "Can I migrate from another system?",
-        "a": "Yes — CSV student import and assisted migration for lists and balances on request."
-      },
-      "sections": {
-        "q": "Does it support francophone, anglophone and nursery?",
-        "a": "Yes — Cameroon levels, multiple sections and nursery classes are supported natively."
-      },
-      "support": {
-        "q": "What support do you offer?",
-        "a": "WhatsApp support Mon–Sat, remote installation help and migration assistance on Standard and Premium plans."
-      }
-    }
   },
   "download": {
     "title": "Download SchoolManager",
@@ -257,30 +219,56 @@
     }
   },
   "pricing": {
-    "title": "Pricing",
-    "subtitle": "Annual license per school — no hidden fees.",
-    "perYear": "/ year",
-    "currency": "FCFA",
-    "cta": "Get started",
-    "contact": "Need a custom quote?",
-    "contactCta": "Contact us",
-    "seeDetails": "See full pricing details",
+    "eyebrow": "Pricing",
+    "title": "A plan for every school size",
+    "subtitle": "All-inclusive annual license — office software, updates and support.",
+    "annualNote": "Billed annually · No hidden fees · One payment per school",
+    "monthlyHint": "about {amount} FCFA / month on average",
+    "perYear": " / year",
+    "currency": " FCFA",
+    "cta": "Choose this plan",
+    "contact": "Enrollment outside these tiers or multiple sites?",
+    "contactCta": "Request a quote",
+    "seeDetails": "Compare in detail",
     "plans": {
       "starter": {
         "name": "Starter",
+        "tagline": "Small schools",
         "students": "Up to 150 students",
-        "features": ["Students & classes", "Payments & receipts", "Grades & report cards", "WhatsApp support"]
+        "features": [
+          "Enrollment and student profiles",
+          "Classes and Cameroon levels",
+          "Installments, collections and receipts",
+          "Grades and report cards",
+          "Office software included",
+          "WhatsApp support"
+        ]
       },
       "standard": {
         "name": "Standard",
-        "badge": "Popular",
+        "badge": "Most popular",
+        "tagline": "Primary schools & colleges",
         "students": "Up to 400 students",
-        "features": ["Everything in Starter", "Attendance & announcements", "Multi-user", "Priority support"]
+        "features": [
+          "Everything in Starter",
+          "Attendance and nursery",
+          "Staff and announcements",
+          "Multiple users (leadership, office, teachers)",
+          "Leadership dashboard",
+          "Priority support"
+        ]
       },
       "premium": {
         "name": "Premium",
+        "tagline": "Large schools",
         "students": "Unlimited enrollment",
-        "features": ["Everything in Standard", "Cloud & mobile sync", "Assisted migration", "Dedicated support"]
+        "features": [
+          "Everything in Standard",
+          "Remote review for leadership",
+          "Migration from your old registers",
+          "Remote guided installation",
+          "Dedicated support"
+        ]
       }
     }
   },

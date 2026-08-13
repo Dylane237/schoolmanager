@@ -1,11 +1,7 @@
 import { MarketingHero } from '@/components/marketing/MarketingHero'
 import { MarketingFeatureGrid } from '@/components/marketing/MarketingFeatureGrid'
-import { MarketingDualChannel } from '@/components/marketing/MarketingDualChannel'
-import { MarketingShowcase } from '@/components/marketing/MarketingShowcase'
-import { MarketingHowItWorks } from '@/components/marketing/MarketingHowItWorks'
-import { MarketingTestimonials } from '@/components/marketing/MarketingTestimonials'
+import { MarketingProductStory } from '@/components/marketing/MarketingProductStory'
 import { MarketingPricingSection } from '@/components/marketing/MarketingPricingSection'
-import { MarketingFaq } from '@/components/marketing/MarketingFaq'
 import { MarketingFinalCta } from '@/components/marketing/MarketingFinalCta'
 
 export default function LandingPage() {
@@ -13,12 +9,8 @@ export default function LandingPage() {
     <>
       <MarketingHero />
       <MarketingFeatureGrid />
-      <MarketingDualChannel />
-      <MarketingShowcase />
-      <MarketingHowItWorks />
-      <MarketingTestimonials />
+      <MarketingProductStory />
       <MarketingPricingSection />
-      <MarketingFaq />
       <MarketingFinalCta />
     </>
   )
