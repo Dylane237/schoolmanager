@@ -12,11 +12,12 @@ export function MarketingScreenshot({ src, alt, priority = false }: MarketingScr
       <Image
         src={src}
         alt={alt}
-        width={1400}
-        height={900}
+        width={2048}
+        height={1148}
         priority={priority}
+        unoptimized
         className="mk-screenshot-img"
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 640px"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 1152px"
       />
     </div>
   )

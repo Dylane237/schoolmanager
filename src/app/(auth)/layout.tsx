@@ -1,3 +1,5 @@
+import './auth.css'
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return children
+  return <div className="auth-shell">{children}</div>
 }

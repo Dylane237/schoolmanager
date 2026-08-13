@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { ChevronDown } from 'lucide-react'
+import { MarketingFadeIn } from '@/components/marketing/MarketingFadeIn'
 
 const GROUPS = [
   { key: 'overview', items: ['dashboard'] },
@@ -17,54 +17,43 @@ type GroupKey = (typeof GROUPS)[number]['key']
 
 export function MarketingFeatureGrid() {
   const t = useTranslations('marketing.features')
-  const [openGroup, setOpenGroup] = useState<GroupKey | null>('schooling')
+  const [active, setActive] = useState<GroupKey>('schooling')
+  const group = GROUPS.find(g => g.key === active)!
 
   return (
-    <section id="features" className="mk-section mk-band scroll-mt-[4.5rem] lg:scroll-mt-20">
+    <section id="features" className="mk-section scroll-mt-[var(--mk-nav-h)]">
       <div className="mk-container">
-        <div className="max-w-2xl">
-          <h2 className="mk-h2">{t('title')}</h2>
-          <p className="mt-3 text-base leading-relaxed" style={{ color: 'var(--mk-muted)' }}>
-            {t('subtitle')}
-          </p>
+        <MarketingFadeIn>
+          <p className="mk-section-eye">{t('sectionEye')}</p>
+          <h2 className="mk-display-title mk-display-title-sm">{t('sectionTitle')}</h2>
+          <p className="mk-section-lead">{t('subtitle')}</p>
+        </MarketingFadeIn>
+
+        <div className="mk-filter-row mt-8 md:mt-10" role="tablist" aria-label={t('filterLabel')}>
+          {GROUPS.map(({ key }) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={active === key}
+              className={`mk-filter-btn ${active === key ? 'is-active' : ''}`}
+              onClick={() => setActive(key)}
+            >
+              {t(`groups.${key}.label`)}
+            </button>
+          ))}
         </div>
 
-        <div className="mt-10 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {GROUPS.map(({ key, items }) => {
-            const isOpen = openGroup === key
-
-            return (
-              <article
-                key={key}
-                className={`mk-feature-group mk-feature-group-interactive ${isOpen ? 'mk-feature-group-open' : ''}`}
-              >
-                <button
-                  type="button"
-                  className="mk-feature-group-header"
-                  aria-expanded={isOpen}
-                  onClick={() => setOpenGroup(prev => (prev === key ? null : key))}
-                >
-                  <h3 className="mk-feature-group-label !mb-0">{t(`groups.${key}.label`)}</h3>
-                  <span className="mk-feature-group-count">{items.length}</span>
-                  <ChevronDown className={`mk-feature-chevron h-4 w-4 lg:hidden ${isOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                <ul className={`mk-feature-list ${isOpen ? 'mk-feature-list-open' : ''}`}>
-                  {items.map(itemKey => (
-                    <li key={itemKey} className="mk-feature-item">
-                      <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--mk-fg)' }}>
-                        {t(`groups.${key}.items.${itemKey}.title`)}
-                      </p>
-                      <p className="mt-0.5 text-sm leading-relaxed" style={{ color: 'var(--mk-muted)' }}>
-                        {t(`groups.${key}.items.${itemKey}.desc`)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            )
-          })}
-        </div>
+        <ul className="mk-service-list mt-6 md:mt-8">
+          {group.items.map(itemKey => (
+            <li key={itemKey} className="mk-service-item">
+              <div>
+                <p className="mk-service-name">{t(`groups.${group.key}.items.${itemKey}.title`)}</p>
+                <p className="mk-service-desc">{t(`groups.${group.key}.items.${itemKey}.desc`)}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   )

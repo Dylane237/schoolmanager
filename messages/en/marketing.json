@@ -5,9 +5,11 @@
   },
   "nav": {
     "ariaMain": "Main navigation",
-    "features": "Day to day",
+    "home": "Home",
+    "features": "Home",
+    "preview": "Preview",
     "pricing": "Pricing",
-    "download": "Office version",
+    "download": "Download",
     "contact": "Contact",
     "login": "Sign in",
     "register": "Open my school",
@@ -17,13 +19,22 @@
   },
   "hero": {
     "kicker": "For primary and secondary schools in Cameroon",
+    "titleLine1": "Enrollment, installments,",
+    "titleLine2": "report cards & receipts",
     "title": "Enrollment, installments, report cards and receipts — finally together",
     "subtitle": "The office records payments and tracks students. Leadership reviews the figures. Teachers enter grades. One tool for the whole school.",
     "ctaRegister": "Open my school",
     "ctaDownload": "Install at the office",
-    "editorNote": "Francophone, anglophone & nursery · Data kept at your school"
+    "editorNote": "Francophone, anglophone & nursery · Data kept at your school",
+    "stats": {
+      "1": { "value": "17", "label": "Integrated modules" },
+      "2": { "value": "3", "label": "School sections" },
+      "3": { "value": "100%", "label": "No internet at office" }
+    }
   },
   "showcase": {
+    "sectionEye": "Preview",
+    "sectionTitle": "The software in action",
     "ariaTabs": "Software preview",
     "tabs": {
       "classes": "Classes & enrollment",
@@ -63,6 +74,9 @@
     "footnote": "Single entry: no duplicate registers between the office and leadership."
   },
   "features": {
+    "sectionEye": "Day to day",
+    "sectionTitle": "What your school manages",
+    "filterLabel": "Filter by area",
     "title": "Everything your school manages day to day",
     "subtitle": "Each module matches a real task for the office, leadership or teachers.",
     "groups": {
@@ -297,6 +311,7 @@
     "product": "Product",
     "legal": "Legal",
     "rights": "© {year} SchoolManager · Cameroon",
+    "madeIn": "Built for Cameroonian schools",
     "privacy": "Privacy",
     "terms": "Terms of use"
   },

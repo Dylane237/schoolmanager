@@ -1,0 +1,99 @@
+/* Auth pages — split layout responsive (all desktop/laptop sizes) */
+
+.auth-shell {
+  min-height: 100dvh;
+}
+
+.auth-page {
+  display: flex;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  background: #fff;
+}
+
+.auth-main {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #f9fafb;
+  -webkit-overflow-scrolling: touch;
+}
+
+.auth-form-wrap {
+  width: 100%;
+  max-width: 28rem;
+}
+
+.auth-left-panel {
+  position: relative;
+  display: none;
+  min-height: 0;
+  flex-shrink: 0;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-right: 1px solid #1e293b;
+  background: #0f172a;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+  .auth-left-panel {
+    display: flex;
+    width: min(44vw, 34rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-left-panel {
+    width: min(46vw, 38rem);
+  }
+}
+
+@media (min-width: 1280px) {
+  .auth-left-panel {
+    width: min(48vw, 42rem);
+  }
+}
+
+@media (min-width: 1536px) {
+  .auth-left-panel {
+    width: min(42vw, 44rem);
+  }
+}
+
+@media (max-height: 820px) and (min-width: 768px) {
+  .auth-left-features {
+    display: none;
+  }
+
+  .auth-left-headline {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .auth-left-body {
+    font-size: 0.875rem !important;
+  }
+
+  .auth-left-inner {
+    gap: 1rem !important;
+    padding: 1.5rem !important;
+  }
+
+  .auth-left-preview-frame .auth-preview-body {
+    height: 11rem !important;
+  }
+}
+
+@media (max-height: 680px) and (min-width: 768px) {
+  .auth-left-preview {
+    display: none;
+  }
+}

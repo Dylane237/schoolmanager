@@ -106,8 +106,8 @@ export function AuthDashboardPreview({ variant = 'full', className = '' }: AuthD
         </div>
 
         <div
-          className={`relative overflow-hidden bg-slate-900 ${
-            isCompact ? 'h-[148px] p-2.5' : 'h-[240px] p-3.5 2xl:h-[260px] 2xl:p-4'
+          className={`auth-preview-body relative overflow-hidden bg-slate-900 ${
+            isCompact ? 'h-[148px] p-2.5' : 'h-[200px] p-3.5 lg:h-[220px] xl:h-[240px] 2xl:h-[260px] 2xl:p-4'
           }`}
         >
           {tab === 'overview' && (

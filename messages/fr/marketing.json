@@ -5,9 +5,11 @@
   },
   "nav": {
     "ariaMain": "Navigation principale",
-    "features": "Au quotidien",
+    "home": "Accueil",
+    "features": "Accueil",
+    "preview": "Aperçu",
     "pricing": "Tarifs",
-    "download": "Version secrétariat",
+    "download": "Téléchargement",
     "contact": "Contact",
     "login": "Connexion",
     "register": "Ouvrir mon école",
@@ -17,13 +19,22 @@
   },
   "hero": {
     "kicker": "Pour les écoles primaires et secondaires du Cameroun",
+    "titleLine1": "Inscriptions, tranches,",
+    "titleLine2": "bulletins et reçus",
     "title": "Inscriptions, tranches, bulletins et reçus — enfin réunis",
     "subtitle": "Le secrétariat enregistre les paiements et suit les élèves. La direction consulte les chiffres. Les enseignants saisissent les notes. Un seul outil pour toute l'école.",
     "ctaRegister": "Ouvrir mon école",
     "ctaDownload": "Installer au secrétariat",
-    "editorNote": "Francophone, anglophone et maternelle · Données conservées dans l'établissement"
+    "editorNote": "Francophone, anglophone et maternelle · Données conservées dans l'établissement",
+    "stats": {
+      "1": { "value": "17", "label": "Modules intégrés" },
+      "2": { "value": "3", "label": "Sections scolaires" },
+      "3": { "value": "100%", "label": "Sans internet au bureau" }
+    }
   },
   "showcase": {
+    "sectionEye": "Aperçu",
+    "sectionTitle": "Le logiciel en image",
     "ariaTabs": "Aperçu du logiciel",
     "tabs": {
       "classes": "Classes & effectifs",
@@ -63,6 +74,9 @@
     "footnote": "Une seule saisie : pas de doubles registres entre le bureau et la direction."
   },
   "features": {
+    "sectionEye": "Au quotidien",
+    "sectionTitle": "Ce que votre école gère",
+    "filterLabel": "Filtrer par domaine",
     "title": "Tout ce que votre établissement gère au quotidien",
     "subtitle": "Chaque module correspond à une tâche réelle du secrétariat, de la direction ou des enseignants.",
     "groups": {
@@ -297,6 +311,7 @@
     "product": "Produit",
     "legal": "Légal",
     "rights": "© {year} SchoolManager · Cameroun",
+    "madeIn": "Conçu pour les écoles camerounaises",
     "privacy": "Confidentialité",
     "terms": "Conditions d'utilisation"
   },
