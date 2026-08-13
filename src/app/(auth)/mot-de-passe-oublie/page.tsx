@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
             })}
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <AuthInput
               id="email"
               label={t('emailLabel')}

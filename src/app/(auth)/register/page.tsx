@@ -161,7 +161,7 @@ export default function RegisterPage() {
 
       {step === 1 && (
         <AuthStepContent stepKey={1}>
-          <div className="space-y-5">
+          <div className="space-y-4">
             <AuthInput
               id="email"
               label={t('step1.emailLabel')}
@@ -224,7 +224,7 @@ export default function RegisterPage() {
 
       {step === 2 && (
         <AuthStepContent stepKey={2}>
-          <div className="space-y-5">
+          <div className="space-y-4">
             <AuthInput
               id="nom_ecole"
               label={t('step2.schoolNameLabel')}
@@ -264,7 +264,7 @@ export default function RegisterPage() {
 
       {step === 3 && (
         <AuthStepContent stepKey={3}>
-          <form onSubmit={handleRegister} className="space-y-5">
+          <form onSubmit={handleRegister} className="space-y-4">
             <p className="text-[13px] text-gray-600">{t('step3.sectionsPrompt')}</p>
             <div className="space-y-2.5">
               {sections.map(opt => {

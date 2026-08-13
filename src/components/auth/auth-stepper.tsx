@@ -13,7 +13,7 @@ export function AuthStepper({ step, total = 3 }: AuthStepperProps) {
   const t = useTranslations('auth.stepper')
 
   return (
-    <div className="mb-6 sm:mb-8">
+    <div className="mb-5">
       <div className="flex items-center justify-center gap-0">
         {Array.from({ length: total }, (_, i) => {
           const n = i + 1

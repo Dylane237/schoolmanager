@@ -89,7 +89,7 @@ export default function LoginPage() {
     >
       <AuthError message={error} />
 
-      <form onSubmit={handleLogin} className="space-y-5">
+      <form onSubmit={handleLogin} className="space-y-4">
         <AuthInput
           id="email"
           label={t('email')}
