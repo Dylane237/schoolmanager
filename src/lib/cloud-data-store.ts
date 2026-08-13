@@ -4,6 +4,23 @@ import type { SchoolSyncPayload } from './sync-payload'
 
 const CHUNK = 400
 
+const EXTENDED_CLOUD_TABLES = [
+  'cloud_paiements',
+  'cloud_notes',
+  'cloud_tranches_config',
+  'cloud_matieres',
+  'cloud_personnel',
+  'cloud_frais_annexes',
+  'cloud_presences',
+] as const
+
+function isMissingCloudTableError(message: string | undefined): boolean {
+  if (!message) return false
+  return message.includes('does not exist')
+    || message.includes('schema cache')
+    || EXTENDED_CLOUD_TABLES.some(t => message.includes(t))
+}
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
@@ -72,6 +89,13 @@ export async function upsertSchoolDataOnCloud(
   await supabase.from('cloud_eleves').delete().eq('ecole_slug', slug)
   await supabase.from('cloud_payment_summaries').delete().eq('ecole_slug', slug)
 
+  for (const table of EXTENDED_CLOUD_TABLES) {
+    const { error } = await supabase.from(table).delete().eq('ecole_slug', slug)
+    if (error && !isMissingCloudTableError(error.message)) {
+      return { ok: false, error: error.message }
+    }
+  }
+
   const classRows = payload.classes.map(c => ({
     ecole_slug: slug,
     local_id: c.local_id,
@@ -134,6 +158,125 @@ export async function upsertSchoolDataOnCloud(
     if (error) return { ok: false, error: error.message }
   }
 
+  const paiementRows = payload.paiements.map(p => ({
+    ecole_slug: slug,
+    local_id: p.local_id,
+    eleve_local_id: p.eleve_local_id,
+    tranche_numero: p.tranche_numero,
+    montant: p.montant,
+    date_paiement: p.date_paiement,
+    mode_paiement: p.mode_paiement,
+    recu_numero: p.recu_numero,
+    frais_annexe_local_id: p.frais_annexe_local_id,
+    synced_at: now,
+  }))
+
+  const noteRows = payload.notes.map(n => ({
+    ecole_slug: slug,
+    local_id: n.local_id,
+    eleve_local_id: n.eleve_local_id,
+    matiere_local_id: n.matiere_local_id,
+    periode: n.periode,
+    note: n.note,
+    appreciation: n.appreciation,
+    synced_at: now,
+  }))
+
+  const trancheRows = payload.tranches.map(t => ({
+    ecole_slug: slug,
+    local_id: t.local_id,
+    classe_local_id: t.classe_local_id,
+    tranche_numero: t.tranche_numero,
+    montant_attendu: t.montant_attendu,
+    date_limite: t.date_limite,
+    annee_scolaire: t.annee_scolaire,
+    synced_at: now,
+  }))
+
+  const matiereRows = payload.matieres.map(m => ({
+    ecole_slug: slug,
+    local_id: m.local_id,
+    classe_local_id: m.classe_local_id,
+    nom: m.nom,
+    nom_en: m.nom_en,
+    coefficient: m.coefficient,
+    section: m.section,
+    synced_at: now,
+  }))
+
+  const personnelRows = payload.personnel.map(p => ({
+    ecole_slug: slug,
+    local_id: p.local_id,
+    nom: p.nom,
+    prenom: p.prenom,
+    telephone: p.telephone,
+    email: p.email,
+    type: p.type,
+    contrat: p.contrat,
+    date_embauche: p.date_embauche,
+    salaire: p.salaire,
+    synced_at: now,
+  }))
+
+  const fraisRows = payload.frais_annexes.map(f => ({
+    ecole_slug: slug,
+    local_id: f.local_id,
+    classe_local_id: f.classe_local_id,
+    label: f.label,
+    montant: f.montant,
+    obligatoire: f.obligatoire,
+    type: f.type,
+    date_limite: f.date_limite,
+    annee_scolaire: f.annee_scolaire,
+    synced_at: now,
+  }))
+
+  const presenceRows = payload.presences.map(p => ({
+    ecole_slug: slug,
+    local_id: p.local_id,
+    eleve_local_id: p.eleve_local_id,
+    date: p.date,
+    statut: p.statut,
+    note: p.note,
+    synced_at: now,
+  }))
+
+  async function insertExtendedRows(
+    table: typeof EXTENDED_CLOUD_TABLES[number],
+    rows: Record<string, unknown>[],
+  ): Promise<{ ok: boolean; error?: string }> {
+    if (!rows.length) return { ok: true }
+    for (const batch of chunk(rows, CHUNK)) {
+      const { error } = await supabase.from(table).insert(batch as never)
+      if (error) {
+        if (isMissingCloudTableError(error.message)) return { ok: true }
+        return { ok: false, error: error.message }
+      }
+    }
+    return { ok: true }
+  }
+
+  const ext = await insertExtendedRows('cloud_paiements', paiementRows)
+  if (!ext.ok) return ext
+
+  const extNotes = await insertExtendedRows('cloud_notes', noteRows)
+  if (!extNotes.ok) return extNotes
+
+  const extTranches = await insertExtendedRows('cloud_tranches_config', trancheRows)
+  if (!extTranches.ok) return extTranches
+
+  const extMatieres = await insertExtendedRows('cloud_matieres', matiereRows)
+  if (!extMatieres.ok) return extMatieres
+
+  const extPersonnel = await insertExtendedRows('cloud_personnel', personnelRows)
+  if (!extPersonnel.ok) return extPersonnel
+
+  const extFrais = await insertExtendedRows('cloud_frais_annexes', fraisRows)
+  if (!extFrais.ok) return extFrais
+
+  const extPresences = await insertExtendedRows('cloud_presences', presenceRows)
+  if (!extPresences.ok) return extPresences
+
   const elevesTotal = payload.eleves.length
   const elevesActif = payload.eleves.filter(e => e.statut === 'actif').length
 
@@ -150,6 +293,7 @@ export async function upsertSchoolDataOnCloud(
         ...payload.dashboard_stats,
         eleves_total: elevesTotal,
         eleves_actif: elevesActif,
+        entity_counts: payload.entity_counts,
       },
     },
     { onConflict: 'ecole_slug' },

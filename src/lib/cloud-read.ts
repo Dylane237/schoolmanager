@@ -197,3 +197,104 @@ export async function resolveEcoleFromCloud(slug: string) {
   if (!data) return null
   return { id: data.slug, nom: data.nom, logo_url: null }
 }
+
+async function fetchCloudTable<T>(
+  ecoleSlug: string,
+  table: string,
+): Promise<T[]> {
+  if (!isSupabaseConfigured()) return []
+
+  const { getSupabaseAdmin } = await import('./supabase-admin')
+  const supabase = getSupabaseAdmin()!
+
+  const { data, error } = await supabase
+    .from(table)
+    .select('*')
+    .eq('ecole_slug', ecoleSlug)
+
+  if (error || !data) return []
+  return data as T[]
+}
+
+export async function fetchCloudPaiements(ecoleSlug: string) {
+  return fetchCloudTable<{
+    local_id: string
+    eleve_local_id: string | null
+    tranche_numero: number | null
+    montant: number
+    date_paiement: string | null
+    mode_paiement: string | null
+    recu_numero: string | null
+    frais_annexe_local_id: string | null
+  }>(ecoleSlug, 'cloud_paiements')
+}
+
+export async function fetchCloudNotes(ecoleSlug: string) {
+  return fetchCloudTable<{
+    local_id: string
+    eleve_local_id: string | null
+    matiere_local_id: string | null
+    periode: string
+    note: number | null
+    appreciation: string | null
+  }>(ecoleSlug, 'cloud_notes')
+}
+
+export async function fetchCloudTranches(ecoleSlug: string) {
+  return fetchCloudTable<{
+    local_id: string
+    classe_local_id: string | null
+    tranche_numero: number
+    montant_attendu: number
+    date_limite: string | null
+    annee_scolaire: string
+  }>(ecoleSlug, 'cloud_tranches_config')
+}
+
+export async function fetchCloudMatieres(ecoleSlug: string) {
+  return fetchCloudTable<{
+    local_id: string
+    classe_local_id: string | null
+    nom: string
+    nom_en: string | null
+    coefficient: number
+    section: string | null
+  }>(ecoleSlug, 'cloud_matieres')
+}
+
+export async function fetchCloudPersonnel(ecoleSlug: string) {
+  return fetchCloudTable<{
+    local_id: string
+    nom: string
+    prenom: string | null
+    telephone: string | null
+    email: string | null
+    type: string | null
+    contrat: string | null
+    date_embauche: string | null
+    salaire: number | null
+  }>(ecoleSlug, 'cloud_personnel')
+}
+
+export async function fetchCloudFraisAnnexes(ecoleSlug: string) {
+  return fetchCloudTable<{
+    local_id: string
+    classe_local_id: string | null
+    label: string
+    montant: number
+    obligatoire: number
+    type: string | null
+    date_limite: string | null
+    annee_scolaire: string
+  }>(ecoleSlug, 'cloud_frais_annexes')
+}
+
+export async function fetchCloudPresences(ecoleSlug: string) {
+  return fetchCloudTable<{
+    local_id: string
+    eleve_local_id: string | null
+    date: string | null
+    statut: string | null
+    note: string | null
+  }>(ecoleSlug, 'cloud_presences')
+}

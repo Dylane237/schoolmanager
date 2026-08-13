@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3'
 import { getActiveAnneeScolaire } from './db-server'
 import { getElevesSituation } from './paiements-utils'
 import { sqlTotalAttenduEleve } from './paiements-utils'
+import { countSyncEntities, type SyncEntityCounts } from './sync-entity-counts'
 
 export interface CloudClassRow {
   local_id: string
@@ -44,6 +45,75 @@ export interface CloudPaymentSummaryRow {
   statut: string
 }
 
+export interface CloudPaiementRow {
+  local_id: string
+  eleve_local_id: string | null
+  tranche_numero: number | null
+  montant: number
+  date_paiement: string | null
+  mode_paiement: string | null
+  recu_numero: string | null
+  frais_annexe_local_id: string | null
+}
+
+export interface CloudNoteRow {
+  local_id: string
+  eleve_local_id: string | null
+  matiere_local_id: string | null
+  periode: string
+  note: number | null
+  appreciation: string | null
+}
+
+export interface CloudTrancheRow {
+  local_id: string
+  classe_local_id: string | null
+  tranche_numero: number
+  montant_attendu: number
+  date_limite: string | null
+  annee_scolaire: string
+}
+
+export interface CloudMatiereRow {
+  local_id: string
+  classe_local_id: string | null
+  nom: string
+  nom_en: string | null
+  coefficient: number
+  section: string | null
+}
+
+export interface CloudPersonnelRow {
+  local_id: string
+  nom: string
+  prenom: string | null
+  telephone: string | null
+  email: string | null
+  type: string | null
+  contrat: string | null
+  date_embauche: string | null
+  salaire: number | null
+}
+
+export interface CloudFraisAnnexeRow {
+  local_id: string
+  classe_local_id: string | null
+  label: string
+  montant: number
+  obligatoire: number
+  type: string | null
+  date_limite: string | null
+  annee_scolaire: string
+}
+
+export interface CloudPresenceRow {
+  local_id: string
+  eleve_local_id: string | null
+  date: string | null
+  statut: string | null
+  note: string | null
+}
+
 export interface CloudDashboardStats {
   totalEleves: number
   totalClasses: number
@@ -76,6 +146,14 @@ export interface SchoolSyncPayload {
   classes: CloudClassRow[]
   eleves: CloudEleveRow[]
   payment_summaries: CloudPaymentSummaryRow[]
+  paiements: CloudPaiementRow[]
+  notes: CloudNoteRow[]
+  tranches: CloudTrancheRow[]
+  matieres: CloudMatiereRow[]
+  personnel: CloudPersonnelRow[]
+  frais_annexes: CloudFraisAnnexeRow[]
+  presences: CloudPresenceRow[]
+  entity_counts: SyncEntityCounts
   dashboard_stats: CloudDashboardStats
 }
 
@@ -146,6 +224,47 @@ export function buildSchoolSyncPayload(
 
   const dashboard_stats = buildDashboardStats(db, ecoleId, situations)
 
+  const paiements = db.prepare(`
+    SELECT id as local_id, eleve_id as eleve_local_id, tranche_numero, montant,
+           date_paiement, mode_paiement, recu_numero, frais_annexe_id as frais_annexe_local_id
+    FROM paiements WHERE ecole_id = ?
+  `).all(ecoleId) as CloudPaiementRow[]
+
+  const notes = db.prepare(`
+    SELECT id as local_id, eleve_id as eleve_local_id, matiere_id as matiere_local_id,
+           periode, note, appreciation
+    FROM notes WHERE ecole_id = ?
+  `).all(ecoleId) as CloudNoteRow[]
+
+  const tranches = db.prepare(`
+    SELECT id as local_id, classe_id as classe_local_id, tranche_numero,
+           montant_attendu, date_limite, annee_scolaire
+    FROM tranches_config WHERE ecole_id = ?
+  `).all(ecoleId) as CloudTrancheRow[]
+
+  const matieres = db.prepare(`
+    SELECT id as local_id, classe_id as classe_local_id, nom, nom_en, coefficient, section
+    FROM matieres WHERE ecole_id = ?
+  `).all(ecoleId) as CloudMatiereRow[]
+
+  const personnel = db.prepare(`
+    SELECT id as local_id, nom, prenom, telephone, email, type, contrat, date_embauche, salaire
+    FROM personnel WHERE ecole_id = ?
+  `).all(ecoleId) as CloudPersonnelRow[]
+
+  const frais_annexes = db.prepare(`
+    SELECT id as local_id, classe_id as classe_local_id, label, montant, obligatoire,
+           type, date_limite, annee_scolaire
+    FROM frais_annexes WHERE ecole_id = ?
+  `).all(ecoleId) as CloudFraisAnnexeRow[]
+
+  const presences = db.prepare(`
+    SELECT id as local_id, eleve_id as eleve_local_id, date, statut, note
+    FROM presences WHERE ecole_id = ?
+  `).all(ecoleId) as CloudPresenceRow[]
+
+  const entity_counts = countSyncEntities(db, ecoleId)
+
   return {
     ecole_slug: ecoleSlug,
     ecole_nom: ecoleNom,
@@ -155,6 +274,14 @@ export function buildSchoolSyncPayload(
     classes,
     eleves,
     payment_summaries,
+    paiements,
+    notes,
+    tranches,
+    matieres,
+    personnel,
+    frais_annexes,
+    presences,
+    entity_counts,
     dashboard_stats,
   }
 }

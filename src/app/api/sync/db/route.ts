@@ -15,6 +15,7 @@ import { fetchCloudDbMeta } from '@/lib/db-blob-sync'
 import { readLocalSyncMeta } from '@/lib/sync-meta'
 import { getLastSyncEvent } from '@/lib/sync-monitor'
 import { withSchoolSyncLock } from '@/lib/sync-lock'
+import { countSyncEntities } from '@/lib/sync-entity-counts'
 
 type SyncStrategy = 'keep_local' | 'keep_cloud'
 
@@ -157,12 +158,26 @@ export async function GET(request: NextRequest) {
   const cloudMeta = await fetchCloudDbMeta(slug)
   const lastEvent = getLastSyncEvent(slug)
 
+  let localEntityCounts = null
+  if (!process.env.VERCEL) {
+    try {
+      const db = getDb(slug)
+      const ecoleId = resolveEcoleId(db, slug, user.ecole_id)
+      if (ecoleId) localEntityCounts = countSyncEntities(db, ecoleId)
+    } catch {
+      /* ignore */
+    }
+  }
+
   return NextResponse.json({
     ...conflict,
     lastSyncAt: meta.lastSyncAt,
     lastError: meta.lastError,
     lastEvent: lastEvent?.type ?? meta.lastEvent,
     lastAutoResolve: meta.lastAutoResolve,
+    localEntityCounts,
+    cloudVersion: cloudMeta?.version ?? null,
+    cloudUpdatedAt: cloudMeta?.updated_at ?? null,
     conflict_log: conflict.hasConflict
       ? describeSyncSides(
         conflict,

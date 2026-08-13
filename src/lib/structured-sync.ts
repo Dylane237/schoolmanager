@@ -9,7 +9,12 @@ import { buildSchoolSyncPayload } from './sync-payload'
 export type StructuredSyncResult = {
   ok: boolean
   error?: string
-  counts?: { eleves: number; classes: number; eleves_actif: number }
+  counts?: {
+    eleves: number
+    classes: number
+    eleves_actif: number
+    entity_counts?: import('./sync-entity-counts').SyncEntityCounts
+  }
 }
 
 function readLicenceForEcole(
@@ -71,6 +76,7 @@ export async function syncStructuredFromEcoleDb(
       eleves: payload.eleves.length,
       classes: payload.classes.length,
       eleves_actif: elevesActif,
+      entity_counts: payload.entity_counts,
     },
   }
 }

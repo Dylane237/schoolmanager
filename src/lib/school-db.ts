@@ -396,6 +396,10 @@ export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
       if (cloudMeta && loadedFromBuffer) {
         vercelSyncedVersions.set(ecoleSlug, cloudMeta.version)
         markLocalSynced(ecoleSlug, cloudMeta.version)
+        if (buffer && buffer.length > 0) {
+          const { syncStructuredFromBuffer } = await import('./structured-sync')
+          void syncStructuredFromBuffer(ecoleSlug, buffer).catch(() => {})
+        }
       } else if (cloudMeta && buffer && buffer.length > 0 && !loadedFromBuffer) {
         console.warn(`[prepareSchoolDb] blob cloud illisible pour "${ecoleSlug}" — provision structurée`)
       }
@@ -404,14 +408,8 @@ export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
 
     const { getDbForSlug } = await import('./db')
     const db = getDbForSlug(ecoleSlug)
-    const hydrated = await hydrateSchoolFromSupabase(db, ecoleSlug)
-    if (hydrated) markSchoolDbDirty(ecoleSlug)
-
-    const classesHydrated = await hydrateClassesFromCloud(db, ecoleSlug)
-    if (classesHydrated) markSchoolDbDirty(ecoleSlug)
-
-    const elevesHydrated = await hydrateElevesFromCloud(db, ecoleSlug)
-    if (elevesHydrated) markSchoolDbDirty(ecoleSlug)
+    await hydrateSchoolFromSupabase(db, ecoleSlug)
+    await hydrateStructuredSchoolData(db, ecoleSlug)
 
     return
   }
@@ -563,14 +561,161 @@ async function hydrateElevesFromCloud(
   return true
 }
 
-/** Hydrate classes + élèves depuis les tables cloud_* si la base locale est vide. */
+function tableEmpty(db: Database.Database, table: string, ecoleId: string): boolean {
+  const row = db.prepare(`SELECT COUNT(*) as c FROM ${table} WHERE ecole_id = ?`).get(ecoleId) as { c: number }
+  return row.c === 0
+}
+
+async function hydrateTranchesFromCloud(db: Database.Database, ecoleSlug: string): Promise<boolean> {
+  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecole || !tableEmpty(db, 'tranches_config', ecole.id)) return false
+
+  const { fetchCloudTranches } = await import('./cloud-read')
+  const rows = await fetchCloudTranches(ecoleSlug)
+  if (!rows.length) return false
+
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO tranches_config (
+      id, ecole_id, classe_id, tranche_numero, montant_attendu, date_limite, annee_scolaire
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const t of rows) {
+    insert.run(t.local_id, ecole.id, t.classe_local_id, t.tranche_numero, t.montant_attendu, t.date_limite, t.annee_scolaire)
+  }
+  return true
+}
+
+async function hydrateMatieresFromCloud(db: Database.Database, ecoleSlug: string): Promise<boolean> {
+  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecole || !tableEmpty(db, 'matieres', ecole.id)) return false
+
+  const { fetchCloudMatieres } = await import('./cloud-read')
+  const rows = await fetchCloudMatieres(ecoleSlug)
+  if (!rows.length) return false
+
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO matieres (id, ecole_id, classe_id, nom, nom_en, coefficient, section)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const m of rows) {
+    insert.run(m.local_id, ecole.id, m.classe_local_id, m.nom, m.nom_en, m.coefficient ?? 1, m.section)
+  }
+  return true
+}
+
+async function hydratePersonnelFromCloud(db: Database.Database, ecoleSlug: string): Promise<boolean> {
+  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecole || !tableEmpty(db, 'personnel', ecole.id)) return false
+
+  const { fetchCloudPersonnel } = await import('./cloud-read')
+  const rows = await fetchCloudPersonnel(ecoleSlug)
+  if (!rows.length) return false
+
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO personnel (
+      id, ecole_id, nom, prenom, telephone, email, type, contrat, date_embauche, salaire
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const p of rows) {
+    insert.run(p.local_id, ecole.id, p.nom, p.prenom, p.telephone, p.email, p.type, p.contrat, p.date_embauche, p.salaire)
+  }
+  return true
+}
+
+async function hydrateFraisAnnexesFromCloud(db: Database.Database, ecoleSlug: string): Promise<boolean> {
+  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecole || !tableEmpty(db, 'frais_annexes', ecole.id)) return false
+
+  const { fetchCloudFraisAnnexes } = await import('./cloud-read')
+  const rows = await fetchCloudFraisAnnexes(ecoleSlug)
+  if (!rows.length) return false
+
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO frais_annexes (
+      id, ecole_id, classe_id, label, montant, obligatoire, type, date_limite, annee_scolaire
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const f of rows) {
+    insert.run(f.local_id, ecole.id, f.classe_local_id, f.label, f.montant, f.obligatoire, f.type, f.date_limite, f.annee_scolaire)
+  }
+  return true
+}
+
+async function hydratePaiementsFromCloud(db: Database.Database, ecoleSlug: string): Promise<boolean> {
+  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecole || !tableEmpty(db, 'paiements', ecole.id)) return false
+
+  const { fetchCloudPaiements } = await import('./cloud-read')
+  const rows = await fetchCloudPaiements(ecoleSlug)
+  if (!rows.length) return false
+
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO paiements (
+      id, ecole_id, eleve_id, tranche_numero, montant, date_paiement, mode_paiement, recu_numero, frais_annexe_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const p of rows) {
+    insert.run(
+      p.local_id, ecole.id, p.eleve_local_id, p.tranche_numero, p.montant,
+      p.date_paiement, p.mode_paiement, p.recu_numero, p.frais_annexe_local_id,
+    )
+  }
+  return true
+}
+
+async function hydrateNotesFromCloud(db: Database.Database, ecoleSlug: string): Promise<boolean> {
+  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecole || !tableEmpty(db, 'notes', ecole.id)) return false
+
+  const { fetchCloudNotes } = await import('./cloud-read')
+  const rows = await fetchCloudNotes(ecoleSlug)
+  if (!rows.length) return false
+
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO notes (id, ecole_id, eleve_id, matiere_id, periode, note, appreciation)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+  for (const n of rows) {
+    insert.run(n.local_id, ecole.id, n.eleve_local_id, n.matiere_local_id, n.periode, n.note, n.appreciation)
+  }
+  return true
+}
+
+async function hydratePresencesFromCloud(db: Database.Database, ecoleSlug: string): Promise<boolean> {
+  const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
+  if (!ecole || !tableEmpty(db, 'presences', ecole.id)) return false
+
+  const { fetchCloudPresences } = await import('./cloud-read')
+  const rows = await fetchCloudPresences(ecoleSlug)
+  if (!rows.length) return false
+
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO presences (id, ecole_id, eleve_id, date, statut, note)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `)
+  for (const p of rows) {
+    insert.run(p.local_id, ecole.id, p.eleve_local_id, p.date, p.statut, p.note)
+  }
+  return true
+}
+
+/** Hydrate toutes les entités depuis cloud_* si les tables locales sont vides (fallback web). */
 export async function hydrateStructuredSchoolData(
   db: Database.Database,
   ecoleSlug: string,
 ): Promise<boolean> {
-  const classes = await hydrateClassesFromCloud(db, ecoleSlug)
-  const eleves = await hydrateElevesFromCloud(db, ecoleSlug)
-  return classes || eleves
+  const steps = [
+    await hydrateClassesFromCloud(db, ecoleSlug),
+    await hydrateElevesFromCloud(db, ecoleSlug),
+    await hydratePersonnelFromCloud(db, ecoleSlug),
+    await hydrateMatieresFromCloud(db, ecoleSlug),
+    await hydrateTranchesFromCloud(db, ecoleSlug),
+    await hydrateFraisAnnexesFromCloud(db, ecoleSlug),
+    await hydratePaiementsFromCloud(db, ecoleSlug),
+    await hydrateNotesFromCloud(db, ecoleSlug),
+    await hydratePresencesFromCloud(db, ecoleSlug),
+  ]
+  return steps.some(Boolean)
 }
 
 /** Marque la base dirty, flush blob + sync structurée (web/desktop). */
@@ -762,6 +907,16 @@ export async function pushSchoolDbFromLocal(
     const buffer = exportVercelSchoolDbBuffer(ecoleSlug)
     if (!buffer?.length) return { ok: false, error: 'Base mémoire introuvable' }
 
+    const { shouldSkipBlobRegression, syncStructuredAfterBlobUpload } = await import('./structured-sync')
+    if (await shouldSkipBlobRegression(ecoleSlug, buffer)) {
+      recordSyncEvent(
+        ecoleSlug,
+        'push_fail',
+        'Upload blob refusé: base locale vide alors que le cloud contient déjà des élèves',
+      )
+      return { ok: false, error: 'Base locale vide — utilisez « Garder le cloud » ou restaurez une sauvegarde' }
+    }
+
     const result = await uploadSchoolDbBuffer(ecoleSlug, buffer)
     if (result.ok && result.version) {
       vercelSyncedVersions.set(ecoleSlug, result.version)
@@ -773,6 +928,8 @@ export async function pushSchoolDbFromLocal(
       const db = getDbForSlug(ecoleSlug)
       const ecole = db.prepare('SELECT id FROM ecoles WHERE slug = ?').get(ecoleSlug) as { id: string } | undefined
       if (ecole?.id) await pushSchoolUploads(ecoleSlug, ecole.id).catch(() => {})
+
+      await syncStructuredAfterBlobUpload(ecoleSlug, buffer)
     } else if (result.error && !result.skipped) {
       recordSyncError(ecoleSlug, result.error)
       recordSyncEvent(ecoleSlug, 'push_fail', result.error)
