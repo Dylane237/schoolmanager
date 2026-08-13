@@ -90,6 +90,11 @@ input, select, textarea {
   background: color-mix(in srgb, var(--muted) 10%, var(--card-bg));
 }
 
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* Dark mode utility overrides */
 [data-theme="dark"] .text-slate-800 { color: #f1f5f9; }
 [data-theme="dark"] .text-slate-700 { color: #e2e8f0; }

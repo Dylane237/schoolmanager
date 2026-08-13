@@ -9,7 +9,9 @@
     "download": "Download",
     "contact": "Contact",
     "login": "Sign in",
-    "register": "Free trial"
+    "register": "Free trial",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "hero": {
     "badge": "Offline · Web · Desktop",
@@ -20,7 +22,7 @@
     },
     "title1": "Run your school.",
     "title2": "Everywhere. Even offline.",
-    "title3": "The way you deserve.",
+    "title3": "Built for your fee terms.",
     "subtitle": "Enrollment, installment payments, report cards and receipts — in the browser, on your phone, or on the office PC with automatic sync.",
     "ctaRegister": "Create my school",
     "ctaDownload": "Download for Windows",
@@ -74,7 +76,7 @@
   "dualChannel": {
     "eyebrow": "Smart sync",
     "title": "Same tool, new screen.",
-    "subtitle": "The secretary collects fees offline on PC. The headteacher checks unpaid balances on her phone after sync.",
+    "subtitle": "Fees on PC without internet. Web or mobile access after sync.",
     "steps": {
       "1": "Install the Windows app at the office — it works without internet.",
       "2": "Work as usual: students, payments, report cards, attendance.",
@@ -145,44 +147,30 @@
     }
   },
   "testimonials": {
-    "title": "What schools are saying",
-    "subtitle": "Cameroonian schools that modernized their management.",
+    "title": "Built for the field",
+    "subtitle": "Features shaped for how Cameroonian schools actually operate.",
     "items": {
       "1": {
-        "text": "Finally software that fits our installment payments and francophone and anglophone sections.",
-        "author": "Headteacher",
-        "role": "Private school · Yaoundé"
+        "title": "Local fee terms",
+        "desc": "Amounts per class, numbered receipts, remaining balances — not a generic ERP."
       },
       "2": {
-        "text": "The offline desktop version saved us during internet outages. Receipts print in one click.",
-        "author": "Secretary",
-        "role": "School group · Douala"
+        "title": "Offline at the office",
+        "desc": "The Windows app runs without internet. Sync resumes when the network returns."
       },
       "3": {
-        "text": "I check unpaid balances from my phone in the evening — no more waiting for tomorrow's report.",
-        "author": "Founder",
-        "role": "Nursery school · Bafoussam"
+        "title": "Three sections",
+        "desc": "Francophone, anglophone and nursery in one tool."
       },
       "4": {
-        "text": "Migration from Excel in one day with their support. Report cards ready for the class council.",
-        "author": "Dean",
-        "role": "High school · Garoua"
-      },
-      "5": {
-        "text": "Clear interface, quick staff training. Responsive WhatsApp support.",
-        "author": "Accountant",
-        "role": "Bilingual school · Limbe"
-      },
-      "6": {
-        "text": "One tool for students, payments and grades — exactly what we needed.",
-        "author": "Principal",
-        "role": "Primary school · Kribi"
+        "title": "Your data, local first",
+        "desc": "Local SQLite plus daily backups. Cloud is for sync, not lock-in."
       }
     }
   },
   "sync": {
     "title": "Desktop, browser, phone — same data",
-    "subtitle": "The secretary collects fees offline on PC. The headteacher checks unpaid balances on her phone after sync.",
+    "subtitle": "Fees on PC without internet. Web or mobile access after sync.",
     "desktop": "Office PC",
     "desktopHint": "Windows app · offline",
     "cloud": "Sync",

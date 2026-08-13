@@ -8,8 +8,8 @@ import { useSyncStatusOptional } from '@/hooks/useSyncStatus'
 import { hasModuleAccess } from '@/lib/rbac'
 import { isElectronClient } from '@/lib/desktop-download'
 import SchoolLogoMark from './SchoolLogoMark'
-import SyncStatusTopBar from './SyncStatusTopBar'
-import LicenceTopBarButton from './LicenceTopBarButton'
+import SyncStatusIndicator from './SyncStatusIndicator'
+import LicenceButton from './LicenceButton'
 import SyncNotificationBell from './SyncNotificationBell'
 import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 
@@ -57,8 +57,8 @@ export default function AppTopBar() {
             {anneeScolaire}
           </span>
 
-          {showSyncAndLicence && <SyncStatusTopBar slug={slug} />}
-          {showSyncAndLicence && <LicenceTopBarButton />}
+          {showSyncAndLicence && <SyncStatusIndicator slug={slug} variant="topbar" />}
+          {showSyncAndLicence && <LicenceButton variant="topbar" />}
           <LanguageSwitcher variant="auth" />
           {showNotificationBell && <SyncNotificationBell slug={slug} />}
 

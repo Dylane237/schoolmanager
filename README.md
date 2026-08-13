@@ -67,9 +67,9 @@ Au premier lancement, un super-admin est créé automatiquement :
 | `npm run electron:prepare` | Copie static/public dans standalone |
 | `npm run electron:build` | Build installateur Windows (.exe) |
 
-## Compilation Electron (installateur offline)
+## Compilation Electron (installateur bureau)
 
-L'application fonctionne **100 % offline** : base SQLite locale, pas de cloud.
+L'application **bureau** fonctionne **offline** : base SQLite locale dans `userData`. La **sync cloud** (Supabase) est optionnelle et sert à aligner bureau et web — voir `ARCHITECTURE.md`.
 
 ### Prérequis
 
@@ -96,7 +96,8 @@ Next.js `standalone` exige que `.next/static` et `public` soient copiés **dans*
 
 - Base de données : `%APPDATA%/SchoolManager/schoolmanager.db`
 - Photos, backups, secret JWT : même dossier `userData` Electron
-- Aucune connexion internet requise après installation
+- **Offline** : toutes les opérations courantes sans internet
+- **Sync** : au retour réseau, push/pull vers Supabase (configurer les variables Supabase)
 
 ### Licence par ordinateur
 
@@ -133,4 +134,6 @@ Plans disponibles : **Starter** (150 élèves), **Standard** (400), **Premium** 
 
 ## Stack
 
-Next.js 16 · React 19 · SQLite (better-sqlite3) · JWT · Tailwind CSS 4 · Electron
+Next.js 16 · React 19 · SQLite (better-sqlite3) · Supabase (sync) · JWT · Tailwind CSS 4 · Electron
+
+Voir aussi : [`ARCHITECTURE.md`](ARCHITECTURE.md) · [`docs/FRONTEND.md`](docs/FRONTEND.md)

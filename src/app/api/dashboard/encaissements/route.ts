@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     const from = searchParams.get('from')
     const to = searchParams.get('to')
     if (!from || !to) {
-      return NextResponse.json({ error: 'Dates from/to requises' }, { status: 400 })
+      return NextResponse.json({ error: 'Dates de début et de fin requises' }, { status: 400 })
     }
 
     const fromD = new Date(from)

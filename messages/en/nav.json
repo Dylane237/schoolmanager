@@ -4,6 +4,7 @@
   "logout": "Sign out",
   "lightMode": "Light mode",
   "darkMode": "Dark mode",
+  "licence": "Licence",
   "groups": {
     "schooling": "Schooling",
     "finance": "Finance",
@@ -22,6 +23,7 @@
     "staff": "Staff",
     "announcements": "Announcements",
     "settings": "Settings",
-    "data": "Data"
+    "data": "Data",
+    "transfers": "Transfers"
   }
 }

@@ -108,5 +108,5 @@ export function resolveSyncDisplayState(
     return { syncState: 'error', dbSynced: false, clearStaleError: false }
   }
 
-  return { syncState: dbMeta ? 'pending' : 'pending', dbSynced: false, clearStaleError: false }
+  return { syncState: 'pending' as SyncDisplayState, dbSynced: false, clearStaleError: false }
 }

@@ -9,7 +9,9 @@
     "download": "Télécharger",
     "contact": "Contact",
     "login": "Se connecter",
-    "register": "Essai gratuit"
+    "register": "Essai gratuit",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu"
   },
   "hero": {
     "badge": "Offline · Web · Bureau",
@@ -20,7 +22,7 @@
     },
     "title1": "Gérez votre école.",
     "title2": "Partout. Même sans internet.",
-    "title3": "Comme vous le méritez.",
+    "title3": "Pensé pour vos tranches.",
     "subtitle": "Inscriptions, paiements par tranches, bulletins et reçus — sur le navigateur, sur votre téléphone, ou sur le PC du secrétariat avec synchronisation automatique.",
     "ctaRegister": "Créer mon école",
     "ctaDownload": "Télécharger pour Windows",
@@ -74,7 +76,7 @@
   "dualChannel": {
     "eyebrow": "Sync intelligente",
     "title": "Même outil, nouvel écran.",
-    "subtitle": "La secrétaire encaisse offline au PC. La directrice consulte les impayés sur son téléphone dès que la sync est faite.",
+    "subtitle": "Encaissements au PC sans internet. Consultation web ou mobile après synchronisation.",
     "steps": {
       "1": "Installez l'app Windows au secrétariat — elle fonctionne sans internet.",
       "2": "Travaillez normalement : élèves, paiements, bulletins, présences.",
@@ -145,44 +147,30 @@
     }
   },
   "testimonials": {
-    "title": "Ce qu'en disent les établissements",
-    "subtitle": "Des écoles camerounaises qui ont modernisé leur gestion.",
+    "title": "Conçu pour le terrain",
+    "subtitle": "Fonctionnalités pensées pour le fonctionnement réel des écoles au Cameroun.",
     "items": {
       "1": {
-        "text": "Enfin un logiciel adapté à nos tranches de paiement et à nos sections francophone et anglophone.",
-        "author": "Directrice",
-        "role": "École privée · Yaoundé"
+        "title": "Tranches camerounaises",
+        "desc": "Montants par classe, reçus numérotés, soldes restants — le modèle local, pas un ERP générique."
       },
       "2": {
-        "text": "La version offline au secrétariat nous a sauvés lors des coupures internet. Les reçus s'impriment en un clic.",
-        "author": "Secrétaire",
-        "role": "Groupe scolaire · Douala"
+        "title": "Offline au secrétariat",
+        "desc": "L'app Windows tourne sans internet. La sync reprend quand le réseau revient."
       },
       "3": {
-        "text": "Je consulte les impayés depuis mon téléphone le soir — plus besoin d'attendre le rapport du lendemain.",
-        "author": "Fondatrice",
-        "role": "École maternelle · Bafoussam"
+        "title": "Trois sections",
+        "desc": "Francophone, anglophone et maternelle dans un seul outil."
       },
       "4": {
-        "text": "Migration depuis Excel en une journée avec leur support. Les bulletins sont prêts pour le conseil de classe.",
-        "author": "Censeur",
-        "role": "Lycée · Garoua"
-      },
-      "5": {
-        "text": "Interface claire, formation rapide pour le personnel. Support WhatsApp réactif.",
-        "author": "Comptable",
-        "role": "École bilingue · Limbé"
-      },
-      "6": {
-        "text": "Un seul outil pour les élèves, les paiements et les notes — exactement ce qu'il nous fallait.",
-        "author": "Directeur",
-        "role": "École primaire · Kribi"
+        "title": "Données chez vous",
+        "desc": "SQLite local + sauvegardes quotidiennes. Le cloud sert à la sync, pas à vous enfermer."
       }
     }
   },
   "sync": {
     "title": "Bureau, navigateur, téléphone — les mêmes données",
-    "subtitle": "La secrétaire encaisse offline au PC. La directrice consulte les impayés sur son téléphone dès que la sync est faite.",
+    "subtitle": "Une base par école. Sync manuelle ou automatique selon vos choix dans Données.",
     "desktop": "PC secrétariat",
     "desktopHint": "App Windows · offline",
     "cloud": "Synchronisation",

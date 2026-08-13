@@ -11,6 +11,7 @@ import {
 } from 'react'
 import { useSchool } from '@/components/layout/SchoolProvider'
 import { hasModuleAccess } from '@/lib/rbac'
+import { useTranslations } from 'next-intl'
 import toast from 'react-hot-toast'
 
 export type SyncState = 'synced' | 'syncing' | 'pending' | 'conflict' | 'error' | 'offline'
@@ -41,19 +42,18 @@ const SyncStatusContext = createContext<SyncStatusContextValue | null>(null)
 
 const POLL_MS = 30_000
 
-/** Évite les toasts en double (AutoDbSync + sync manuelle) pour un même conflit. */
+/** Évite les toasts en double pour un même conflit de sync. */
 let conflictToastShown = false
 
-function notifySyncConflict(silent?: boolean) {
+function notifySyncConflict(message: string, silent?: boolean) {
   if (silent || conflictToastShown) return
   conflictToastShown = true
-  toast.error('Conflit de sync — choisissez quelle version garder dans Données', {
-    id: 'sync-conflict',
-  })
+  toast.error(message, { id: 'sync-conflict' })
 }
 
 export function SyncStatusProvider({ children }: { children: ReactNode }) {
   const { slug, userRole } = useSchool()
+  const t = useTranslations('sync')
   const canSync = hasModuleAccess(userRole, 'parametres')
   const [state, setState] = useState<SyncState>('pending')
   const [lastError, setLastError] = useState<string | null>(null)
@@ -127,7 +127,7 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
       if (res.status === 409) {
         setState('conflict')
         setLastError(data.error ?? 'Conflit de synchronisation')
-        notifySyncConflict(options?.silent)
+        notifySyncConflict(t('conflictToast'), options?.silent)
         return false
       }
 

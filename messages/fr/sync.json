@@ -13,6 +13,7 @@
   "advancedGlobalSync": "Sync globale (avancé — peut effacer des données)",
   "confirmKeepLocalDestructive": "ATTENTION : cela remplacera TOUTE la base cloud par la vôtre. Des données web peuvent être perdues. Continuer ?",
   "confirmKeepCloudDestructive": "ATTENTION : cela remplacera TOUTE votre base locale par le cloud. Des données bureau peuvent être perdues. Continuer ?",
+  "conflictToast": "Conflit de sync — choisissez quelle version garder dans Données",
   "notifications": {
     "title": "Modifications distantes",
     "subtitle": "{count, plural, one {# modification sur {platform}} other {# modifications sur {platform}}}",

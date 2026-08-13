@@ -21,7 +21,7 @@ function flattenKeys(obj: JsonObject, prefix = ''): string[] {
 }
 
 /** Namespaces utilisés par des pages critiques — toute clé ajoutée doit exister en FR et EN. */
-const STRICT_PARITY_NAMESPACES = ['misc', 'licence', 'auth', 'sync', 'donnees'] as const
+const STRICT_PARITY_NAMESPACES = ['misc', 'licence', 'auth', 'sync', 'donnees', 'nav', 'marketing'] as const
 
 describe('i18n catalog parity', () => {
   for (const namespace of STRICT_PARITY_NAMESPACES) {

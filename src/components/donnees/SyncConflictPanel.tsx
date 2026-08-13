@@ -157,7 +157,7 @@ export default function SyncConflictPanel({
     }
   }
 
-  // Visible uniquement après « Synchroniser maintenant » — pas de chargement auto à l'ouverture de la page
+  // Panneau affiché uniquement après « Synchroniser maintenant »
   if (compareKey === 0 || !comparePayload) return null
 
   if (showComparedEmpty) {

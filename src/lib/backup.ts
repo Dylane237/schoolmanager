@@ -1,10 +1,6 @@
 import fs from 'fs'
 import path from 'path'
 import { getBackupsDir, getDbPath } from './paths'
-
-// ⚠️ À AJUSTER : importez ici votre module de connexion DB réel.
-// J'ai supposé les noms getDb / closeDb / reopenDb — remplacez par les
-// vrais noms exportés par votre module (probablement `./database` ou `./db`).
 import { getDb } from './db'
 
 function closeDb() {

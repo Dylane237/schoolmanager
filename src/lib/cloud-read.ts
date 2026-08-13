@@ -1,11 +1,6 @@
 import { isSupabaseConfigured } from './supabase-admin'
 import { fetchCloudSyncStatus, type CloudSyncStatus } from './cloud-data-store'
 
-/** @deprecated Parité complète — toujours false. */
-export function isCloudReadMode(): boolean {
-  return false
-}
-
 export async function getCloudSyncStatus(ecoleSlug: string): Promise<CloudSyncStatus> {
   return fetchCloudSyncStatus(ecoleSlug)
 }

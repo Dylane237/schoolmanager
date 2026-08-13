@@ -13,6 +13,7 @@
   "advancedGlobalSync": "Global sync (advanced — may erase data)",
   "confirmKeepLocalDestructive": "WARNING: this replaces the ENTIRE cloud database with yours. Web data may be lost. Continue?",
   "confirmKeepCloudDestructive": "WARNING: this replaces your ENTIRE local database with the cloud. Desktop data may be lost. Continue?",
+  "conflictToast": "Sync conflict — choose which version to keep in Data",
   "notifications": {
     "title": "Remote changes",
     "subtitle": "{count, plural, one {# change on {platform}} other {# changes on {platform}}}",

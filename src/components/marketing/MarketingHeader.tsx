@@ -66,7 +66,7 @@ export function MarketingHeader() {
             type="button"
             className="mk-theme-toggle"
             onClick={() => setOpen(v => !v)}
-            aria-label="Menu"
+            aria-label={open ? t('nav.closeMenu') : t('nav.openMenu')}
             aria-expanded={open}
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
