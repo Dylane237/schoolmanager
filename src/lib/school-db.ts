@@ -746,6 +746,17 @@ export function scheduleSchoolDbFlush(ecoleSlug: string): void {
 
 export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
   if (!dirtySlugs.has(ecoleSlug)) return
+
+  const conflict = await detectSyncConflict(ecoleSlug)
+  if (conflict.hasConflict) {
+    recordSyncEvent(
+      ecoleSlug,
+      'conflict',
+      'Push différé — bureau et web modifiés : merge granulaire requis (Données)',
+    )
+    return
+  }
+
   dirtySlugs.delete(ecoleSlug)
 
   if (isServerlessRuntime()) {

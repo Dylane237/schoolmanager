@@ -26,7 +26,25 @@ export default function AutoDbSync() {
       syncing.current = true
       sync.setSyncing(true)
       try {
-        await sync.runSync(undefined, { silent: true })
+        const statusRes = await fetch('/api/sync/db')
+        if (!statusRes.ok) return
+        const status = await statusRes.json() as {
+          hasConflict?: boolean
+          cloudAhead?: boolean
+          localDirty?: boolean
+        }
+
+        if (status.hasConflict) return
+
+        if (status.cloudAhead && !status.localDirty) {
+          await sync.runSync('keep_cloud', { silent: true, allowDestructive: true })
+        } else if (status.localDirty && !status.cloudAhead) {
+          await sync.runSync('keep_local', { silent: true, allowDestructive: true })
+        } else if (!status.localDirty && !status.cloudAhead) {
+          return
+        } else {
+          await sync.runSync(undefined, { silent: true })
+        }
       } finally {
         syncing.current = false
         await sync.refresh()

@@ -136,7 +136,6 @@ export async function POST(request: NextRequest) {
 
   if (process.env.VERCEL) {
     await prepareSchoolDb(slug)
-    markSchoolDbDirty(slug, 'web-sync')
   }
 
   const result = await withSchoolSyncLock(slug, () =>
