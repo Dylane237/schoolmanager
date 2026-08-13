@@ -12,11 +12,8 @@ import {
 import { useSchool } from './SchoolProvider'
 import { hasModuleAccess, NAV_MODULE_MAP, type Module } from '@/lib/rbac'
 import { useTheme } from '@/components/providers/ThemeProvider'
-import LicenceSidebarButton from './LicenceSidebarButton'
-import SyncStatusBadge from './SyncStatusBadge'
 import SchoolLogoMark from './SchoolLogoMark'
 import NavIcon from '@/components/ui/NavIcon'
-import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 import { setLastLoginEmail } from '@/lib/last-login-email'
 
 interface SidebarProps {
@@ -77,7 +74,6 @@ export default function Sidebar({ slug, ecoleNom }: SidebarProps) {
   const { userRole } = useSchool()
   const { theme, toggleTheme } = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const showLicence = hasModuleAccess(userRole, 'parametres')
 
   const handleLogout = async () => {
     const res = await fetch('/api/auth/logout', { method: 'POST' })
@@ -140,9 +136,6 @@ export default function Sidebar({ slug, ecoleNom }: SidebarProps) {
       </nav>
 
       <div className="p-3 border-t border-slate-700/50 space-y-1">
-        {showLicence && <SyncStatusBadge slug={slug} />}
-        {showLicence && <LicenceSidebarButton />}
-        <LanguageSwitcher />
         <button
           onClick={toggleTheme}
           className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white transition-colors text-[15px] font-medium w-full"

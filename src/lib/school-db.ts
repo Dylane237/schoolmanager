@@ -362,7 +362,15 @@ export async function ensureLocalLicenceFromCloud(
 }
 
 /** Ouvre / télécharge la base école (web ou desktop après pull). */
-export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
+export type PrepareSchoolDbOptions = {
+  /** Évite la ré-hydratation structurée (compare sync) — le blob cloud suffit et prévient les erreurs FK. */
+  skipStructuredHydrate?: boolean
+}
+
+export async function prepareSchoolDb(
+  ecoleSlug: string,
+  options?: PrepareSchoolDbOptions,
+): Promise<void> {
   if (isServerlessRuntime()) {
     setVercelActiveSlug(ecoleSlug)
 
@@ -409,7 +417,9 @@ export async function prepareSchoolDb(ecoleSlug: string): Promise<void> {
     const { getDbForSlug } = await import('./db')
     const db = getDbForSlug(ecoleSlug)
     await hydrateSchoolFromSupabase(db, ecoleSlug)
-    await hydrateStructuredSchoolData(db, ecoleSlug)
+    if (!options?.skipStructuredHydrate) {
+      await hydrateStructuredSchoolData(db, ecoleSlug)
+    }
 
     return
   }
@@ -1005,5 +1015,5 @@ export async function refreshSchoolDbForCompare(ecoleSlug: string): Promise<void
   clearSchoolDbCache(ecoleSlug)
   const { closeDbForSlug } = await import('./db')
   closeDbForSlug(ecoleSlug)
-  await prepareSchoolDb(ecoleSlug)
+  await prepareSchoolDb(ecoleSlug, { skipStructuredHydrate: true })
 }

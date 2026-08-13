@@ -4,6 +4,8 @@ import { useSchool } from './SchoolProvider'
 import Sidebar from './Sidebar'
 import SchoolWatermark from './SchoolWatermark'
 import ModuleGuard from './ModuleGuard'
+import AppTopBar from './AppTopBar'
+import { TopBarProvider } from './TopBarContext'
 import { LicenceStatusProvider } from '@/hooks/useLicenceStatus'
 import { SyncStatusProvider } from '@/hooks/useSyncStatus'
 
@@ -17,15 +19,20 @@ export default function AppShell({ children }: AppShellProps) {
   return (
     <LicenceStatusProvider>
       <SyncStatusProvider>
-        <div className="flex h-screen bg-slate-50 overflow-hidden">
-          <Sidebar slug={slug} ecoleNom={ecoleNom} />
-          <main className="flex-1 overflow-y-auto pt-14 lg:pt-0 relative">
-            <SchoolWatermark />
-            <div className="relative z-[1] min-h-full">
-              <ModuleGuard>{children}</ModuleGuard>
+        <TopBarProvider>
+          <div className="flex h-screen bg-slate-50 overflow-hidden">
+            <Sidebar slug={slug} ecoleNom={ecoleNom} />
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+              <AppTopBar />
+              <main className="flex-1 overflow-y-auto relative">
+                <SchoolWatermark />
+                <div className="relative z-[1] min-h-full">
+                  <ModuleGuard>{children}</ModuleGuard>
+                </div>
+              </main>
             </div>
-          </main>
-        </div>
+          </div>
+        </TopBarProvider>
       </SyncStatusProvider>
     </LicenceStatusProvider>
   )
