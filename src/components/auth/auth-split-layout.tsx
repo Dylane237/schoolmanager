@@ -34,38 +34,41 @@ export function AuthSplitLayout({ mode, title, subtitle, children, footer }: Aut
           aria-hidden
         />
 
-        <header className="auth-topbar">
-          <Link href="/" className="auth-topbar-brand lg:hidden">
-            <span className="auth-topbar-mark" aria-hidden>
+        <header className="auth-header">
+          <div className="auth-header-brand md:hidden">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 ring-1 ring-emerald-200">
               <GraduationCap className="h-4 w-4 text-emerald-700" strokeWidth={1.75} />
-            </span>
-            <span className="truncate font-semibold text-gray-900">
+            </div>
+            <span className="truncate text-base font-semibold text-gray-900">
               School<span className="text-emerald-600">Manager</span>
             </span>
-          </Link>
+          </div>
 
-          <div className="auth-topbar-actions">
+          <div className="auth-header-actions">
             <LanguageSwitcher variant="auth" />
-            <Link href={alternate.href} className="auth-topbar-link">
+            <Link href={alternate.href} className="auth-header-link">
               {mode !== 'login' && <ArrowLeft className="h-3.5 w-3.5 shrink-0" />}
               {alternate.label}
             </Link>
           </div>
         </header>
 
-        <div className="auth-form-center">
+        <div className="auth-body">
           <div className="auth-form-wrap">
             <div className="auth-form-head">
-              <h1 className="auth-form-title">{title}</h1>
+              <h2 className="auth-form-title">{title}</h2>
               <p className="auth-form-subtitle">{subtitle}</p>
             </div>
 
             <div className="auth-form-card">{children}</div>
 
             <p className="auth-form-footer">{footer}</p>
-            <p className="auth-copyright">{t('footer', { year: new Date().getFullYear() })}</p>
           </div>
         </div>
+
+        <footer className="auth-page-footer">
+          {t('footer', { year: new Date().getFullYear() })}
+        </footer>
       </main>
     </div>
   )
