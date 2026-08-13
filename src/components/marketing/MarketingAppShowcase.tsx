@@ -36,8 +36,9 @@ export function MarketingAppShowcase({ priority = false }: { priority?: boolean 
             className={`mk-showcase-tab ${active === key ? 'mk-showcase-tab-active' : ''}`}
             onClick={() => onTabChange(key)}
           >
-            <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
-            <span className="mk-showcase-tab-label">{t(`tabs.${key}`)}</span>
+            <Icon className="mk-showcase-tab-icon" strokeWidth={1.75} aria-hidden />
+            <span className="mk-showcase-tab-long">{t(`tabs.${key}`)}</span>
+            <span className="mk-showcase-tab-short">{t(`tabsShort.${key}`)}</span>
           </button>
         ))}
       </div>
@@ -65,6 +66,7 @@ export function MarketingAppShowcase({ priority = false }: { priority?: boolean 
             </div>
           ))}
         </div>
+        <p className="mk-showcase-mobile-hint">{t('mobileHint')}</p>
       </div>
 
       <p className="mk-showcase-caption">{t(`captions.${active}`)}</p>

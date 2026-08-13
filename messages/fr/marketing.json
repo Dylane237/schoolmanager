@@ -11,6 +11,7 @@
     "contact": "Contact",
     "login": "Connexion",
     "register": "Ouvrir mon école",
+    "registerShort": "Ouvrir",
     "openMenu": "Ouvrir le menu",
     "closeMenu": "Fermer le menu"
   },
@@ -29,6 +30,12 @@
       "payments": "Paiements",
       "students": "Élèves"
     },
+    "tabsShort": {
+      "classes": "Classes",
+      "payments": "Paiements",
+      "students": "Élèves"
+    },
+    "mobileHint": "Glissez pour voir l'écran en entier",
     "captions": {
       "classes": "Organisation des classes — maternelle, francophone, places et titulaires",
       "payments": "Suivi des tranches et encaissements par classe",

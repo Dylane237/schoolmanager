@@ -61,7 +61,10 @@ export function MarketingHeader() {
           </Link>
         </div>
 
-        <div className="ml-auto flex items-center gap-1 lg:hidden">
+        <div className="mk-header-mobile ml-auto flex items-center gap-1.5 lg:hidden">
+          <Link href="/register" className="mk-btn-header-cta-mobile">
+            {t('nav.registerShort')}
+          </Link>
           <MarketingThemeToggle />
           <button
             type="button"

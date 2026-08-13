@@ -9,9 +9,9 @@ export async function MarketingHero() {
   const downloadUrl = getDesktopDownloadUrl()
 
   return (
-    <section className="mk-section mk-hero pt-6 pb-8 sm:pt-12 sm:pb-14 lg:pt-14 lg:pb-16">
-      <div className="mk-container grid items-center gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:gap-12 xl:gap-14">
-        <div className="max-w-lg lg:max-w-none">
+    <section className="mk-section mk-hero pt-5 pb-7 sm:pt-12 sm:pb-14 lg:pt-14 lg:pb-16">
+      <div className="mk-container grid items-center gap-7 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:gap-12 xl:gap-14">
+        <div className="max-w-lg lg:max-w-none order-1">
           <p className="mk-hero-kicker">{t('kicker')}</p>
           <h1 className="mk-hero-title mt-3">{t('title')}</h1>
           <p className="mt-4 text-base leading-relaxed sm:text-lg" style={{ color: 'var(--mk-muted)' }}>
@@ -32,7 +32,7 @@ export async function MarketingHero() {
           <p className="mk-hero-note mt-6">{t('editorNote')}</p>
         </div>
 
-        <div className="min-w-0 w-full lg:justify-self-end">
+        <div className="min-w-0 w-full order-2 lg:order-none lg:justify-self-end">
           <MarketingAppShowcase priority />
         </div>
       </div>

@@ -11,6 +11,7 @@
     "contact": "Contact",
     "login": "Sign in",
     "register": "Open my school",
+    "registerShort": "Open",
     "openMenu": "Open menu",
     "closeMenu": "Close menu"
   },
@@ -29,6 +30,12 @@
       "payments": "Payments",
       "students": "Students"
     },
+    "tabsShort": {
+      "classes": "Classes",
+      "payments": "Payments",
+      "students": "Students"
+    },
+    "mobileHint": "Swipe to see the full screen",
     "captions": {
       "classes": "Class organization — nursery, francophone, capacity and head teachers",
       "payments": "Installment and payment tracking by class",
