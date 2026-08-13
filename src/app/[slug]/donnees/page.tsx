@@ -98,8 +98,9 @@ export default function DonneesPage() {
       const statusRes = await fetch('/api/sync/status')
       setSyncStatus(await statusRes.json())
       await syncContext?.refresh()
-    } catch {
-      toast.error(t('sync.error'))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('sync.error')
+      toast.error(msg)
     } finally {
       setSyncing(false)
     }
@@ -130,8 +131,9 @@ export default function DonneesPage() {
       const statusRes = await fetch('/api/sync/status')
       setSyncStatus(await statusRes.json())
       await syncContext?.refresh()
-    } catch {
-      toast.error(t('sync.error'))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : t('sync.error')
+      toast.error(msg)
     } finally {
       setSyncing(false)
     }
