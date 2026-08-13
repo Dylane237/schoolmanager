@@ -1,8 +1,11 @@
 import 'server-only'
-import { fetchCloudDbMeta } from './db-blob-sync'
+import { fetchCloudDbMeta, type CloudDbSnapshotMeta } from './db-blob-sync'
 import { getLocalSyncVersionPath } from './paths'
-import { readLocalSyncMeta } from './sync-meta'
+import { readLocalSyncMeta, writeLocalSyncMeta, type LocalSyncMeta } from './sync-meta'
+import { isServerlessRuntime } from './runtime-env'
 import fs from 'fs'
+
+export type SyncDisplayState = 'synced' | 'pending' | 'conflict' | 'error'
 
 export interface SyncConflictInfo {
   hasConflict: boolean
@@ -77,4 +80,33 @@ export async function detectSyncConflict(ecoleSlug: string): Promise<SyncConflic
     cloudAhead,
     localDirty,
   }
+}
+
+/** État d'affichage unique sidebar + page Données (évite erreur fantôme / en attente sur web). */
+export function resolveSyncDisplayState(
+  conflict: SyncConflictInfo,
+  dbMeta: CloudDbSnapshotMeta | null,
+  meta: LocalSyncMeta,
+): { syncState: SyncDisplayState; dbSynced: boolean; clearStaleError: boolean } {
+  if (conflict.hasConflict) {
+    return { syncState: 'conflict', dbSynced: false, clearStaleError: false }
+  }
+
+  if (conflict.localDirty) {
+    return { syncState: 'pending', dbSynced: false, clearStaleError: false }
+  }
+
+  const dbSynced = isServerlessRuntime()
+    ? dbMeta != null
+    : dbMeta != null && dbMeta.version === conflict.localSyncedVersion
+
+  if (dbSynced) {
+    return { syncState: 'synced', dbSynced: true, clearStaleError: Boolean(meta.lastError) }
+  }
+
+  if (meta.lastError) {
+    return { syncState: 'error', dbSynced: false, clearStaleError: false }
+  }
+
+  return { syncState: dbMeta ? 'pending' : 'pending', dbSynced: false, clearStaleError: false }
 }

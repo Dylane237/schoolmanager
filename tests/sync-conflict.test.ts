@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
-import { detectSyncConflict, resolveAutoSyncStrategy, describeSyncSides } from '@/lib/sync-conflict'
+import { detectSyncConflict, resolveAutoSyncStrategy, describeSyncSides, resolveSyncDisplayState } from '@/lib/sync-conflict'
 import { markLocalEdited, markLocalSynced } from '@/lib/sync-meta'
 import { getLocalSyncVersionPath } from '@/lib/paths'
 
@@ -104,5 +104,40 @@ describe('detectSyncConflict', () => {
     expect(sides.localSummary).toContain('Bureau modifié')
     expect(sides.cloudSummary).toContain('Cloud modifié')
     expect(sides.recommendation).toBe('keep_local')
+  })
+
+  it('resolveSyncDisplayState: erreur fantôme ignorée si versions alignées', () => {
+    const result = resolveSyncDisplayState(
+      {
+        hasConflict: false,
+        cloudVersion: 5000,
+        localSyncedVersion: 5000,
+        localEditVersion: 5000,
+        cloudAhead: false,
+        localDirty: false,
+      },
+      {
+        ecole_slug: SLUG,
+        storage_path: `${SLUG}/schoolmanager.db`,
+        version: 5000,
+        size_bytes: 100,
+        checksum: 'abc',
+        updated_at: new Date().toISOString(),
+      },
+      {
+        syncedVersion: 5000,
+        localEditVersion: 5000,
+        lastEditAt: null,
+        lastEditSource: null,
+        lastSyncAt: null,
+        lastError: 'ancien push_fail',
+        lastEvent: null,
+        lastAutoResolve: null,
+        pendingLocalChanges: [],
+      },
+    )
+    expect(result.syncState).toBe('synced')
+    expect(result.dbSynced).toBe(true)
+    expect(result.clearStaleError).toBe(true)
   })
 })

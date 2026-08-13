@@ -79,6 +79,8 @@
     "modeDesktop": "Desktop (source)",
     "modeSynced": "À jour",
     "modePending": "En attente",
+    "modeConflict": "Conflit",
+    "modeError": "Erreur",
     "never": "Jamais",
     "action": "Synchroniser maintenant",
     "syncing": "Analyse en cours…",

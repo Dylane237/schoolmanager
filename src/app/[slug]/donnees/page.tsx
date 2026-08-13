@@ -148,6 +148,16 @@ export default function DonneesPage() {
     }
   }
 
+  const syncModeLabel = () => {
+    switch (syncStatus?.sync_state) {
+      case 'synced': return t('sync.modeSynced')
+      case 'conflict': return t('sync.modeConflict')
+      case 'error': return t('sync.modeError')
+      case 'pending': return t('sync.modePending')
+      default: return syncStatus?.db_synced ? t('sync.modeSynced') : t('sync.modePending')
+    }
+  }
+
   const handleExport = async (entity: ExportEntity, format: ExportFormat) => {
     const key = `${entity}-${format}`
     setDownloading(key)
@@ -189,6 +199,11 @@ export default function DonneesPage() {
                 <div className="flex-1">
                   <h3 className="font-semibold text-slate-800">{t('sync.title')}</h3>
                   <p className="text-sm text-slate-500 mt-1">{t('sync.description')}</p>
+                  {syncStatus?.sync_state === 'error' && syncStatus.last_error && (
+                    <p className="mt-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      {syncStatus.last_error}
+                    </p>
+                  )}
                   {syncStatus && (
                     <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                       <div className="p-3 bg-slate-50 rounded-lg">
@@ -206,7 +221,7 @@ export default function DonneesPage() {
                       <div className="p-3 bg-slate-50 rounded-lg">
                         <p className="text-slate-400 text-xs">{t('sync.mode')}</p>
                         <p className="font-medium text-slate-700 mt-0.5">
-                          {syncStatus.db_synced ? t('sync.modeSynced') : t('sync.modePending')}
+                          {syncModeLabel()}
                         </p>
                       </div>
                     </div>

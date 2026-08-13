@@ -3,11 +3,9 @@ import { getUserFromRequest } from '@/lib/auth'
 import { requireModule } from '@/lib/rbac.server'
 import { getCloudSyncStatus } from '@/lib/cloud-read'
 import { fetchCloudDbMeta } from '@/lib/db-blob-sync'
-import { getLocalSyncVersionPath } from '@/lib/paths'
-import { detectSyncConflict, describeSyncSides } from '@/lib/sync-conflict'
-import { readLocalSyncMeta } from '@/lib/sync-meta'
+import { detectSyncConflict, describeSyncSides, resolveSyncDisplayState } from '@/lib/sync-conflict'
+import { readLocalSyncMeta, writeLocalSyncMeta } from '@/lib/sync-meta'
 import { getLastSyncEvent } from '@/lib/sync-monitor'
-import fs from 'fs'
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request)
@@ -19,19 +17,15 @@ export async function GET(request: NextRequest) {
   const slug = user.ecole_slug
   const status = await getCloudSyncStatus(slug)
   const dbMeta = await fetchCloudDbMeta(slug)
-  const versionPath = getLocalSyncVersionPath(slug)
-  const localVersion = fs.existsSync(versionPath)
-    ? Number(fs.readFileSync(versionPath, 'utf8').trim()) || 0
-    : 0
   const conflict = await detectSyncConflict(slug)
-  const meta = readLocalSyncMeta(slug)
+  let meta = readLocalSyncMeta(slug)
   const lastEvent = getLastSyncEvent(slug)
 
-  let syncState: 'synced' | 'pending' | 'conflict' | 'error' = 'pending'
-  if (conflict.hasConflict) syncState = 'conflict'
-  else if (meta.lastError) syncState = 'error'
-  else if (conflict.localDirty) syncState = 'pending'
-  else if (dbMeta && dbMeta.version === localVersion) syncState = 'synced'
+  const { syncState, dbSynced, clearStaleError } = resolveSyncDisplayState(conflict, dbMeta, meta)
+
+  if (clearStaleError) {
+    meta = writeLocalSyncMeta(slug, { lastError: null })
+  }
 
   const syncedAt = meta.lastSyncAt ?? status.synced_at ?? dbMeta?.updated_at ?? null
   const conflictLog = conflict.hasConflict
@@ -46,9 +40,9 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ...status,
     synced_at: syncedAt,
-    db_synced: dbMeta ? dbMeta.version === localVersion && !conflict.localDirty : false,
+    db_synced: dbSynced,
     db_cloud_version: dbMeta?.version ?? null,
-    db_local_version: localVersion,
+    db_local_version: conflict.localSyncedVersion,
     db_updated_at: dbMeta?.updated_at ?? null,
     readOnly: false,
     conflict: conflict.hasConflict,
@@ -57,7 +51,7 @@ export async function GET(request: NextRequest) {
     last_auto_resolve: meta.lastAutoResolve,
     sync_state: syncState,
     last_sync_at: meta.lastSyncAt,
-    last_error: meta.lastError,
+    last_error: syncState === 'error' ? meta.lastError : null,
     last_event: lastEvent?.type ?? meta.lastEvent,
   })
 }

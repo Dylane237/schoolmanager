@@ -56,13 +56,17 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null)
 
   const applyPayload = useCallback((data: SyncStatusPayload) => {
-    if (data.conflict || data.sync_state === 'conflict') setState('conflict')
-    else if (data.last_error || data.sync_state === 'error') setState('error')
-    else if (data.sync_state === 'synced' || data.db_synced) {
+    if (data.sync_state) {
+      setState(data.sync_state)
+      if (data.sync_state === 'synced') conflictToastShown = false
+    } else if (data.conflict) {
+      setState('conflict')
+    } else if (data.db_synced) {
       conflictToastShown = false
       setState('synced')
+    } else {
+      setState('pending')
     }
-    else setState('pending')
     setLastError(data.last_error ?? null)
     setLastSyncAt(data.last_sync_at ?? data.synced_at ?? null)
   }, [])
