@@ -22,12 +22,16 @@ type SyncStatusPayload = {
   last_sync_at?: string | null
   synced_at?: string | null
   db_synced?: boolean
+  desktop_ever_used?: boolean
+  web_ever_used?: boolean
 }
 
 type SyncStatusContextValue = {
   state: SyncState
   lastError: string | null
   lastSyncAt: string | null
+  desktopEverUsed: boolean
+  webEverUsed: boolean
   refresh: () => Promise<void>
   runSync: (strategy?: 'keep_local' | 'keep_cloud', options?: { silent?: boolean; allowDestructive?: boolean }) => Promise<boolean>
   setSyncing: (syncing: boolean) => void
@@ -54,6 +58,8 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SyncState>('pending')
   const [lastError, setLastError] = useState<string | null>(null)
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null)
+  const [desktopEverUsed, setDesktopEverUsed] = useState(false)
+  const [webEverUsed, setWebEverUsed] = useState(false)
 
   const applyPayload = useCallback((data: SyncStatusPayload) => {
     if (data.sync_state) {
@@ -69,18 +75,29 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
     }
     setLastError(data.last_error ?? null)
     setLastSyncAt(data.last_sync_at ?? data.synced_at ?? null)
+    if (typeof data.desktop_ever_used === 'boolean') {
+      setDesktopEverUsed(data.desktop_ever_used)
+    }
+    if (typeof data.web_ever_used === 'boolean') {
+      setWebEverUsed(data.web_ever_used)
+    }
   }, [])
 
   const refresh = useCallback(async () => {
     if (!canSync) return
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setState('offline')
-      return
-    }
     try {
       const res = await fetch('/api/sync/status')
-      if (!res.ok) return
-      applyPayload(await res.json())
+      if (!res.ok) {
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setState('offline')
+        }
+        return
+      }
+      const data = await res.json() as SyncStatusPayload
+      applyPayload(data)
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setState('offline')
+      }
     } catch {
       setState('offline')
     }
@@ -147,8 +164,8 @@ export function SyncStatusProvider({ children }: { children: ReactNode }) {
   }, [canSync, refresh, slug])
 
   const value = useMemo(
-    () => ({ state, lastError, lastSyncAt, refresh, runSync, setSyncing }),
-    [state, lastError, lastSyncAt, refresh, runSync, setSyncing],
+    () => ({ state, lastError, lastSyncAt, desktopEverUsed, webEverUsed, refresh, runSync, setSyncing }),
+    [state, lastError, lastSyncAt, desktopEverUsed, webEverUsed, refresh, runSync, setSyncing],
   )
 
   return (

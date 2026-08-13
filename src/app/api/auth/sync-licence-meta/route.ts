@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { syncLicenceMetaToCloud } from '@/lib/licence-cloud-sync'
+import { markDesktopEverUsed } from '@/lib/platform-presence'
 import { checkRateLimit, rateLimitResponse, verifyServerSecret } from '@/lib/rate-limit'
 
 /** Synchronise le nom / slug école depuis le desktop vers Supabase (backfill + maintenance). */
@@ -26,6 +27,9 @@ export async function POST(request: NextRequest) {
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 })
     }
+
+    const slug = String(body.ecole_slug ?? '').trim()
+    if (slug) void markDesktopEverUsed(slug).catch(() => {})
 
     return NextResponse.json({ success: true })
   } catch (err) {

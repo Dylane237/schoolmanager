@@ -1,9 +1,12 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useSchool } from './SchoolProvider'
 import { useTopBarOptional } from './TopBarContext'
 import { useLicenceStatus } from '@/hooks/useLicenceStatus'
+import { useSyncStatusOptional } from '@/hooks/useSyncStatus'
 import { hasModuleAccess } from '@/lib/rbac'
+import { isElectronClient } from '@/lib/desktop-download'
 import SchoolLogoMark from './SchoolLogoMark'
 import SyncStatusTopBar from './SyncStatusTopBar'
 import LicenceTopBarButton from './LicenceTopBarButton'
@@ -13,10 +16,22 @@ import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 export default function AppTopBar() {
   const { slug, anneeScolaire, userInitials, userRole } = useSchool()
   const topBar = useTopBarOptional()
+  const sync = useSyncStatusOptional()
   const { status } = useLicenceStatus()
   const showSyncAndLicence = hasModuleAccess(userRole, 'parametres')
+  const [isDesktopClient, setIsDesktopClient] = useState(
+    () => typeof window !== 'undefined' && isElectronClient(),
+  )
+
+  useEffect(() => {
+    setIsDesktopClient(isElectronClient())
+  }, [])
 
   const breadcrumbLabel = topBar?.breadcrumb
+  const otherPlatformUsed = isDesktopClient
+    ? sync?.webEverUsed === true
+    : sync?.desktopEverUsed === true
+  const showNotificationBell = showSyncAndLicence && otherPlatformUsed
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shrink-0">
@@ -45,7 +60,7 @@ export default function AppTopBar() {
           {showSyncAndLicence && <SyncStatusTopBar slug={slug} />}
           {showSyncAndLicence && <LicenceTopBarButton />}
           <LanguageSwitcher variant="auth" />
-          {showSyncAndLicence && <SyncNotificationBell slug={slug} />}
+          {showNotificationBell && <SyncNotificationBell slug={slug} />}
 
           <div
             className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-semibold shadow-sm ring-2 ring-white"

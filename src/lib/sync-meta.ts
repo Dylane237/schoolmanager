@@ -15,6 +15,12 @@ export interface LocalSyncMeta {
   lastEvent: string | null
   lastAutoResolve: string | null
   pendingLocalChanges: SyncChangeEntry[]
+  /** Cache local (desktop offline) — présence des deux plateformes. */
+  platformPresence?: {
+    desktop_ever_used: boolean
+    web_ever_used: boolean
+    updated_at: string
+  }
 }
 
 const DEFAULT_META: LocalSyncMeta = {

@@ -809,6 +809,8 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
 
       const { syncStructuredAfterBlobUpload } = await import('./structured-sync')
       await syncStructuredAfterBlobUpload(ecoleSlug, buffer)
+      const { markWebEverUsed } = await import('./platform-presence')
+      void markWebEverUsed(ecoleSlug).catch(() => {})
     } else if (result.error && !result.skipped) {
       recordSyncEvent(ecoleSlug, 'push_fail', result.error)
     }
@@ -842,6 +844,8 @@ export async function flushSchoolDb(ecoleSlug: string): Promise<void> {
 
     const { syncStructuredAfterBlobUpload } = await import('./structured-sync')
     await syncStructuredAfterBlobUpload(ecoleSlug, buffer)
+    const { markDesktopEverUsed } = await import('./platform-presence')
+    void markDesktopEverUsed(ecoleSlug).catch(() => {})
   } else if (result.error) {
     recordSyncEvent(ecoleSlug, 'push_fail', result.error)
   }
@@ -959,6 +963,8 @@ export async function pushSchoolDbFromLocal(
       if (ecole?.id) await pushSchoolUploads(ecoleSlug, ecole.id).catch(() => {})
 
       await syncStructuredAfterBlobUpload(ecoleSlug, buffer)
+      const { markWebEverUsed } = await import('./platform-presence')
+      void markWebEverUsed(ecoleSlug).catch(() => {})
     } else if (result.error && !result.skipped) {
       recordSyncError(ecoleSlug, result.error)
       recordSyncEvent(ecoleSlug, 'push_fail', result.error)
@@ -992,6 +998,8 @@ export async function pushSchoolDbFromLocal(
     if (ecole?.id) await pushSchoolUploads(ecoleSlug, ecole.id).catch(() => {})
 
     await syncStructuredAfterBlobUpload(ecoleSlug, buffer)
+    const { markDesktopEverUsed } = await import('./platform-presence')
+    void markDesktopEverUsed(ecoleSlug).catch(() => {})
   } else if (result.error && !result.skipped) {
     recordSyncError(ecoleSlug, result.error)
     recordSyncEvent(ecoleSlug, 'push_fail', result.error)
