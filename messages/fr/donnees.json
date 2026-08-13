@@ -69,7 +69,8 @@
   },
   "sync": {
     "title": "Synchronisation cloud",
-    "description": "Comparez manuellement desktop et web avant de fusionner. Cliquez sur « Synchroniser maintenant » pour voir les différences et choisir quoi garder, ligne par ligne.",
+    "description": "Allez sur l'autre plateforme (bureau ou web), puis cliquez sur « Synchroniser maintenant » pour voir ce qui diffère et choisir quoi garder.",
+    "compareHint": "Le panneau de comparaison s'affiche uniquement après ce clic — pas automatiquement.",
     "lastSync": "Dernière sync",
     "students": "Élèves sync",
     "classes": "Classes sync",

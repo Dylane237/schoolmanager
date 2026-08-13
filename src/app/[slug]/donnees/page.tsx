@@ -126,7 +126,7 @@ export default function DonneesPage() {
       }
       toast.success(t('sync.success'))
       setComparePayload(null)
-      setCompareKey(k => k + 1)
+      setCompareKey(0)
       const statusRes = await fetch('/api/sync/status')
       setSyncStatus(await statusRes.json())
       await syncContext?.refresh()
@@ -210,18 +210,23 @@ export default function DonneesPage() {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => handleSyncNow()}
-                  disabled={syncing}
-                  className="btn-primary flex items-center gap-2 shrink-0"
-                >
-                  {syncing ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CloudUpload className="w-4 h-4" />
-                  )}
-                  {syncing ? t('sync.syncing') : t('sync.action')}
-                </button>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <button
+                    onClick={() => handleSyncNow()}
+                    disabled={syncing}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    {syncing ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CloudUpload className="w-4 h-4" />
+                    )}
+                    {syncing ? t('sync.syncing') : t('sync.action')}
+                  </button>
+                  <p className="text-xs text-slate-500 max-w-xs">
+                    {t('sync.compareHint')}
+                  </p>
+                </div>
                 {(syncStatus?.conflict || syncStatus?.sync_state === 'conflict') && (
                   <div className="flex flex-col gap-2 w-full sm:w-auto">
                     <p className="text-xs text-amber-700">{tSync('preferGranular')}</p>

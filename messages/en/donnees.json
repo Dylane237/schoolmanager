@@ -69,7 +69,8 @@
   },
   "sync": {
     "title": "Cloud synchronization",
-    "description": "Compare desktop and web manually before merging. Click « Sync now » to see differences and choose what to keep, item by item.",
+    "description": "On the other platform (desktop or web), click « Sync now » to see what differs and choose what to keep.",
+    "compareHint": "The comparison panel only appears after you click — not automatically.",
     "lastSync": "Last sync",
     "students": "Synced students",
     "classes": "Synced classes",
