@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { getUserFromRequest } from '../../../lib/auth'
 import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
 import { requireModule } from '../../../lib/rbac.server'
@@ -40,17 +41,24 @@ export async function POST(request: NextRequest) {
   const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
   if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
+  const id = crypto.randomBytes(16).toString('hex')
   db.prepare(`
-    INSERT INTO personnel (ecole_id, nom, prenom, telephone, email, type, contrat, date_embauche, salaire)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO personnel (id, ecole_id, nom, prenom, telephone, email, type, contrat, date_embauche, salaire)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
-    ecoleId, body.nom, body.prenom || null,
+    id, ecoleId, body.nom, body.prenom || null,
     body.telephone || null, body.email || null,
     body.type, body.contrat || null,
     body.date_embauche || null, body.salaire || null
   )
 
-  return jsonPersist(ecoleSlug, { success: true })
+  return jsonPersist(ecoleSlug, { success: true, id }, undefined, {
+    entity_type: 'personnel',
+    entity_id: id,
+    action: 'create',
+    label: `Personnel ${body.prenom ? `${body.prenom} ` : ''}${body.nom}`,
+    source: 'personnel',
+  })
 }
 
 export async function DELETE(request: NextRequest) {
@@ -66,6 +74,17 @@ export async function DELETE(request: NextRequest) {
   const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
   if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
+  const row = db.prepare('SELECT nom, prenom FROM personnel WHERE id = ? AND ecole_id = ?').get(id, ecoleId) as {
+    nom: string
+    prenom: string | null
+  } | undefined
+
   db.prepare('DELETE FROM personnel WHERE id = ? AND ecole_id = ?').run(id, ecoleId)
-  return jsonPersist(ecoleSlug, { success: true })
+  return jsonPersist(ecoleSlug, { success: true }, undefined, {
+    entity_type: 'personnel',
+    entity_id: id,
+    action: 'delete',
+    label: row ? `Personnel ${row.prenom ? `${row.prenom} ` : ''}${row.nom}` : `Personnel ${id}`,
+    source: 'personnel',
+  })
 }

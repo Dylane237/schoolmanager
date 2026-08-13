@@ -175,6 +175,136 @@ function trancheSummary(t: TrancheRow): string {
   return `${t.montant_attendu} F${lim} · ${t.annee_scolaire}`
 }
 
+type PersonnelRow = {
+  id: string
+  nom: string
+  prenom: string | null
+  type: string | null
+  telephone: string | null
+  email: string | null
+}
+
+type MatiereRow = {
+  id: string
+  nom: string
+  nom_en: string | null
+  coefficient: number
+  classe_nom: string | null
+  section: string | null
+}
+
+type FraisAnnexeRow = {
+  id: string
+  label: string
+  montant: number
+  type: string | null
+  classe_nom: string | null
+  annee_scolaire: string
+  obligatoire: number
+}
+
+type PresenceRow = {
+  key: string
+  eleve_id: string
+  date: string
+  statut: string | null
+  note: string | null
+  eleve_label: string
+}
+
+export function presenceKey(eleveId: string, date: string): string {
+  return `${eleveId}:${date}`
+}
+
+export function parsePresenceKey(entityId: string): { eleve_id: string; date: string } | null {
+  const sep = entityId.lastIndexOf(':')
+  if (sep <= 0) return null
+  const eleve_id = entityId.slice(0, sep)
+  const date = entityId.slice(sep + 1)
+  if (!eleve_id || !date) return null
+  return { eleve_id, date }
+}
+
+function readPersonnel(db: Database.Database, ecoleId: string): Map<string, PersonnelRow> {
+  const rows = db.prepare(`
+    SELECT id, nom, prenom, type, telephone, email
+    FROM personnel WHERE ecole_id = ?
+  `).all(ecoleId) as PersonnelRow[]
+  return new Map(rows.map(r => [r.id, r]))
+}
+
+function readMatieres(db: Database.Database, ecoleId: string): Map<string, MatiereRow> {
+  const rows = db.prepare(`
+    SELECT m.id, m.nom, m.nom_en, m.coefficient, m.section, c.nom as classe_nom
+    FROM matieres m
+    LEFT JOIN classes c ON c.id = m.classe_id
+    WHERE m.ecole_id = ?
+  `).all(ecoleId) as MatiereRow[]
+  return new Map(rows.map(r => [r.id, r]))
+}
+
+function readFraisAnnexes(db: Database.Database, ecoleId: string): Map<string, FraisAnnexeRow> {
+  const rows = db.prepare(`
+    SELECT fa.id, fa.label, fa.montant, fa.type, fa.annee_scolaire, fa.obligatoire,
+      c.nom as classe_nom
+    FROM frais_annexes fa
+    LEFT JOIN classes c ON c.id = fa.classe_id
+    WHERE fa.ecole_id = ?
+  `).all(ecoleId) as FraisAnnexeRow[]
+  return new Map(rows.map(r => [r.id, r]))
+}
+
+function readPresences(db: Database.Database, ecoleId: string): Map<string, PresenceRow> {
+  const rows = db.prepare(`
+    SELECT p.eleve_id, p.date, p.statut, p.note,
+      TRIM(COALESCE(e.prenom, '') || ' ' || COALESCE(e.nom, '')) as eleve_label
+    FROM presences p
+    LEFT JOIN eleves e ON e.id = p.eleve_id
+    WHERE p.ecole_id = ?
+  `).all(ecoleId) as Omit<PresenceRow, 'key'>[]
+
+  const map = new Map<string, PresenceRow>()
+  for (const r of rows) {
+    const key = presenceKey(r.eleve_id, r.date)
+    map.set(key, { ...r, key })
+  }
+  return map
+}
+
+function personnelLabel(p: PersonnelRow): string {
+  const name = [p.prenom, p.nom].filter(Boolean).join(' ')
+  return `Personnel ${name || p.nom}${p.type ? ` (${p.type})` : ''}`
+}
+
+function personnelSummary(p: PersonnelRow): string {
+  const contact = p.telephone || p.email || '—'
+  return `${p.nom}${p.prenom ? ` ${p.prenom}` : ''} · ${contact}`
+}
+
+function matiereLabel(m: MatiereRow): string {
+  return `Matière ${m.nom}${m.classe_nom ? ` — ${m.classe_nom}` : ''}`
+}
+
+function matiereSummary(m: MatiereRow): string {
+  return `coef ${m.coefficient}${m.section ? ` · ${m.section}` : ''}`
+}
+
+function fraisLabel(f: FraisAnnexeRow): string {
+  return `Frais ${f.label}${f.classe_nom ? ` — ${f.classe_nom}` : ''}`
+}
+
+function fraisSummary(f: FraisAnnexeRow): string {
+  return `${f.montant} F · ${f.annee_scolaire}${f.type ? ` · ${f.type}` : ''}`
+}
+
+function presenceLabel(p: PresenceRow): string {
+  return `Présence ${p.eleve_label} (${p.date})`
+}
+
+function presenceSummary(p: PresenceRow): string {
+  return `${p.statut ?? '?'}${p.note ? ` — ${p.note}` : ''}`
+}
+
 /** Diff paiements / notes / tranches entre bureau et blob cloud. */
 export function diffBlobEntities(
   localDb: Database.Database,
@@ -188,6 +318,14 @@ export function diffBlobEntities(
   const cloudN = readNotes(cloudDb, cloudEcoleId)
   const localT = readTranches(localDb, ecoleId)
   const cloudT = readTranches(cloudDb, cloudEcoleId)
+  const localPe = readPersonnel(localDb, ecoleId)
+  const cloudPe = readPersonnel(cloudDb, cloudEcoleId)
+  const localM = readMatieres(localDb, ecoleId)
+  const cloudM = readMatieres(cloudDb, cloudEcoleId)
+  const localF = readFraisAnnexes(localDb, ecoleId)
+  const cloudF = readFraisAnnexes(cloudDb, cloudEcoleId)
+  const localPr = readPresences(localDb, ecoleId)
+  const cloudPr = readPresences(cloudDb, cloudEcoleId)
 
   return [
     ...diffGeneric('paiement', localP, cloudP, paiementLabel, paiementSummary, (l, c) =>
@@ -221,6 +359,62 @@ export function diffBlobEntities(
           limite: c.date_limite,
         },
         ['montant', 'limite'],
+      )),
+    ...diffGeneric('personnel', localPe, cloudPe, personnelLabel, personnelSummary, (l, c) =>
+      diffFields(
+        {
+          nom: l.nom,
+          prenom: l.prenom,
+          type: l.type,
+          telephone: l.telephone,
+          email: l.email,
+        },
+        {
+          nom: c.nom,
+          prenom: c.prenom,
+          type: c.type,
+          telephone: c.telephone,
+          email: c.email,
+        },
+        ['nom', 'prenom', 'type', 'telephone', 'email'],
+      )),
+    ...diffGeneric('matiere', localM, cloudM, matiereLabel, matiereSummary, (l, c) =>
+      diffFields(
+        {
+          nom: l.nom,
+          nom_en: l.nom_en,
+          coefficient: String(l.coefficient),
+          section: l.section,
+        },
+        {
+          nom: c.nom,
+          nom_en: c.nom_en,
+          coefficient: String(c.coefficient),
+          section: c.section,
+        },
+        ['nom', 'nom_en', 'coefficient', 'section'],
+      )),
+    ...diffGeneric('frais_annexe', localF, cloudF, fraisLabel, fraisSummary, (l, c) =>
+      diffFields(
+        {
+          label: l.label,
+          montant: String(l.montant),
+          type: l.type,
+          obligatoire: String(l.obligatoire),
+        },
+        {
+          label: c.label,
+          montant: String(c.montant),
+          type: c.type,
+          obligatoire: String(c.obligatoire),
+        },
+        ['label', 'montant', 'type', 'obligatoire'],
+      )),
+    ...diffGeneric('presence', localPr, cloudPr, presenceLabel, presenceSummary, (l, c) =>
+      diffFields(
+        { statut: l.statut, note: l.note },
+        { statut: c.statut, note: c.note },
+        ['statut', 'note'],
       )),
   ]
 }

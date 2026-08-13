@@ -2,7 +2,17 @@ import 'server-only'
 import { isServerlessRuntime } from './runtime-env'
 import { readLocalSyncMeta, writeLocalSyncMeta } from './sync-meta'
 
-export type SyncEntityType = 'eleve' | 'classe' | 'paiement' | 'note' | 'tranche' | 'autre'
+export type SyncEntityType =
+  | 'eleve'
+  | 'classe'
+  | 'paiement'
+  | 'note'
+  | 'tranche'
+  | 'personnel'
+  | 'matiere'
+  | 'frais_annexe'
+  | 'presence'
+  | 'autre'
 export type SyncChangeAction = 'create' | 'update' | 'delete'
 export type SyncPlatform = 'desktop' | 'web'
 

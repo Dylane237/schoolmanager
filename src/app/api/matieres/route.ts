@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { getUserFromRequest } from '../../../lib/auth'
 import { requireModule } from '../../../lib/rbac.server'
 import { hasSchoolAccess, getSchoolDbContext, jsonPersist } from '../../../lib/school-api'
@@ -34,11 +35,18 @@ export async function POST(request: NextRequest) {
   const { db, ecoleId, ecoleSlug } = getSchoolDbContext(user)
   if (!ecoleId) return NextResponse.json({ error: 'École introuvable' }, { status: 404 })
 
+  const id = crypto.randomBytes(16).toString('hex')
   db.prepare(`
-    INSERT INTO matieres (ecole_id, classe_id, nom, nom_en, coefficient, section)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(ecoleId, body.classe_id, body.nom,
+    INSERT INTO matieres (id, ecole_id, classe_id, nom, nom_en, coefficient, section)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id, ecoleId, body.classe_id, body.nom,
      body.nom_en || null, body.coefficient || 1, body.section || null)
 
-  return jsonPersist(ecoleSlug, { success: true })
+  return jsonPersist(ecoleSlug, { success: true, id }, undefined, {
+    entity_type: 'matiere',
+    entity_id: id,
+    action: 'create',
+    label: `Matière ${body.nom}`,
+    source: 'matieres',
+  })
 }

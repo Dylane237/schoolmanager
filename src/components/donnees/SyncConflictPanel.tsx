@@ -35,6 +35,11 @@ export default function SyncConflictPanel({
   const [choices, setChoices] = useState<Record<string, MergeChoice>>({})
   const [allowDestructive, setAllowDestructive] = useState(false)
 
+  const entityTypeLabel = useCallback((type: string) => {
+    const labels = t.raw('entityTypes') as Record<string, string> | undefined
+    return labels?.[type] ?? type
+  }, [t])
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -215,7 +220,9 @@ export default function SyncConflictPanel({
                     <div>
                       <p className="font-medium text-slate-800">{item.label}</p>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        <span className="inline-block px-1.5 py-0.5 rounded bg-slate-100 mr-1">{item.entity_type}</span>
+                        <span className="inline-block px-1.5 py-0.5 rounded bg-slate-100 mr-1">
+                          {entityTypeLabel(item.entity_type)}
+                        </span>
                         {kindLabel(item.kind)}
                         {item.fields_changed.length > 0 && ` · ${item.fields_changed.join(', ')}`}
                       </p>

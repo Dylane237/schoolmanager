@@ -1,6 +1,6 @@
 import 'server-only'
 import type Database from 'better-sqlite3'
-import { parseTrancheKey } from './sync-diff-blob'
+import { parseTrancheKey, parsePresenceKey } from './sync-diff-blob'
 
 function copyPaiementFromCloud(
   localDb: Database.Database,
@@ -119,6 +119,160 @@ function removeLocalTranche(localDb: Database.Database, ecoleId: string, entityI
   return null
 }
 
+function copyPersonnelFromCloud(
+  localDb: Database.Database,
+  cloudDb: Database.Database,
+  ecoleId: string,
+  entityId: string,
+): string | null {
+  const row = cloudDb.prepare('SELECT * FROM personnel WHERE id = ?').get(entityId) as Record<string, unknown> | undefined
+  if (!row) return 'Personnel cloud introuvable'
+
+  const exists = localDb.prepare('SELECT id FROM personnel WHERE id = ?').get(entityId)
+  if (exists) {
+    localDb.prepare(`
+      UPDATE personnel SET nom = ?, prenom = ?, telephone = ?, email = ?, type = ?,
+        contrat = ?, date_embauche = ?, salaire = ?
+      WHERE id = ? AND ecole_id = ?
+    `).run(
+      row.nom, row.prenom, row.telephone, row.email, row.type,
+      row.contrat, row.date_embauche, row.salaire,
+      entityId, ecoleId,
+    )
+  } else {
+    localDb.prepare(`
+      INSERT INTO personnel (
+        id, ecole_id, nom, prenom, telephone, email, type, contrat, date_embauche, salaire, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      entityId, ecoleId, row.nom, row.prenom, row.telephone, row.email, row.type,
+      row.contrat, row.date_embauche, row.salaire, row.created_at ?? new Date().toISOString(),
+    )
+  }
+  return null
+}
+
+function copyMatiereFromCloud(
+  localDb: Database.Database,
+  cloudDb: Database.Database,
+  ecoleId: string,
+  entityId: string,
+): string | null {
+  const row = cloudDb.prepare('SELECT * FROM matieres WHERE id = ?').get(entityId) as Record<string, unknown> | undefined
+  if (!row) return 'Matière cloud introuvable'
+
+  const exists = localDb.prepare('SELECT id FROM matieres WHERE id = ?').get(entityId)
+  if (exists) {
+    localDb.prepare(`
+      UPDATE matieres SET classe_id = ?, nom = ?, nom_en = ?, coefficient = ?, section = ?, enseignant_id = ?
+      WHERE id = ? AND ecole_id = ?
+    `).run(
+      row.classe_id, row.nom, row.nom_en, row.coefficient, row.section, row.enseignant_id,
+      entityId, ecoleId,
+    )
+  } else {
+    localDb.prepare(`
+      INSERT INTO matieres (id, ecole_id, classe_id, nom, nom_en, coefficient, section, enseignant_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      entityId, ecoleId, row.classe_id, row.nom, row.nom_en, row.coefficient ?? 1,
+      row.section, row.enseignant_id ?? null,
+    )
+  }
+  return null
+}
+
+function copyFraisAnnexeFromCloud(
+  localDb: Database.Database,
+  cloudDb: Database.Database,
+  ecoleId: string,
+  entityId: string,
+): string | null {
+  const row = cloudDb.prepare('SELECT * FROM frais_annexes WHERE id = ?').get(entityId) as Record<string, unknown> | undefined
+  if (!row) return 'Frais cloud introuvable'
+
+  const exists = localDb.prepare('SELECT id FROM frais_annexes WHERE id = ?').get(entityId)
+  if (exists) {
+    localDb.prepare(`
+      UPDATE frais_annexes SET classe_id = ?, label = ?, montant = ?, obligatoire = ?,
+        type = ?, date_limite = ?, annee_scolaire = ?, annee_scolaire_id = ?
+      WHERE id = ? AND ecole_id = ?
+    `).run(
+      row.classe_id, row.label, row.montant, row.obligatoire,
+      row.type, row.date_limite, row.annee_scolaire, row.annee_scolaire_id ?? null,
+      entityId, ecoleId,
+    )
+  } else {
+    localDb.prepare(`
+      INSERT INTO frais_annexes (
+        id, ecole_id, classe_id, label, montant, obligatoire, type, date_limite, annee_scolaire, annee_scolaire_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      entityId, ecoleId, row.classe_id, row.label, row.montant, row.obligatoire ?? 0,
+      row.type ?? 'autre', row.date_limite, row.annee_scolaire, row.annee_scolaire_id ?? null,
+    )
+  }
+  return null
+}
+
+function copyPresenceFromCloud(
+  localDb: Database.Database,
+  cloudDb: Database.Database,
+  ecoleId: string,
+  cloudEcoleId: string,
+  entityId: string,
+): string | null {
+  const parsed = parsePresenceKey(entityId)
+  if (!parsed) return 'Clé présence invalide'
+
+  const row = cloudDb.prepare(`
+    SELECT * FROM presences
+    WHERE ecole_id = ? AND eleve_id = ? AND date = ?
+  `).get(cloudEcoleId, parsed.eleve_id, parsed.date) as Record<string, unknown> | undefined
+
+  if (!row) return 'Présence cloud introuvable'
+
+  const existing = localDb.prepare(`
+    SELECT id FROM presences WHERE ecole_id = ? AND eleve_id = ? AND date = ?
+  `).get(ecoleId, parsed.eleve_id, parsed.date) as { id: string } | undefined
+
+  if (existing) {
+    localDb.prepare(`
+      UPDATE presences SET statut = ?, note = ?, alerte_envoyee = ?
+      WHERE id = ? AND ecole_id = ?
+    `).run(row.statut, row.note, row.alerte_envoyee ?? 0, existing.id, ecoleId)
+  } else {
+    localDb.prepare(`
+      INSERT INTO presences (id, ecole_id, eleve_id, date, statut, note, alerte_envoyee)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      row.id, ecoleId, parsed.eleve_id, parsed.date, row.statut, row.note, row.alerte_envoyee ?? 0,
+    )
+  }
+  return null
+}
+
+function removeLocalPersonnel(localDb: Database.Database, ecoleId: string, id: string): void {
+  localDb.prepare('DELETE FROM personnel WHERE id = ? AND ecole_id = ?').run(id, ecoleId)
+}
+
+function removeLocalMatiere(localDb: Database.Database, ecoleId: string, id: string): void {
+  localDb.prepare('DELETE FROM matieres WHERE id = ? AND ecole_id = ?').run(id, ecoleId)
+}
+
+function removeLocalFraisAnnexe(localDb: Database.Database, ecoleId: string, id: string): void {
+  localDb.prepare('DELETE FROM frais_annexes WHERE id = ? AND ecole_id = ?').run(id, ecoleId)
+}
+
+function removeLocalPresence(localDb: Database.Database, ecoleId: string, entityId: string): string | null {
+  const parsed = parsePresenceKey(entityId)
+  if (!parsed) return 'Clé présence invalide'
+  localDb.prepare(`
+    DELETE FROM presences WHERE ecole_id = ? AND eleve_id = ? AND date = ?
+  `).run(ecoleId, parsed.eleve_id, parsed.date)
+  return null
+}
+
 export async function applyBlobMergeDecision(
   localDb: Database.Database,
   cloudDb: Database.Database | null,
@@ -141,6 +295,10 @@ export async function applyBlobMergeDecision(
     if (entity_type === 'paiement') removeLocalPaiement(localDb, ecoleId, entity_id)
     else if (entity_type === 'note') removeLocalNote(localDb, ecoleId, entity_id)
     else if (entity_type === 'tranche') return removeLocalTranche(localDb, ecoleId, entity_id)
+    else if (entity_type === 'personnel') removeLocalPersonnel(localDb, ecoleId, entity_id)
+    else if (entity_type === 'matiere') removeLocalMatiere(localDb, ecoleId, entity_id)
+    else if (entity_type === 'frais_annexe') removeLocalFraisAnnexe(localDb, ecoleId, entity_id)
+    else if (entity_type === 'presence') return removeLocalPresence(localDb, ecoleId, entity_id)
     return null
   }
 
@@ -149,9 +307,19 @@ export async function applyBlobMergeDecision(
   if (entity_type === 'paiement') return copyPaiementFromCloud(localDb, cloudDb, ecoleId, entity_id)
   if (entity_type === 'note') return copyNoteFromCloud(localDb, cloudDb, ecoleId, entity_id)
   if (entity_type === 'tranche') return copyTrancheFromCloud(localDb, cloudDb, ecoleId, entity_id, cloudEcoleId)
+  if (entity_type === 'personnel') return copyPersonnelFromCloud(localDb, cloudDb, ecoleId, entity_id)
+  if (entity_type === 'matiere') return copyMatiereFromCloud(localDb, cloudDb, ecoleId, entity_id)
+  if (entity_type === 'frais_annexe') return copyFraisAnnexeFromCloud(localDb, cloudDb, ecoleId, entity_id)
+  if (entity_type === 'presence') return copyPresenceFromCloud(localDb, cloudDb, ecoleId, cloudEcoleId, entity_id)
   return null
 }
 
 export function isBlobEntityType(entity_type: string): boolean {
-  return entity_type === 'paiement' || entity_type === 'note' || entity_type === 'tranche'
+  return entity_type === 'paiement'
+    || entity_type === 'note'
+    || entity_type === 'tranche'
+    || entity_type === 'personnel'
+    || entity_type === 'matiere'
+    || entity_type === 'frais_annexe'
+    || entity_type === 'presence'
 }

@@ -63,5 +63,11 @@ export async function POST(request: NextRequest) {
   })
 
   saveAll(body.presences)
-  return jsonPersist(ecoleSlug, { success: true })
+  return jsonPersist(ecoleSlug, { success: true }, undefined, {
+    entity_type: 'presence',
+    entity_id: body.date,
+    action: 'update',
+    label: `Présences du ${body.date}`,
+    source: 'presences',
+  })
 }

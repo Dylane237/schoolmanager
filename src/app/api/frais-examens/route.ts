@@ -89,7 +89,14 @@ export async function POST(request: NextRequest) {
   }
 
   const config = getFraisExamenConfig(db, ecoleId, body.classe_id, annee)
-  return jsonPersist(ecoleSlug, { success: true, frais_examen: config })
+  const fraisId = config?.id as string | undefined
+  return jsonPersist(ecoleSlug, { success: true, frais_examen: config }, undefined, fraisId ? {
+    entity_type: 'frais_annexe',
+    entity_id: fraisId,
+    action: 'update',
+    label: `Frais examen ${body.label?.trim() ?? ''}`.trim(),
+    source: 'frais-examens',
+  } : undefined)
 }
 
 export async function DELETE(request: NextRequest) {
@@ -113,5 +120,11 @@ export async function DELETE(request: NextRequest) {
     WHERE ecole_id = ? AND classe_id = ? AND annee_scolaire = ? AND type = 'examen'
   `).run(ecoleId, classeId, annee)
 
-  return jsonPersist(ecoleSlug, { success: true })
+  return jsonPersist(ecoleSlug, { success: true }, undefined, {
+    entity_type: 'frais_annexe',
+    entity_id: `${classeId}:${annee}`,
+    action: 'delete',
+    label: `Frais examen classe ${classeId}`,
+    source: 'frais-examens',
+  })
 }

@@ -41,6 +41,18 @@
     "previewWarning": "Warning: {desktop} desktop loss(es), {web} web overwrite(s).",
     "confirmLosses": "{count} entry(ies) will be removed from desktop. Continue?",
     "alreadySynced": "No differences left — already in sync",
-    "nothingToApply": "Select at least one item to merge (not all Skip)"
+    "nothingToApply": "Select at least one item to merge (not all Skip)",
+    "entityTypes": {
+      "eleve": "Student",
+      "classe": "Class",
+      "paiement": "Payment",
+      "note": "Grade",
+      "tranche": "Installment",
+      "personnel": "Staff",
+      "matiere": "Subject",
+      "frais_annexe": "Extra fee",
+      "presence": "Attendance",
+      "autre": "Other"
+    }
   }
 }
